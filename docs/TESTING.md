@@ -1,74 +1,26 @@
-# Verification checklists
+# Testing
 
 ## Automated baseline
 
-- [ ] Every JavaScript file and `sw.js` passes `node --check`.
-- [ ] Both manifests parse as JSON.
-- [ ] `git diff --check` is clean.
-- [ ] Every local `src`, `href`, manifest icon, and service-worker shell path exists.
-- [ ] No console errors appear during startup or the tested workflows.
+```sh
+for file in assets/js/*.js assets/js/core/*.js sw.js; do node --check "$file" || exit 1; done
+node -e "const fs=require('fs'); for (const file of ['manifest.webmanifest','manifest-dark.webmanifest']) JSON.parse(fs.readFileSync(file,'utf8'));"
+git diff --check
+```
 
-## Desktop
+Also verify every local path referenced by HTML, CSS, manifests, configuration, and the service worker exists.
 
-- [ ] Header, version/Beta pills, centered global search, toolbar, icon catalog, and combined floating storage/sync status fit without horizontal overflow.
-- [ ] The full-width catalog reports 7,281 unique icons, initially renders up to 500 compact 132–140px responsive cards with separate preview-copy and direct-name-edit controls plus bottom-corner type/compact-info controls, keeps Australiandollarsign, Greaterthanorequalto, and Malaysianringgitsign on one line at the default text size, wraps longer names, keeps persistent category chips plus same-row Type/Source and Ultra/Light/Medium/Bold/Black SF Symbol weight controls in the compact vertical left rail, remains alphabetically ordered, and progressively reveals additional 500-icon batches. The weight choice persists, uses canonical native Ultra, Light, Medium, Bold, and Black artwork across all 6,918 SF Symbol records, including all five folder-sourced weights for the 50 mapped app-facing names, responds to the 1/3/5/7/9 weight shortcuts, updates card/details/editor previews and copied SF Symbol SVGs, and never changes custom artwork.
-- [ ] `/` focuses global search; Enter closes suggestions and moves to matching cards below; suggestion results still focus their corresponding copy button or route to Notes, Help, releases, and the Settings Roadmap.
-- [ ] No newly scanned source comes from generated output, `dist/`, or the broad `!backups:data` parent beyond its configured child sources; no SF Symbol name or icon ID appears more than once, no display label contains `Svgrepo Com`, and malformed build extractions are absent. Every retained icon belongs to at least one category, Other stays visible directly below All with zero records, and source provenance remains available even when an exact override intentionally removes a source category. Actions, Locations, standalone Games, Sports & Recreation, and Norway & Sweden are absent as category choices. Recreation nests Games and Sport; Geography nests Countries, Regions, Mapping, and Places; country outlines remain distinct from mapping tools; continents, administrative areas, territories, and world/globe symbols appear in Regions; and physical destinations appear in Places. Entertainment & Media replaces Media; Text Formatting nests under Editing; Connectivity joins Devices; Animals & Plants and Weather nest under Nature; and People contains only person/body-part symbols. Arrows appears under How it looks with Chevron, Chevron Arrow, Triangle, and Triangle Arrow children. Explicitly baked broad-parent-only memberships are allowed. All 409 permanent overrides apply; the latest 150 exact entries retain their exported semantic memberships plus applicable Dashed & Dotted or Layered & Stacked memberships, including the four intentional Objects & Tools removals. Badged exposes 39 primary choices, omits Circle/Multiple/Slash as direct children, retains its plain-badge records under Badge, and nests Shield/Triangle under Shapes plus Circle/Triangle under Exclamation Mark. Name, alias, semantic-tag, category, and multi-word searches return expected icons with high-contrast matching text, and selected search-input text has an obvious contrasting selection; selecting a preview copies complete SVG markup; selecting a name and the Icon details Edit metadata action open the same complete editor; right-click category removal and Undo work; metadata editing and override export preserve source provenance; focus returns to the opener when dialogs close. The four generated catalog data parts each remain below 50 MB and assemble into all 7,281 records.
-- [ ] No retained source comes from SVG Converter’s aggregate `app-input/!All/` roll-up.
-- [ ] Every file in the requested `!Accessibility`, `!Editing`, `!Keyboard`, `!Maps`, `!Math`, `!Media`, `!Privacy & Security`, and `!Transportation` folders is represented by an icon assigned to its matching quick category after deduplication; Maps resolves to Geography → Mapping, Media displays as Entertainment & Media, and equivalent folder names without `!` remain supported.
-- [ ] In Developer Mode, a minimum label length such as 30 filters the main catalog and reports the matching count; clearing restores the catalog, disabling Developer Mode suspends the filter, and Export overrides is enabled only when local icon changes exist.
-- [ ] Copying shows visible and announced success, and clipboard denial provides an actionable failure message.
-- [ ] Notes opens blank as one modal, focuses its textarea, autosaves plain text, has no Done button or autosave heading, appears in global search, and restores focus when closed.
-- [ ] The current four-part version matches the build id, asset queries, service-worker cache, manifest icon queries, architecture example, and deployment workflow name; each release-log date appears beside its version number.
-- [ ] Roadmap search, state/priority/target/effort filters, result count, reset action, and every sort option work inside Settings.
-- [ ] Icon-led Settings, Help, What’s New, Roadmap, Shortcuts, and Developer tabs render in that order and manage focus with vertical and horizontal arrow keys; the main-page What’s New banner exposes V/X, displays a bottom-edge 30-second countdown, and automatically marks itself seen when time expires; the New version available toast exposes R to Force Refresh and X to close, directly and with Shift–Control–Option.
-- [ ] Toasts and polite/assertive announcements communicate completion without relying on color.
+## Browser baseline
 
-## Tablet and mobile
+Serve the repository locally and check desktop and mobile widths:
 
-- [ ] At representative 768px and 390px widths, document and body scroll widths do not exceed the viewport; the rail remains vertical at tablet width and becomes a compact top filter surface on mobile.
-- [ ] Top controls remain touch-sized and form fields do not trigger unwanted input zoom.
-- [ ] Notes fills the mobile viewport without horizontal overflow or nested page scrolling.
-- [ ] Icon details and metadata editing fill the mobile viewport, wrap long content, keep one scrollable content panel, and present touch-sized group checkboxes and footer actions.
-- [ ] Settings fills the screen and uses one full-screen mobile scroll surface with a sticky close header; every tab resets that surface to the top, the final data controls remain reachable, Appearance stays compact, and the fixed GitHub target uses two columns without overflow.
-- [ ] Floating Sync stays inside safe areas and does not obscure required controls.
+- startup has no console errors and the main workspace is blank;
+- Notes starts blank, autosaves, survives reload, and restores from JSON;
+- every Settings tab opens and remains reachable;
+- theme, text size, button style, hints, and keyboard shortcuts work;
+- Roadmap shows its useful empty state and What’s New has one release;
+- local status, recovery, import/export, and GitHub setup are accurate;
+- the install shell reloads offline and the update notice can force refresh;
+- focus is visible, reduced motion is honored, and no horizontal overflow appears.
 
-## Keyboard and accessibility
-
-- [ ] Visible focus, logical focus order, labels, roles, and ARIA state are correct.
-- [ ] Escape closes menus, popovers, and dialogs and returns focus to the trigger.
-- [ ] `/`, `H`/`?`, `,`, `2`, `N`, `V`, `R`, `X`, `S`, `E`, `T`, and `D`/`|` work in their valid contexts outside editable fields; icon commands G/I/C/L work directly and with Shift–Control–Option.
-- [ ] Holding Shift–Control–Option reveals shortcut hints only for enabled controls in the active page or dialog, and releasing any chord key hides them.
-- [ ] Hovering a shortcut-enabled control shows both its plain key and Shift–Control–Option command.
-- [ ] The desktop category rail remains sticky while the icon results page scrolls, its What it is and How it looks sections remain distinct, and the appearance section is alphabetized at every level: Arrows (Chevron, Chevron Arrow, Triangle, Triangle Arrow), Badged, Building, Circled, Dashed & Dotted (142), Layered & Stacked (88), Rays & Sparkles, Shapes, Slashed, and Squared. Both new filters return only explicitly named dashed/dotted or layer/stack variants, and the metadata editor presents the same appearance order. Category labels share one aligned inset, counts align at the far right, label/count type remains comfortably readable, and expandable rows contain a native-appearance-neutral left-side right/down chevron with an equal-width spacer on leaf rows. Tabs and menu items support arrow-key movement; icon cards support Left/Right/Up/Down plus Home/End without hiding the separate information controls; the separator supports drag/touch plus Left/Right/Home/End resizing and reports its current value; Developer Mode shows the rail percentage only while pointer dragging.
-- [ ] Appearance contains color mode, then button presentation using the supplied square-and-A symbol plus matching square-only and A-only variants, then one iOS-style text-size slider, followed by symbol-led Hints controls and the supplied circular restore symbol; the slider fills the same control width as the segmented toggles and updates the whole application, no redundant Text Size disclaimer remains, and the device reduced-motion setting removes nonessential transitions and animations.
-- [ ] Light and dark themes meet contrast needs; every path in the 42px app icon uses the same width and full opacity before and after theme switching; the favicon geometry remains distinct against its Safari-gray fill at tab size; status always includes text or an accessible label.
-
-## Persistence, import, and migration
-
-- [ ] Icon category/type/source settings, category collapse state, filter-rail width, icon name/type/group/filter-source overrides, Notes, Roadmap filters and sorting, hints, release state, and preferences persist after reload; saved Locations and child filters, Maps, and Maps & Travel filters and overrides migrate to Geography and the corresponding child, while old Other-only overrides inherit the icon’s compiled groups.
-- [ ] Reset Preferences preserves notes and icon metadata overrides; Erase All removes content, overrides, preferences, token, and recovery data only after custom confirmation.
-- [ ] Backup export contains state-model version, notes, preferences, icon metadata overrides, and module settings, but never the GitHub token; compact override export is a plain array containing stable icon IDs, labels, category IDs, and only explicitly changed type/filter-source values.
-- [ ] A malformed or oversized import is rejected without replacing current data.
-- [ ] A valid import shows its preview, migrates and sanitizes, confirms replacement, and preserves a recovery copy.
-- [ ] `docs/examples/legacy-backup-v1.json` and `legacy-backup-v2.json` migrate without losing their user content.
-
-## GitHub synchronization
-
-- [ ] Owner, repository, branch, and path come from `config.cloudSync`, appear read-only in one desktop row, and cannot be redirected by saved or imported state; Settings shows only Forget, Test, and Save actions below the token and remember choice.
-- [ ] Missing token opens setup; invalid values show actionable validation.
-- [ ] Connection testing distinguishes authentication, permission, missing repository/branch, network, and malformed remote-file failures.
-- [ ] Local-only, remote-only, current, missing-file, first-sync, conflict, offline, and error states have distinct accessible labels and styles.
-- [ ] Conflict choices include merge, upload, download, and cancel; no divergent data is overwritten silently.
-- [ ] Download and merge preserve a recovery copy and keep device-local cloud settings.
-- [ ] Visibility, interval, and reconnect checks do not overlap or apply stale responses.
-- [ ] JSON backup/restore remains usable without GitHub.
-
-## PWA and recovery
-
-- [ ] First online visit caches every `SHELL` entry, including the generated icon catalog, and a later offline reload supports icon search/copy, Notes, the Settings Roadmap, and Settings.
-- [ ] An online refresh revalidates and displays current HTML, CSS, and JavaScript instead of preferring stale cache entries.
-- [ ] A waiting service worker shows a bottom New version available toast; its arrow-only Force refresh action and contextual R shortcut activate it and reload the browser tab or installed PWA, while X closes the notice. R/X also work with Shift–Control–Option, display shortcut hints, and stay inactive when a dialog owns focus.
-- [ ] The Safari favicon uses a fully opaque `#8E8E93` background with visible neon-blue geometry, an X, two circles, every other grid line, no square outlines, and no inset outline; its center cross matches the X thickness while the outer grid guides remain lighter; manifest, touch icon, install icon, and splash assets resolve.
-- [ ] Manual recovery copy enables Restore; restoring replaces state only after confirmation.
-- [ ] Storage quota and unavailable-API paths show useful fallback messages.
+Stop the local server when finished.

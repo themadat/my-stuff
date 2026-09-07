@@ -1,8 +1,8 @@
 {
-  "name": "App Template",
-  "short_name": "Template",
-  "description": "A searchable local SVG icon library for finding and copying reusable interface symbols.",
-  "id": "./",
+  "name": "My Stuff",
+  "short_name": "My Stuff",
+  "description": "A local-first application foundation.",
+  "id": "./my-stuff",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -12,8 +12,8 @@
   "orientation": "any",
   "categories": ["utilities"],
   "icons": [
-    { "src": "assets/icons/icon-192.png?v=0.0.1.62", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-512.png?v=0.0.1.62", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-512-maskable.png?v=0.0.1.62", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "assets/icons/icon-192.png?v=0.0.1.1", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png?v=0.0.1.1", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512-maskable.png?v=0.0.1.1", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

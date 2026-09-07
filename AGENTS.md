@@ -1,49 +1,34 @@
-# App Template — Agent Instructions
+# My Stuff — Agent Instructions
 
-Static, local-first HTML/CSS/JavaScript application. There is no required build step, runtime dependency, backend, account, or sign-in. `context/LLM_HANDOFF.md` is the durable source of truth for agent workflows and repository-specific invariants; read it before implementing anything.
+Static, local-first HTML/CSS/JavaScript application. There is no required build step, runtime dependency, backend, account, or sign-in. Read `context/LLM_HANDOFF.md` and `context/WISHES.md` before implementation.
 
 ## Session start
 
-1. Run `git status --short`. Existing and manual edits are authoritative; preserve them.
-2. Read `context/LLM_HANDOFF.md` and `context/WISHES.md`.
-3. If a feature is in flight, inspect `git log --oneline -5`, `git diff main...HEAD --stat`, and the `## Resume` section of its plan document.
+1. Run `git status --short`; preserve existing and manual edits.
+2. Read the handoff and wish ledger.
+3. For in-flight work, inspect the latest commits, branch diff, and the plan’s `## Resume` section.
 
 ## Working rules
 
-- Search with `rg` before reading broad file ranges. Keep edits narrow and never reformat unrelated code.
-- Keep the application static, dependency-free at runtime, and usable from an ordinary static host.
-- Central identity, versions, and shell settings live in `assets/js/config.js`.
-- Preserve the focused foundation: top bar with centered search, blank main workspace, single Notes modal, demonstrative Roadmap inside Settings, combined floating storage/sync status, local persistence/recovery, and optional GitHub Sync. Do not restore the removed Records interface, multi-note workspace, rich-text editor, or an app-space Roadmap without an explicit request.
-- Keep additions narrow and configurable. The compatibility state may retain legacy record/document fields so older backups and sync copies remain readable.
-- Application versions use `major.minor.patch.build`. Every completed application update increments the fourth `build` number. An explicit major, minor, or patch change resets `build` to `1` unless the user specifies another value. Keep `identity.buildId` identical to the full four-part `identity.version`, add or update the matching dated release entry, update the build queries in `index.html` plus the service-worker cache/build ids, and keep the version in `.github/workflows/deploy-pages.yml`'s workflow `name` identical so GitHub Mobile deployment notifications show it. Wish, plan, and agent-instruction-only edits do not change the app version unless explicitly requested. The destructive `reset` workflow is the sole exception: it deliberately starts a copied application at `0.0.1.1`.
-- Use semantic HTML, labelled controls, visible focus, safe URLs, and escaped user text.
-- Use the shared inline SVG symbol catalog for interface icons whenever an appropriate symbol exists; do not use emoji or font glyphs for standard controls.
-- Verify proportionally: JavaScript syntax, manifest JSON parsing, `git diff --check`, referenced asset paths, and relevant desktop/mobile/offline workflows.
-- Stop local preview servers before the final response.
+- Search with `rg`, keep edits narrow, and do not reformat unrelated code.
+- Keep the runtime static and dependency-free.
+- Central identity, versions, storage namespaces, release data, Help, and Roadmap live in `assets/js/config.js`.
+- Preserve the focused foundation: header with centered support search, blank main workspace, one Notes modal, Settings, combined local/sync status, recovery, backup/import, optional GitHub Sync, and PWA/offline behavior.
+- Do not invent a product data model or restore previously removed interfaces without an explicit request.
+- Use semantic HTML, labelled controls, visible focus, safe URLs, escaped user text, and shared inline SVG interface symbols.
+- Versions use `major.minor.patch.build`. Every completed application update increments `build`; keep every version, query, cache, release, and workflow surface aligned. Reset alone may return a copy to `0.0.1.1`.
+- Verify scripts, manifests, diffs, asset paths, and affected desktop/mobile/offline flows. Stop preview servers before handoff.
 
-## Workflow shorthands
+## Lifecycle shorthands
 
-Treat these one-word user requests as repository workflows:
+- `reset`: follow `docs/RESET.md`; transform a confirmed copy to a clean `0.0.1.1` foundation.
+- `wish`: capture one scoped idea in `context/WISHES.md`; do not plan or implement it.
+- `plan`: investigate a wish and write `context/WISH-###-slug-PLAN.md`; do not implement it.
+- `start`: implement an approved plan, update Resume, advance versions, and verify.
+- `cut`: finalize the active line, align release/version surfaces, close the wish, and run the full checklist.
 
-- `reset`: turn a copied repository into a clean new-app foundation at `0.0.1.1`, retaining the reusable shell and infrastructure while removing the icon-library product. Follow the preflight and complete reset contract in `context/LLM_HANDOFF.md` and `docs/RESET.md`; do not run it against the canonical template accidentally.
-- `wish`: capture a scoped idea in `context/WISHES.md`; do not plan or implement it.
-- `plan`: investigate a wish and write or revise `context/WISH-###-<slug>-PLAN.md`; do not implement it.
-- `start`: implement an approved plan, maintain its Resume block, update the app and build versions, and verify the work.
-- `cut`: finalize the active line as a release, update all version/release/cache surfaces, close the wish, and run the full release checklist.
-
-The detailed contracts are in `context/LLM_HANDOFF.md`, with the destructive reset checklist in `docs/RESET.md`. Do not silently advance from one lifecycle stage to another.
+Never silently advance between lifecycle stages.
 
 ## End of turn
 
-After changing files, finish with:
-
-1. A concise outcome summary and verification result.
-2. Exactly one copy-paste-ready shell command that stages only the files belonging to the completed request, commits them with the exact subject shape `Version - Text`, and pushes the current branch to `origin`.
-
-Command shape:
-
-```bash
-git add . && git commit -m "X.Y.Z.B - Describe the completed change" && git push origin <current-branch>
-```
-
-Do not run the commit or push unless the user explicitly asks. Use `git add .` when `git status --short` confirms every change belongs to the completed request; otherwise list only the task files and call out the unrelated changes. Never use `git add -A` when unrelated or user-owned changes are present. If no files changed, do not suggest an empty commit.
+After changing files, provide a concise outcome and verification result, then exactly one copy-paste shell command that stages only task files, commits with subject `Version - Text`, and pushes the current branch. Use `git add .` only when every change belongs to the request. Do not run commit or push unless explicitly requested. If no files changed, do not suggest a commit.
