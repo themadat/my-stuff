@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first application foundation.",
-      version: "0.0.1.1",
-      buildId: "0.0.1.1",
+      version: "0.0.1.2",
+      buildId: "0.0.1.2",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -44,6 +44,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.2",
+      date: "2026-09-07T14:45:00.000Z",
+      title: "Restore the base interface symbols",
+      summary: "Every symbol used by the retained shell is self-contained again.",
+      features: ["Original SVG artwork for the top bar, search, Notes, Settings, appearance controls, Help, Roadmap, shortcuts, Developer tools, and GitHub Sync"],
+      improvements: ["The compact interface-symbol helper has no dependency on removed product data"],
+      fixes: ["Replaced temporary outline stand-ins with the original base UI artwork"],
+      knownIssues: ["GitHub Sync requires a user-provided fine-grained token."]
+    }, {
       version: "0.0.1.1",
       date: "2026-09-07T12:00:00.000Z",
       title: "Start the My Stuff foundation",

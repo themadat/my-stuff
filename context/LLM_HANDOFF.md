@@ -1,6 +1,6 @@
 # Agent handoff
 
-My Stuff is a clean local-first foundation at version `0.0.1.1`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, one initial What’s New release, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support.
+My Stuff is a clean local-first foundation at version `0.0.1.2`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, What’s New, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support. Its compact interface-symbol helper embeds the original SVG artwork required by every retained control without depending on removed product data.
 
 Application artwork is retained as a placeholder. The runtime is static and dependency-free. Browser data uses the app-specific `myStuff.*` namespace; GitHub Sync targets `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`.
 
