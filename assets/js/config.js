@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first application foundation.",
-      version: "0.0.1.5",
-      buildId: "0.0.1.5",
+      version: "0.0.1.6",
+      buildId: "0.0.1.6",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -44,6 +44,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.6",
+      date: "2026-09-08T17:00:38.000Z",
+      title: "Give Data Sync its own Settings section",
+      summary: "Connection controls and an expandable preview of the outgoing sync JSON now live together in Data Sync.",
+      features: ["Data Sync tab with the supplied braces SVG", "Collapsible, read-only JSON preview generated from the same payload used for GitHub uploads"],
+      improvements: ["Data & connection moved out of general Settings", "Sync setup shortcuts open Data Sync directly", "Expanded JSON updates with Notes changes without including credentials or device preferences"],
+      fixes: [],
+      knownIssues: []
+    }, {
       version: "0.0.1.5",
       date: "2026-09-08T16:55:28.000Z",
       title: "Clarify cloud choices and access checks",
@@ -91,6 +100,7 @@
     }],
     roadmap: [],
     helpTopics: [
+      { id: "data-sync", title: "Data Sync", section: "Settings", keywords: "data connection sync json payload preview github braces", html: "<p>Open Settings → Data Sync for local storage status, GitHub connection details, and sync actions. Expand JSON sent to GitHub to inspect the exact outgoing data file generated from this device. It updates when Notes change, excludes the token and device settings, and does not fetch the current cloud copy. Backup, restore, and reset controls remain in general Settings.</p>" },
       { id: "start", title: "Getting started", section: "Basics", keywords: "start blank workspace foundation", html: "<p>The main workspace is intentionally blank. Add the first product feature through a focused wish, plan, or implementation request.</p>" },
       { id: "notes", title: "Notes", section: "Basics", keywords: "notes autosave local", html: "<p>Open Notes from the header or press <kbd>N</kbd>. Plain text saves automatically in this browser.</p>" },
       { id: "appearance", title: "Appearance", section: "Settings", keywords: "theme text size buttons hints", html: "<p>Settings includes system, light, and dark themes, text sizing, button presentation, and contextual hints.</p>" },

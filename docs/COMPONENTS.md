@@ -24,6 +24,12 @@ Settings includes Sync Now, confirmed Restore from Cloud, safe repository/data-f
 
 The first-sync/conflict choice dialog renders each option as a left-aligned icon-and-copy row. Decorative shared cloud SVGs precede the label and description, including on mobile. Test displays a read-only result dialog rather than claiming upload success. GitHub error details and repository-specific access guidance remain visible below the status in Settings.
 
+## Data Sync section
+
+The `data-sync` tab inside Settings owns Data & connection and the collapsible outgoing JSON preview. It uses the supplied braces SVG from the shared interface-symbol helper. Sync setup events open this tab and focus the token input. Its tab name survives state normalization but is not cloud content.
+
+The native `details` disclosure starts closed. When expanded, `renderSyncPayload` uses `JSON.stringify(stateModel.syncPayload(state()), null, 2)`, matching the data-file serialization used by GitHub uploads. The preview is assigned with `textContent` to a keyboard-focusable, wrapping `pre`/`code` surface; it is never editable HTML. Expanded content refreshes on state changes, closed previews are cleared, and tokens, preferences, and sync metadata are excluded by the content-only model. Opening it never fetches or writes remote content.
+
 ## Shared dialogs
 
 Import preview, confirmation, choice, message, toast, and loading components share focus restoration and accessible labelling through `assets/js/core/components.js`.

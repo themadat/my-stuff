@@ -234,7 +234,15 @@
     delete $("#syncRememberToken").dataset.dirty;
   }
 
-  function renderSync() { renderSyncStatus(); renderSyncSettings(); }
+  function renderSyncPayload() {
+    const disclosure = $("#syncPayloadDisclosure");
+    const output = $("#syncPayloadJson");
+    // Use the exact upload serializer, never the full state or export envelope.
+    const json = disclosure.open ? JSON.stringify(model.syncPayload(state()), null, 2) : "";
+    if (output.textContent !== json) output.textContent = json;
+  }
+
+  function renderSync() { renderSyncStatus(); renderSyncSettings(); renderSyncPayload(); }
 
   function renderHelp() {
     const query = $("#helpSearch").value.trim().toLowerCase();
@@ -433,6 +441,7 @@
     $("#restoreHintsButton").addEventListener("click", function () { storage.mutate(function (next) { next.preferences.hints.enabled = true; next.preferences.hints.dismissed = []; }, { reason: "hints" }); applyAppearance(); });
     $("#textSizeSlider").addEventListener("input", function () { const scale = Number(this.value) / 100; storage.mutate(function (next) { next.preferences.appearance.textScale = scale; }, { reason: "text-size" }); applyAppearance(); renderTextSize(); });
     $("#helpSearch").addEventListener("input", renderHelp);
+    $("#syncPayloadDisclosure").addEventListener("toggle", renderSyncPayload);
     $("#exportButton").addEventListener("click", App.portability.exportJson);
     $("#importButton").addEventListener("click", function () { $("#importFileInput").click(); });
     $("#syncNowButton").addEventListener("click", function () { App.sync.syncNow(this); });
@@ -461,7 +470,7 @@
     });
     window.addEventListener("app:syncchange", renderSync);
     window.addEventListener("app:opensyncsettings", function (event) {
-      openSupport("settings", event.detail.trigger);
+      openSupport("data-sync", event.detail.trigger);
       requestAnimationFrame(function () { $("#storageSyncSettings").scrollIntoView({ block: "start" }); $("#syncToken").focus({ preventScroll: true }); });
     });
     window.addEventListener("app:networkchange", renderSync);

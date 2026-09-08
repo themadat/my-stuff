@@ -34,6 +34,8 @@ Application artwork comes from the supplied `assets/icons/my-stuff-app-icon.svg`
 
 ## Data and privacy
 
+Open Settings → Data Sync for Data & connection, GitHub credentials, sync actions, and the collapsible “JSON sent to GitHub” preview. The preview uses the actual upload payload, updates with local Notes, and renders as read-only escaped text. It is not a full backup or a fetched remote copy. General Settings retains appearance, backup/import, and reset controls.
+
 Notes and preferences use the app-specific `myStuff.*` browser-storage namespace. Full JSON backups include device preferences but exclude the GitHub token. Optional GitHub Sync sends Notes only to `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`; appearance, search, settings, and save metadata stay local. Supply a fine-grained token with Contents read and write access to that repository.
 
 Settings shows linked repository/file targets and masked saved credentials. Test retains a token after a read check, but explicitly does not verify upload permission or write anything to GitHub. Save stores it and checks the cloud copy. Remember keeps it on this device; otherwise it lasts for the browser tab. Sync Now (or `S`/the floating status) compares copies and asks how to resolve first sync or conflicting Notes, using left-aligned choices with leading symbols. Restore from Cloud requires confirmation and a successful local recovery backup.

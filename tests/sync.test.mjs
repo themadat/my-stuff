@@ -437,3 +437,11 @@ test('every first-sync choice supplies a shared SVG symbol', async () => {
   await missing.sync.syncNow();
   assert.equal(missing.choices[0].choices[0].symbol, 'icloud.and.arrow.up');
 });
+
+test('Data Sync tab is retained by normalization without affecting the sync payload', () => {
+  const h = harness(), model = h.App.stateModel;
+  const before = model.syncHash(h.state);
+  h.state.ui.supportTab = 'data-sync';
+  assert.equal(model.normalize(h.state).ui.supportTab, 'data-sync');
+  assert.equal(model.syncHash(h.state), before);
+});

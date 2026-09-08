@@ -25,6 +25,7 @@ Serve the repository locally and check desktop and mobile widths:
 - theme, text size, button style, hints, and keyboard shortcuts work;
 - Roadmap shows its useful empty state and What’s New shows the current release first;
 - local status, recovery, import/export, and GitHub setup are accurate;
+- Data Sync owns Data & connection; its braces icon renders, sync setup focuses this tab, and the collapsible JSON matches actual upload content without credentials or device preferences;
 - the install shell reloads offline and the update notice can force refresh;
 - focus is visible, reduced motion is honored, and no horizontal overflow appears.
 

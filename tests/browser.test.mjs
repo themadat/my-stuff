@@ -41,7 +41,7 @@ test('desktop Settings, safe links, appearance controls, and all retained SVGs',
   assert.equal(await page.locator('#syncNowButton').isDisabled(), true);
   assert.match(await page.locator('#syncSettingsState').textContent(), /Sign In Required/);
   assert.equal(await page.locator('[data-symbol]').evaluateAll(elements => elements.every(el => el.querySelector('svg'))), true);
-  for (const tab of ['help', 'releases', 'roadmap', 'shortcuts', 'settings']) {
+  for (const tab of ['data-sync', 'help', 'releases', 'roadmap', 'shortcuts', 'settings']) {
     await page.locator(`[data-support-tab="${tab}"]`).click();
     assert.equal(await page.locator(`[data-support-panel="${tab}"]`).isVisible(), true);
   }
@@ -82,9 +82,12 @@ test('mobile Settings uses one vertical scroller with a visible sticky close but
 
 test('Test retains masked credentials and draft edits survive background renders', { timeout: 30000 }, async t => {
   const h = await fixture(t), { page } = h;
+  await page.locator('#dataSyncTab').click();
   await page.locator('#syncToken').fill('fake-test-token');
   await page.locator('#syncRememberToken').uncheck();
+  await page.locator('#settingsTab').click();
   await page.locator('[data-theme-mode="dark"]').click();
+  await page.locator('#dataSyncTab').click();
   assert.equal(await page.locator('#syncToken').inputValue(), 'fake-test-token');
   assert.equal(await page.locator('#syncRememberToken').isChecked(), false);
   await page.locator('#testSyncButton').click();
@@ -105,6 +108,7 @@ test('Test retains masked credentials and draft edits survive background renders
   await page.locator('#saveSyncButton').click();
   await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
   await page.reload(); await page.locator('#supportButton').click();
+  await page.locator('#dataSyncTab').click();
   assert.equal(await page.locator('#syncToken').inputValue(), 'unsaved-draft');
   assert.equal(await page.locator('#storedTokenLabel').textContent(), 'Stored on this device');
   assert.equal(await page.evaluate(() => sessionStorage.getItem('myStuff.githubToken.session.v1')), null);
@@ -124,6 +128,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
   assert.equal(await page.locator('#notesTextarea').inputValue(), 'Local ☁️\n<literal> Notes');
   await page.locator('[data-close-dialog="notesDialog"]').click(); await page.locator('#supportButton').click();
   await page.locator('[data-theme-mode="dark"]').click();
+  await page.locator('#dataSyncTab').click();
   await page.locator('#syncToken').fill('fake-secret'); await page.locator('#saveSyncButton').click();
   await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
   await page.locator('#syncNowButton').click();
@@ -137,6 +142,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
   await page.waitForFunction(() => window.LocalApp.storage.getState().notes.text === 'Cloud Notes');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
   assert.ok(await page.evaluate(() => window.LocalApp.storage.recoveryInfo()));
+  await page.locator('#settingsTab').click();
   const downloadPromise = page.waitForEvent('download'); await page.locator('#exportButton').click();
   const download = await downloadPromise, stream = await download.createReadStream();
   let bytes = ''; for await (const chunk of stream) bytes += chunk;
@@ -146,6 +152,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
 
 test('comparison alone animates arrows, reduced motion stops them, and authentication failure has a static symbol', { timeout: 30000 }, async t => {
   const h = await fixture(t), { page } = h;
+  await page.locator('#dataSyncTab').click();
   await page.locator('#syncToken').fill('fake-token'); await page.locator('#testSyncButton').click();
   await page.locator('[data-message-close]').click();
   await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
@@ -165,6 +172,7 @@ test('comparison alone animates arrows, reduced motion stops them, and authentic
 
 test('first-sync options are left-aligned with leading symbols at desktop and mobile widths', { timeout: 30000 }, async t => {
   const h = await fixture(t), { page } = h;
+  await page.locator('#dataSyncTab').click();
   h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Cloud-only notes' } };
   await page.locator('#syncToken').fill('fake-token'); await page.locator('#saveSyncButton').click();
   await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
@@ -184,6 +192,45 @@ test('first-sync options are left-aligned with leading symbols at desktop and mo
     await page.locator('[data-choice-cancel]').click();
   }
   assert.equal(h.writes.length, 0);
+});
+
+test('Data Sync shows the exact outgoing JSON without credentials and stays current after Notes changes', { timeout: 30000 }, async t => {
+  const h = await fixture(t), { page } = h;
+  assert.equal(await page.locator('#settingsPanel #storageSyncSettings').count(), 0);
+  assert.equal(await page.locator('#dataSyncPanel #storageSyncSettings').count(), 1);
+  await page.locator('#settingsTab').focus(); await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('#dataSyncTab').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('#dataSyncTab [data-symbol="braces"] svg').count(), 1);
+  const details = page.locator('#syncPayloadDisclosure');
+  assert.equal(await details.evaluate(el => el.open), false);
+  await details.locator('summary').focus(); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('#syncPayloadJson').textContent.length > 0);
+  const empty = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: {} };
+  assert.deepEqual(JSON.parse(await page.locator('#syncPayloadJson').textContent()), empty);
+  await page.locator('#syncToken').fill('secret-not-in-json');
+  await page.locator('#saveSyncButton').click(); await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
+  assert.doesNotMatch(await page.locator('#syncPayloadJson').textContent(), /secret-not-in-json|preferences|cloudSync/);
+  const note = 'Actual Notes ☁️\n<img src=x onerror=alert(1)> ' + 'long-note'.repeat(80);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#notesButton').click(); await page.locator('#notesTextarea').fill(note);
+  await page.locator('[data-close-dialog="notesDialog"]').click();
+  await page.locator('#supportButton').click(); await page.locator('#dataSyncTab').click();
+  const json = await page.locator('#syncPayloadJson').textContent();
+  assert.equal(JSON.parse(json).data.notes, note);
+  assert.equal(await page.locator('#syncPayloadJson img').count(), 0);
+  assert.equal(json, await page.evaluate(() => JSON.stringify(window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()), null, 2)));
+  await page.locator('#syncNowButton').click();
+  await page.locator('[data-choice-value="upload"]').click();
+  await page.waitForFunction(() => window.LocalApp.sync.getInfo().state === 'upToDate');
+  assert.deepEqual(h.writes[0], JSON.parse(json));
+  await page.locator('#settingsTab').click(); await page.locator('[data-theme-mode="dark"]').click();
+  await page.locator('#textSizeSlider').fill('130'); await page.locator('#dataSyncTab').click();
+  assert.equal(await page.locator('#syncPayloadJson').textContent(), json);
+  await page.setViewportSize({ width: 320, height: 844 });
+  assert.equal(await page.locator('#supportDialog').evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  assert.equal(await page.locator('#dataSyncPanel').evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  await details.locator('summary').click();
+  await page.waitForFunction(() => !document.querySelector('#syncPayloadDisclosure').open && document.querySelector('#syncPayloadJson').textContent === '');
 });
 
 test('JSON imports distinguish cloud content from full backups and preserve a recovery copy', { timeout: 30000 }, async t => {
