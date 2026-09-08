@@ -43,13 +43,46 @@ function harness({ token = 'test-token', online = true } = {}) {
   h.file = () => response(200, { type: 'file', sha: 'remote-sha', content: Buffer.from(JSON.stringify(h.legacy ? h.remote : App.stateModel.syncPayload(h.remote))).toString('base64') });
   h.respond = h.file;
   h.setBaseline = () => Object.assign(state.modules.cloudSync, {
-    baselineTarget: 'themadat/my-stuff/main/data/my-stuff.json', baselineHash: App.stateModel.syncHash(state), baselineSha: 'base-sha'
+    baselineTarget: 'themadat/app-data/main/data/my-stuff.json', baselineHash: App.stateModel.syncHash(state), baselineSha: 'base-sha'
   });
   return h;
 }
 function response(status, body = {}) { return { status, ok: status >= 200 && status < 300, json: async () => body }; }
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 function changeNotes(state, text) { state.notes.text = text; state.notes.updatedAt = state.meta.updatedAt; }
+
+test('existing devices switch to app-data without reusing the old repository baseline or losing Notes', async () => {
+  const h = harness();
+  changeNotes(h.state, 'Keep my existing Notes');
+  h.state.modules.cloudSync.repo = 'my-stuff';
+  Object.assign(h.state.modules.cloudSync, {
+    baselineTarget: 'themadat/my-stuff/main/data/my-stuff.json',
+    baselineHash: h.App.stateModel.syncHash(h.state), baselineSha: 'old-repository-sha'
+  });
+  h.App.storage.mutate(() => {}, { touch: false });
+  assert.equal(h.state.modules.cloudSync.repo, 'app-data');
+  assert.equal(h.state.notes.text, 'Keep my existing Notes');
+  assert.equal(h.token, 'test-token');
+  assert.equal(h.App.config.identity.repository.url, 'https://github.com/themadat/my-stuff');
+  h.respond = (url, options) => options.method === 'PUT'
+    ? response(201, { content: { sha: 'new-data-sha' } })
+    : response(url.includes('/contents/') ? 404 : 200);
+  const result = await h.sync.testConnection({ ...h.state.modules.cloudSync, token: h.token });
+  assert.match(result.message, /themadat\/app-data/);
+  await h.sync.syncNow();
+  assert.equal(h.sync.getInfo().change, 'first-sync');
+  assert.equal(h.requests.some(request => request.options.method === 'PUT'), false);
+  h.choice = 'upload';
+  await h.sync.syncNow();
+  const upload = h.requests.find(request => request.options.method === 'PUT');
+  assert.equal(upload.url, 'https://api.github.com/repos/themadat/app-data/contents/data/my-stuff.json');
+  const body = JSON.parse(upload.options.body);
+  assert.equal(body.branch, 'main');
+  assert.equal(body.sha, undefined);
+  assert.equal(JSON.parse(Buffer.from(body.content, 'base64').toString()).data.notes, 'Keep my existing Notes');
+  assert.ok(h.requests.every(request => /^https:\/\/api\.github\.com\/repos\/themadat\/app-data(?:\/|$)/.test(request.url)));
+  assert.equal(h.state.modules.cloudSync.baselineTarget, 'themadat/app-data/main/data/my-stuff.json');
+});
 
 const expected = {
   idle: ['icloud', 'neutral', 'Cloud Sync'],
@@ -285,7 +318,7 @@ test('download and subsequent release dismissal, Settings, filter, and theme cha
 
 test('legacy whole-state files migrate without false conflicts and compact on explicit Sync Now', async () => {
   const h = harness(); h.legacy = true;
-  h.state.modules.cloudSync.baselineTarget = 'themadat/my-stuff/main/data/my-stuff.json';
+  h.state.modules.cloudSync.baselineTarget = 'themadat/app-data/main/data/my-stuff.json';
   h.state.modules.cloudSync.baselineHash = 'old-whole-state-hash';
   h.remote.preferences.appearance.mode = 'dark'; h.remote.ui.search = 'another computer';
   h.respond = (url, options) => options.method === 'PUT' ? response(200, { content: { sha: 'compact-sha' } }) : h.file();
@@ -395,7 +428,7 @@ test('read-only Test never claims write verification and reproduces a later uplo
   h.respond = (url, options) => options.method === 'PUT' ? response(403, { message: 'Resource not accessible by personal access token' }) : h.file();
   await h.sync.syncNow();
   assert.equal(h.sync.getInfo().state, 'permissionDenied');
-  assert.match(h.sync.getInfo().message, /denied the upload to themadat\/my-stuff/);
+  assert.match(h.sync.getInfo().message, /denied the upload to themadat\/app-data/);
   assert.match(h.sync.getInfo().message, /Resource not accessible by personal access token/);
   assert.match(h.sync.getInfo().message, /passing read test does not verify uploads/);
   assert.equal(h.state.notes.text, 'Upload me');

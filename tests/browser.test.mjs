@@ -36,8 +36,8 @@ async function fixture(t, options = {}) {
 test('desktop Settings, safe links, appearance controls, and all retained SVGs', { timeout: 30000 }, async t => {
   const { page } = await fixture(t);
   assert.equal(await page.title(), 'My Stuff');
-  assert.equal(await page.locator('#syncRepo').getAttribute('href'), 'https://github.com/themadat/my-stuff');
-  assert.equal(await page.locator('#syncPath').getAttribute('href'), 'https://github.com/themadat/my-stuff/blob/main/data/my-stuff.json');
+  assert.equal(await page.locator('#syncRepo').getAttribute('href'), 'https://github.com/themadat/app-data');
+  assert.equal(await page.locator('#syncPath').getAttribute('href'), 'https://github.com/themadat/app-data/blob/main/data/my-stuff.json');
   assert.equal(await page.locator('#syncNowButton').isDisabled(), true);
   assert.match(await page.locator('#syncSettingsState').textContent(), /Sign In Required/);
   assert.equal(await page.locator('[data-symbol]').evaluateAll(elements => elements.every(el => el.querySelector('svg'))), true);

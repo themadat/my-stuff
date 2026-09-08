@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first application foundation.",
-      version: "0.0.1.6",
-      buildId: "0.0.1.6",
+      version: "0.0.1.7",
+      buildId: "0.0.1.7",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -32,7 +32,7 @@
       secretKey: "myStuff.githubToken.v1",
       sessionSecretKey: "myStuff.githubToken.session.v1"
     },
-    cloudSync: { owner: "themadat", repo: "my-stuff", branch: "main", path: "data/my-stuff.json" },
+    cloudSync: { owner: "themadat", repo: "app-data", branch: "main", path: "data/my-stuff.json" },
     features: { documents: true, cloudSync: true, roadmap: true, developerTools: true, hints: true },
     controls: {
       shortcutHintModifier: "ShiftControlOption",
@@ -44,6 +44,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.7",
+      date: "2026-09-08T17:18:05.000Z",
+      title: "Sync to the dedicated app-data repository",
+      summary: "GitHub Sync now targets themadat/app-data on main at data/my-stuff.json, matching the intended token permissions.",
+      features: [],
+      improvements: ["Project and support links still point to the My Stuff application repository"],
+      fixes: ["Corrected the sync destination from my-stuff to app-data"],
+      knownIssues: []
+    }, {
       version: "0.0.1.6",
       date: "2026-09-08T17:00:38.000Z",
       title: "Give Data Sync its own Settings section",
