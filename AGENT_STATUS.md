@@ -1,23 +1,26 @@
 # Goal
-Capture the supplied zones, rooms, spaces, and grouped tags as a proposed wish.
+Apply Title Case, burnt orange accents, fixed USD, and resolve the reported cloud-copy rejection.
 # Status
-COMPLETE
+BLOCKED
 # Checkpoint
-No checkpoint commit. Application version remains 0.0.1.8.
+No checkpoint commit. Application update 0.0.1.9 is verified locally; sync migration awaits the actual cloud structure.
 # Completed
-- Recorded the full location hierarchy and tag vocabulary in WISH-001.
-- Recorded acceptance criteria, compatibility constraints, and planning questions.
+- Title Case inventory/support labels and burnt orange accents in both themes, including existing saved preferences.
+- Fixed USD across forms, totals, normalization, backup, and outgoing sync; existing numeric amounts remain intact.
+- Replaced generic legacy cloud rejection with specific workspace/Notes diagnostics; neither copy is overwritten on rejection.
+- Aligned version, release, cache, manifests, deployment label, Help, README, and handoff.
 # Remaining
-- None for requirements capture; planning and implementation are separate lifecycle stages.
+- Reproduce and fix the user's actual cloud-copy rejection once its redacted JSON structure is available.
 # Verification
-- Build: NOT RUN (documentation only)
-- Tests: NOT RUN (documentation only)
-- Lint: PASS (git diff --check)
-- Review: PASS (supplied names, groups, and parent relationships checked)
+- Build: PASS (static runtime syntax and asset/manifest/version consistency; no build step)
+- Tests: PASS (53 model/static checks and 14 isolated Chromium browser checks, including offline)
+- Lint: PASS (git diff --check; no standalone linter configured)
+- Review: PASS (completed UI/USD changes and desktop/mobile visual review; actual cloud migration unverified)
 # Next
-When requested, plan WISH-001 using context/WISHES.md.
+Inspect the user's redacted data/my-stuff.json. Add a fixture reproducing its rejection, implement a lossless supported migration if possible, verify sync/restore protections, and update release/handoff/status.
 # Decisions
-- Treated the supplied taxonomy as a proposed wish, without advancing to implementation.
-- Preserved supplied spelling and punctuation, including repeated Closet spaces.
-- Preserved unrelated icon edits and existing AGENTS.md instructions.
-- Canonical version is assets/js/config.js; the four-part format does not support +X metadata.
+- GitHub connector returned 404 for the configured file; asked user for JSON structure. Never guess or strip legacy workspace data.
+- Existing supported currency labels normalize to USD without converting numeric amounts.
+- App accents override old saved accent colors; display mode/scale and semantic colors remain intact.
+- WISH-001 remains Proposed and outside this update.
+- Preserved unrelated icon edits; no commit, push, or live cloud write.

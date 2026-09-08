@@ -98,8 +98,8 @@
       preferences: {
         appearance: {
           mode: ["system", "light", "dark"].includes(appearance.mode) ? appearance.mode : "system",
-          accent: u.normalizeColor(appearance.accent, theme.accent),
-          accent2: u.normalizeColor(appearance.accent2, theme.accent2),
+          accent: theme.accent,
+          accent2: theme.accent2,
           success: u.normalizeColor(appearance.success, theme.success),
           warning: u.normalizeColor(appearance.warning, theme.warning),
           danger: u.normalizeColor(appearance.danger, theme.danger),
@@ -210,7 +210,9 @@
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("The cloud data must be an object.");
     if (!("syncFormat" in input) && !("syncVersion" in input)) {
       const source = unwrapInput(input);
-      if (!source.notes || typeof source.notes.text !== "string" || source.notes.text.length > config.controls.maxTextLength || source.workspace) throw new Error("This is not a supported My Stuff cloud copy.");
+      if (source.workspace) throw new Error("The cloud file contains legacy workspace data that this version cannot migrate. Keep the file intact so its contents can be migrated; nothing has been replaced.");
+      if (!source.notes || !("text" in Object(source.notes))) throw new Error("The cloud file is missing the Notes structure required for an older My Stuff copy. Check data/my-stuff.json in the configured GitHub repository; nothing has been replaced.");
+      if (typeof source.notes.text !== "string" || source.notes.text.length > config.controls.maxTextLength) throw new Error("The older cloud copy has invalid or oversized Notes. Notes must be plain text within the supported size limit; nothing has been replaced.");
       const prepared = prepare(input);
       if (!source.inventory) prepared.state.syncNotesOnly = true;
       return Object.assign({}, prepared, { legacy: true });

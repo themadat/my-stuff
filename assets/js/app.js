@@ -361,7 +361,7 @@
       App.sync.saveConfiguration(syncForm());
       markSyncCredentialFieldsClean();
       renderSync();
-      App.components.toast("GitHub Sync settings were saved.", { title: "Connection saved", kind: "success" });
+      App.components.toast("GitHub Sync settings were saved.", { title: "Connection Saved", kind: "success" });
       App.sync.check(true);
     } catch (error) { App.components.message("Could not save GitHub Sync", error.message, { trigger: $("#saveSyncButton") }); }
   }
@@ -379,27 +379,27 @@
   }
 
   async function forgetSync() {
-    if (!await App.components.confirm({ title: "Forget GitHub connection?", message: "The saved token and sync baseline will be removed from this browser.", confirmLabel: "Forget connection", danger: true, trigger: $("#forgetSyncButton") })) return;
+    if (!await App.components.confirm({ title: "Forget GitHub Connection?", message: "The saved token and sync baseline will be removed from this browser.", confirmLabel: "Forget Connection", danger: true, trigger: $("#forgetSyncButton") })) return;
     await App.sync.forget();
     markSyncCredentialFieldsClean();
     renderSync();
   }
 
   async function resetPreferences() {
-    if (!await App.components.confirm({ title: "Reset preferences?", message: "Notes and inventory will stay, while appearance, hints, and view settings return to defaults.", confirmLabel: "Reset preferences", danger: true, trigger: $("#resetPreferencesButton") })) return;
+    if (!await App.components.confirm({ title: "Reset Preferences?", message: "Notes and inventory will stay, while appearance, hints, and view settings return to defaults.", confirmLabel: "Reset Preferences", danger: true, trigger: $("#resetPreferencesButton") })) return;
     storage.replace(model.resetPreferences(state()), { recoveryReason: "Before resetting preferences", reason: "reset-preferences", touch: false });
     applyAppearance();
     renderSupport();
   }
 
   async function eraseAll() {
-    if (!await App.components.confirm({ title: "Erase all application data?", message: "This removes inventory, Notes, preferences, sync settings, token, and recovery data from this browser.", confirmLabel: "Erase all data", danger: true, trigger: $("#eraseAllButton") })) return;
+    if (!await App.components.confirm({ title: "Erase All Application Data?", message: "This removes inventory, Notes, preferences, sync settings, token, and recovery data from this browser.", confirmLabel: "Erase All Data", danger: true, trigger: $("#eraseAllButton") })) return;
     await App.sync.forget();
     storage.clearAll();
     markSyncCredentialFieldsClean();
     applyAppearance();
     renderAll();
-    App.components.toast("All application data was erased.", { title: "Fresh start", kind: "success" });
+    App.components.toast("All application data was erased.", { title: "Fresh Start", kind: "success" });
   }
 
   function renderAll() {
@@ -453,8 +453,8 @@
     $("#forgetSyncButton").addEventListener("click", forgetSync);
     $("#resetPreferencesButton").addEventListener("click", resetPreferences);
     $("#eraseAllButton").addEventListener("click", eraseAll);
-    $("#saveRecoveryButton").addEventListener("click", function () { storage.saveRecovery("Manual recovery copy"); renderDeveloper(); App.components.toast("A recovery copy was saved.", { title: "Recovery ready", kind: "success" }); });
-    $("#restoreRecoveryButton").addEventListener("click", function () { storage.restoreRecovery(); renderAll(); App.components.toast("The recovery copy was restored.", { title: "Recovery complete", kind: "success" }); });
+    $("#saveRecoveryButton").addEventListener("click", function () { storage.saveRecovery("Manual recovery copy"); renderDeveloper(); App.components.toast("A recovery copy was saved.", { title: "Recovery Ready", kind: "success" }); });
+    $("#restoreRecoveryButton").addEventListener("click", function () { storage.restoreRecovery(); renderAll(); App.components.toast("The recovery copy was restored.", { title: "Recovery Complete", kind: "success" }); });
     $("#disableDeveloperButton").addEventListener("click", function () { toggleDeveloperMode(false); switchSupportTab("settings"); });
 
     const icon = $("#appIconButton");

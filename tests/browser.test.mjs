@@ -10,6 +10,7 @@ after(async () => { await browser?.close(); });
 
 async function addInventoryItem(page, { name = 'Trail shoes', owner = 'me', room = 'Office', value = '100' } = {}) {
   await page.locator('#addItemButton').click();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
   await page.locator('#itemName').fill(name); await page.locator('#itemOwner').selectOption(owner);
   await page.locator('#itemRoom').fill(room); await page.locator('#itemValue').fill(value);
   await page.locator('#saveItemButton').click();
@@ -18,7 +19,7 @@ async function addInventoryItem(page, { name = 'Trail shoes', owner = 'me', room
 test('inventory editor, category properties, ownership totals, filters, archive duration and return work end to end', { timeout: 30000 }, async t => {
   const { page } = await fixture(t);
   await page.locator('[data-close-dialog="supportDialog"]').click();
-  assert.equal(await page.locator('#inventoryTitle').textContent(), 'Stuff I have');
+  assert.equal(await page.locator('#inventoryTitle').textContent(), 'Stuff I Have');
   await page.locator('#addItemButton').click();
   await page.locator('#itemName').fill('Trail shoes <img src=x onerror=alert(1)>');
   await page.locator('#itemDescription').fill('Everyday walking shoes');
@@ -217,7 +218,7 @@ test('Test retains masked credentials and draft edits survive background renders
   assert.equal(await page.locator('#syncRememberToken').isChecked(), false);
   await page.locator('#testSyncButton').click();
   await page.waitForFunction(() => document.querySelector('#storedTokenLabel').textContent === 'Stored for this tab');
-  assert.match(await page.locator('[data-message-title]').textContent(), /Read check passed.*uploads unverified/);
+  assert.match(await page.locator('[data-message-title]').textContent(), /Read check passed.*uploads unverified/i);
   assert.match(await page.locator('[data-message-text]').textContent(), /cannot verify upload permission/);
   await page.locator('[data-message-close]').click();
   assert.equal(await page.locator('#syncToken').getAttribute('type'), 'password');
@@ -257,7 +258,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
   await page.locator('#syncToken').fill('fake-secret'); await page.locator('#saveSyncButton').click();
   await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
   await page.locator('#syncNowButton').click();
-  await page.locator('#choiceDialog').getByRole('button', { name: /Upload this device/ }).click();
+  await page.locator('#choiceDialog').getByRole('button', { name: /Upload This Device/ }).click();
   await page.waitForFunction(() => window.LocalApp.sync.getInfo().state === 'upToDate');
   assert.deepEqual(h.writes[0], { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: { currency: 'USD', items: [] }, notes: 'Local ☁️\n<literal> Notes' } });
   h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Cloud Notes' } };
@@ -404,4 +405,34 @@ test('service worker caches this release and inventory and Notes remain availabl
   // verify the transport is actually offline independently of that indicator.
   assert.equal(await page.evaluate(async () => { try { await fetch('/uncached-offline-probe-' + Date.now()); return false; } catch { return true; } }), true);
   assert.deepEqual(errors, []);
+});
+
+
+test('Title Case labels, USD and burnt orange remain usable in both themes on desktop and mobile', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  assert.equal(await page.locator('#inventoryCurrency').count(), 0);
+  assert.equal(await page.locator('#inventoryTitle').textContent(), 'Stuff I Have');
+  assert.match(await page.locator('#roomOverview').textContent(), /All values and prices are in USD/);
+  for (const mode of ['light', 'dark']) {
+    await page.locator('#supportButton').click();
+    await page.locator('[data-theme-mode="' + mode + '"]').click();
+    await page.locator('[data-close-dialog="supportDialog"]').click();
+    assert.equal(await page.locator('html').getAttribute('data-theme'), mode);
+    for (const width of [1280, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.locator('#addItemButton').click();
+      assert.equal(await page.locator('#itemDialogTitle').textContent(), 'Add an Item');
+      assert.deepEqual(await page.locator('[data-currency-label]').allTextContents(), ['(USD)', '(USD)']);
+      const colors = await page.evaluate(() => {
+        const button = document.querySelector('#saveItemButton'), style = getComputedStyle(button);
+        return { accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), color: style.color, background: style.backgroundColor, fits: document.documentElement.scrollWidth <= innerWidth };
+      });
+      assert.equal(colors.accent, '#b44916');
+      assert.equal(colors.color, 'rgb(255, 255, 255)');
+      assert.equal(colors.background, 'rgb(180, 73, 22)');
+      assert.equal(colors.fits, true);
+      await page.locator('#itemDialog [data-inv-close]').first().click();
+    }
+  }
 });

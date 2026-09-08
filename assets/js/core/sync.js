@@ -407,7 +407,7 @@
       const storedMessage = rememberToken ? " The token is stored on this device." : " The token is stored for this browser tab.";
       return {
         ok: true, writeVerified: false, remoteExists: Boolean(remote),
-        title: "Read check passed — uploads unverified",
+        title: "Read Check Passed — Uploads Unverified",
         message: (remote ? "The repository, branch, and data file are readable." : "The repository and branch are readable, but the data file is missing or not accessible.")
           + " Test makes no changes on GitHub and cannot verify upload permission. The token must select " + cloud.owner + "/" + cloud.repo
           + " with Contents: Read and write; repository access and branch rules must also allow direct writes. Only a successful upload confirms this." + storedMessage
@@ -435,7 +435,7 @@
       rememberBaseline(sha, hash);
       runtime.remoteState = state;
       runtime.remoteLegacy = false;
-      App.components.toast("This device’s latest data is now on GitHub.", { title: "Sync complete", kind: "success" });
+      App.components.toast("This device’s latest data is now on GitHub.", { title: "Sync Complete", kind: "success" });
       return true;
     } catch (error) {
       if (!currentRequest(context) || error && error.name === "AbortError") return false;
@@ -460,7 +460,7 @@
       if (!storage.saveRecovery("Before downloading GitHub data")) throw new Error("The local recovery copy could not be saved. Export a backup before restoring from cloud.");
       storage.replace(next, { saveRecovery: false, reason: "sync-download", touch: false });
       rememberBaseline(runtime.remoteSha, runtime.remoteHash);
-      App.components.toast("This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync complete", kind: "success", duration: 5000 });
+      App.components.toast("This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync Complete", kind: "success", duration: 5000 });
       return true;
     } catch (error) {
       recordError(error, "Download failed.");
@@ -498,17 +498,17 @@
     const state = reconciliation();
     if (state === "current") {
       if (runtime.remoteLegacy) return performUpload();
-      App.components.toast("This device already matches GitHub.", { title: "Up to date", kind: "success" });
+      App.components.toast("This device already matches GitHub.", { title: "Up to Date", kind: "success" });
       return;
     }
     if (state === "local") return performUpload();
     if (state === "remote") return performDownload();
     if (state === "first-sync" || state === "conflict") {
       const choices = runtime.remoteMissing
-        ? [{ value: "upload", symbol: "icloud.and.arrow.up", label: "Upload this device", description: "Create the GitHub data file from this device.", kind: "primary" }]
+        ? [{ value: "upload", symbol: "icloud.and.arrow.up", label: "Upload This Device", description: "Create the GitHub data file from this device.", kind: "primary" }]
         : [
-            ...(model.canMerge(storage.getState(), runtime.remoteState) ? [{ value: "merge", symbol: "arrow.trianglehead.2.clockwise.rotate.90.icloud", label: "Merge both copies", description: "Combine matching or separate items, keeping content present in either copy.", kind: "primary" }] : []),
-            { value: "upload", symbol: "icloud.and.arrow.up", label: "Upload this device", description: "Replace the GitHub copy with this device.", kind: "secondary" },
+            ...(model.canMerge(storage.getState(), runtime.remoteState) ? [{ value: "merge", symbol: "arrow.trianglehead.2.clockwise.rotate.90.icloud", label: "Merge Both Copies", description: "Combine matching or separate items, keeping content present in either copy.", kind: "primary" }] : []),
+            { value: "upload", symbol: "icloud.and.arrow.up", label: "Upload This Device", description: "Replace the GitHub copy with this device.", kind: "secondary" },
             { value: "download", symbol: "icloud.and.arrow.down", label: "Download GitHub", description: "Replace saved content after making a recovery copy; keep this device’s settings.", kind: "secondary" }
           ];
       const sequence = runtime.requestSequence;
@@ -517,10 +517,10 @@
       let choice;
       try {
         choice = await App.components.choose({
-          title: state === "conflict" ? "Resolve sync conflict" : "Choose the first sync copy",
+          title: state === "conflict" ? "Resolve Sync Conflict" : "Choose the First Sync Copy",
           message: getInfo().newer + " Nothing will be overwritten until you choose.",
           choices: choices,
-          cancelLabel: "Cancel sync",
+          cancelLabel: "Cancel Sync",
           trigger: trigger
         });
       } finally { runtime.deciding = false; emit(); }
@@ -547,7 +547,7 @@
       accepted = await App.components.confirm({
         title: "Restore from Cloud?",
         message: "Replace this device’s saved content with the GitHub copy? Device settings stay as they are. Your current local copy will be saved for recovery in Developer Tools.",
-        confirmLabel: ACTIONS.restore.title, cancelLabel: "Keep this device", danger: true, trigger: trigger
+        confirmLabel: ACTIONS.restore.title, cancelLabel: "Keep This Device", danger: true, trigger: trigger
       });
     } finally { runtime.deciding = false; emit(); }
     if (accepted && sequence === runtime.requestSequence && navigator.onLine !== false && configured()) return performDownload();

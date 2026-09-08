@@ -126,7 +126,7 @@ test('old Notes-only cloud restores preserve current inventory and migrate on ex
   assert.equal(JSON.parse(Buffer.from(JSON.parse(write.options.body).content, 'base64').toString()).data.inventory.items.length, 1);
 });
 
-test('merge unions distinct items but refuses conflicting edits, archives, and currencies', () => {
+test('merge unions distinct items but refuses conflicting edits and archives', () => {
   const h = harness(), model = h.App.stateModel;
   h.state.inventory.items = [inventoryItem(h)];
   h.remote.inventory.items = [inventoryItem(h, { id: '2', name: 'Desk', owner: 'house' })];
@@ -135,7 +135,7 @@ test('merge unions distinct items but refuses conflicting edits, archives, and c
   assert.equal(model.canMerge(h.state, h.remote), false);
   assert.throws(() => model.merge(h.state, h.remote), /item differs/);
   h.remote.inventory.items = []; h.remote.inventory.currency = 'EUR';
-  assert.throws(() => model.merge(h.state, h.remote), /currencies differ/);
+  assert.equal(model.merge(h.state, h.remote).inventory.currency, 'USD');
 });
 
 test('inventory changes affect the sync hash while item ordering and local preferences do not', () => {
@@ -525,7 +525,7 @@ test('read-only Test never claims write verification and reproduces a later uplo
   const h = harness();
   const result = await h.sync.testConnection({ ...h.state.modules.cloudSync, token: h.token });
   assert.equal(result.ok, true); assert.equal(result.writeVerified, false);
-  assert.match(result.title, /uploads unverified/);
+  assert.match(result.title, /uploads unverified/i);
   assert.match(result.message, /Contents: Read and write/);
   assert.ok(h.requests.every(r => !r.options.method || r.options.method === 'GET'));
   h.choice = 'upload'; changeNotes(h.state, 'Upload me');
@@ -581,4 +581,52 @@ test('Data Sync tab is retained by normalization without affecting the sync payl
   h.state.ui.supportTab = 'data-sync';
   assert.equal(model.normalize(h.state).ui.supportTab, 'data-sync');
   assert.equal(model.syncHash(h.state), before);
+});
+
+
+test('USD normalization preserves amounts, archive details, and Notes across old backups and cloud copies', () => {
+  const h = harness(), model = h.App.stateModel;
+  const old = structuredClone(h.state);
+  old.inventory.currency = 'EUR';
+  old.inventory.items = [inventoryItem(h, { archive: { date: '2025-01-01', reason: 'Sold' } })];
+  old.notes.text = 'Keep my Notes';
+  for (const state of [model.prepare(old).state, model.prepareSync({ syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: old.inventory, notes: old.notes.text } }).state]) {
+    assert.equal(state.inventory.currency, 'USD');
+    assert.equal(state.inventory.items[0].price, 90);
+    assert.equal(state.inventory.items[0].value, 100);
+    assert.equal(state.inventory.items[0].archive.reason, 'Sold');
+    assert.equal(state.notes.text, old.notes.text);
+    assert.equal(model.syncPayload(state).data.inventory.currency, 'USD');
+    assert.equal(model.exportEnvelope(state).state.inventory.currency, 'USD');
+  }
+});
+
+test('existing saved accents adopt burnt orange while preserving display preferences', () => {
+  const h = harness(), old = structuredClone(h.state);
+  Object.assign(old.preferences.appearance, { accent: '#315f73', accent2: '#b86b4b', mode: 'dark', textScale: 1.3 });
+  const next = h.App.stateModel.normalize(old);
+  assert.equal(next.preferences.appearance.accent, '#b44916');
+  assert.equal(next.preferences.appearance.accent2, '#c65d24');
+  assert.equal(next.preferences.appearance.mode, 'dark');
+  assert.equal(next.preferences.appearance.textScale, 1.3);
+});
+
+test('legacy rejection identifies the incompatible structure and never replaces either copy', async () => {
+  for (const [file, message] of [
+    [{ schemaVersion: 1, notes: { text: '' }, workspace: {} }, /legacy workspace data/],
+    [{ schemaVersion: 1 }, /missing the Notes structure/],
+    [{ schemaVersion: 1, notes: { text: [] } }, /invalid or oversized Notes/]
+  ]) {
+    const h = harness(); h.confirmation = true;
+    h.state.inventory.items = [inventoryItem(h)]; changeNotes(h.state, 'Keep these Notes');
+    const original = JSON.stringify(h.state);
+    h.respond = () => response(200, { type: 'file', sha: 'sha', content: Buffer.from(JSON.stringify(file)).toString('base64') });
+    await h.sync.syncNow();
+    assert.match(h.sync.getInfo().message, message);
+    await h.sync.restoreFromCloud();
+    assert.match(h.sync.getInfo().message, message);
+    assert.equal(h.replacements.length, 0);
+    assert.equal(JSON.stringify(h.state), original);
+    assert.ok(h.requests.every(request => request.options.method !== 'PUT'));
+  }
 });

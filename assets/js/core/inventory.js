@@ -58,10 +58,11 @@
   function normalize(input) {
     if (input === undefined) return { currency: App.config.inventory.defaultCurrency, items: [] };
     if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.items) || input.items.length > 5000) throw new Error("Inventory must contain a list of up to 5,000 items.");
-    if (!App.config.inventory.currencies.includes(input.currency)) throw new Error("The inventory currency is not supported.");
+    if (!["USD", "CAD", "EUR", "GBP", "AUD", "NZD", "JPY", "CHF"].includes(input.currency)) throw new Error("The inventory currency is not supported.");
     const items = input.items.map(normalizeItem);
     if (new Set(items.map(function (item) { return item.id; })).size !== items.length) throw new Error("Inventory contains duplicate item IDs.");
-    return { currency: input.currency, items: items };
+    // Earlier copies offered other labels without converting amounts. Keep amounts intact.
+    return { currency: App.config.inventory.defaultCurrency, items: items };
   }
   function daysOwned(item, end) {
     if (!item.obtainedDate) return null;

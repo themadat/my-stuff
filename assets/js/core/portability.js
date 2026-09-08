@@ -31,7 +31,7 @@
     link.click();
     link.remove();
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-    App.components.toast("A complete JSON backup was created.", { title: "Backup exported", kind: "success" });
+    App.components.toast("A complete JSON backup was created.", { title: "Backup Exported", kind: "success" });
   }
 
   async function previewFile(file, trigger) {
@@ -62,10 +62,10 @@
   async function confirmImport() {
     if (!pendingImport) return;
     const accepted = await App.components.confirm({
-      title: "Replace current data?",
+      title: "Replace Current Data?",
       message: pendingImport.contentOnly ? (pendingImport.state.syncNotesOnly ? "This older cloud file replaces Notes only; inventory and device settings stay. A recovery copy will be saved first." : "The cloud file will replace Notes and inventory; device settings stay local. A recovery copy will be saved first.") : "The validated backup will replace Notes, inventory, and preferences. Older backups without inventory will clear current items. A recoverable copy of the current data will be saved first.",
-      confirmLabel: "Replace data",
-      cancelLabel: "Keep current data",
+      confirmLabel: "Replace Data",
+      cancelLabel: "Keep Current Data",
       danger: true,
       trigger: document.querySelector("[data-import-confirm]")
     });
@@ -78,7 +78,7 @@
     storage.replace(next, { saveRecovery: false, reason: "import" });
     pendingImport = null;
     App.components.closeDialog("#importPreviewDialog", "imported");
-    App.components.toast("The selected data was restored.", { title: "Backup restored", kind: "success" });
+    App.components.toast("The selected data was restored.", { title: "Backup Restored", kind: "success" });
   }
 
   function init() {

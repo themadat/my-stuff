@@ -2,9 +2,9 @@
 
 My Stuff is a static, local-first inventory for personal and household belongings. It has no required build step, runtime dependency, backend, account, or sign-in.
 
-Start in **Stuff I have**. Add one entry per physical object, recording whether it belongs to the house or to you, its current room, category tags, obtained date/method/source, current value, obtaining price, and custom properties. Shoes suggest size/color/weight, backpacking gear suggests weight, and cables suggest length. Presets are optional; tags and properties remain editable.
+Start in **Stuff I Have**. Add one entry per physical object, recording whether it belongs to the house or to you, its current room, category tags, obtained date/method/source, current value, obtaining price, and custom properties. Shoes suggest size/color/weight, backpacking gear suggests weight, and cables suggest length. Presets are optional; tags and properties remain editable.
 
-Current counts and known values are split by ownership and room. Unknown values are not treated as zero. Archive an item to **Previous stuff** with its gone date, reason, and departure notes; days owned are calculated from its obtained date. Archived items leave current totals but retain their details and can be returned. **Stuff I want** and **Research** are placeholders for later development.
+Current counts and known values are split by ownership and room. Unknown values are not treated as zero. Archive an item to **Previous Stuff** with its gone date, reason, and departure notes; days owned are calculated from its obtained date. Archived items leave current totals but retain their details and can be returned. **Stuff I Want** and **Research** are placeholders for later development.
 
 The application keeps its centered support search, one Notes modal, Settings, appearance controls, Help, release notes, shortcuts, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline behavior. No example items are added to your real inventory.
 
@@ -34,7 +34,7 @@ sw.js                      Offline shell cache
 
 ## Customize
 
-Start with `assets/js/config.js` for identity, colors, Help, releases, category presets, room suggestions, currency choices, and optional GitHub Sync target. Amounts use one inventory currency, USD by default. The room overview includes a currency selector; it relabels existing amounts without converting them.
+Start with `assets/js/config.js` for identity, colors, Help, releases, category presets, room suggestions, fixed USD currency, and optional GitHub Sync target. All values and prices use USD; existing numeric amounts are retained when reading older copies. The app uses burnt orange accents and Title Case interface labels.
 
 Application artwork comes from the supplied `assets/icons/my-stuff-app-icon.svg`, preserved unchanged in the header and favicon for both themes. Matching PNGs cover ordinary and maskable installation icons, Apple touch icons, and light/dark splash screens. See `docs/CUSTOMIZATION.md` for regeneration.
 

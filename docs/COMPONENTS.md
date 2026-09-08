@@ -6,7 +6,7 @@ The sticky header contains the supplied application artwork, identity/version, c
 
 ## Inventory workspace
 
-`inventory-ui.js` mounts four navigation destinations in `main`: Stuff I have (default), Stuff I want (placeholder), Research (placeholder), and Previous stuff. Shared inline SVG symbols identify navigation and ownership totals. Current inventory has overall/house/personal totals, searchable/filterable item rows, and a room breakdown. The table becomes stacked item rows on narrow screens; summaries always cover all current items regardless of filters.
+`inventory-ui.js` mounts four navigation destinations in `main`: Stuff I Have (default), Stuff I Want (placeholder), Research (placeholder), and Previous Stuff. Shared inline SVG symbols identify navigation and ownership totals. Current inventory has overall/house/personal totals, searchable/filterable item rows, and a room breakdown. The table becomes stacked item rows on narrow screens; summaries always cover all current items regardless of filters.
 
 The labelled item form contains core attributes, comma-separated tags, optional category presets, and editable property/value/unit rows. Unknown prices remain blank. The separate departure form records date/reason/notes and calculated duration. Native dialog focus, cancellation safeguards, validation feedback, and stale-item checks protect drafts. Previous items remain editable and can return to current inventory after confirmation. Item text is escaped, never interpreted as HTML.
 
