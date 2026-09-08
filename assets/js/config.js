@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first application foundation.",
-      version: "0.0.1.2",
-      buildId: "0.0.1.2",
+      version: "0.0.1.3",
+      buildId: "0.0.1.3",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -44,6 +44,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.3",
+      date: "2026-09-08T03:28:10.000Z",
+      title: "Bring Settings and cloud sync up to date",
+      summary: "Adopts app-template’s Settings and cloud-sync updates from 0.0.1.61 through 0.0.1.67.",
+      features: ["Sync Now and Restore from Cloud actions with shared SVG cloud status symbols", "Compact linked GitHub target and visible masked saved credentials"],
+      improvements: ["Only Notes sync; appearance, search, settings, and save metadata stay local", "Successful connection tests retain credentials on the device or for the tab", "Full-screen mobile Settings with one scrolling surface and a sticky close header"],
+      fixes: ["Recovery must succeed before cloud content replaces local Notes", "Legacy whole-state cloud copies migrate without false settings conflicts", "Background status updates no longer overwrite unsaved token or remember-token edits", "Button-style handlers are scoped to controls so unrelated clicks no longer reset checkbox edits"],
+      knownIssues: ["GitHub Sync requires a user-provided fine-grained token with Contents read and write access. Update other devices before syncing the new content-only format."]
+    }, {
       version: "0.0.1.2",
       date: "2026-09-07T14:45:00.000Z",
       title: "Restore the base interface symbols",
@@ -68,9 +77,9 @@
       { id: "notes", title: "Notes", section: "Basics", keywords: "notes autosave local", html: "<p>Open Notes from the header or press <kbd>N</kbd>. Plain text saves automatically in this browser.</p>" },
       { id: "appearance", title: "Appearance", section: "Settings", keywords: "theme text size buttons hints", html: "<p>Settings includes system, light, and dark themes, text sizing, button presentation, and contextual hints.</p>" },
       { id: "backup", title: "Backup and restore", section: "Data", keywords: "backup export import json recovery reset", html: "<p>Export a JSON backup before major changes. Import validates the file and saves a recovery copy before replacement.</p>" },
-      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict", html: "<p>GitHub Sync is optional. Add a fine-grained token with Contents access; tokens stay on this device and are excluded from backups.</p>" },
+      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs Notes only. Add a fine-grained token with Contents read and write access to the configured repository. Test saves working credentials; Save stores them and checks the cloud copy. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting Notes require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
       { id: "offline", title: "Install and offline updates", section: "Application", keywords: "install pwa offline update refresh", html: "<p>When served over HTTPS, My Stuff can be installed and keeps its shell available offline. Use Force refresh when an update notice appears.</p>" },
-      { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Notes and preferences remain in browser storage unless you export them or explicitly use GitHub Sync.</p>" },
+      { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },
       { id: "shortcuts", title: "Keyboard shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Press <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }
     ],
     shortcuts: [
@@ -79,6 +88,7 @@
       { group: "Application", key: ",", label: "Open Settings" },
       { group: "Application", key: "V", label: "Open What’s New" },
       { group: "Application", key: "T", label: "Change theme" },
+      { group: "Application", key: "S", label: "Sync now or open sync settings" },
       { group: "Application", key: "Escape", label: "Close the active dialog or search" }
     ]
   });

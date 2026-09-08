@@ -34,7 +34,11 @@ Application artwork is intentionally retained as a placeholder. Replace the edit
 
 ## Data and privacy
 
-Notes and preferences use the app-specific `myStuff.*` browser-storage namespace. JSON exports exclude the GitHub token. Optional GitHub Sync targets `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`; a user supplies a fine-grained token with Contents access.
+Notes and preferences use the app-specific `myStuff.*` browser-storage namespace. Full JSON backups include device preferences but exclude the GitHub token. Optional GitHub Sync sends Notes only to `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`; appearance, search, settings, and save metadata stay local. Supply a fine-grained token with Contents read and write access to that repository.
+
+Settings shows linked repository/file targets and masked saved credentials. Test retains a working token; Save stores it and checks the cloud copy. Remember keeps it on this device; otherwise it lasts for the browser tab. Sync Now (or `S`/the floating status) compares copies and asks how to resolve first sync or conflicting Notes. Restore from Cloud requires confirmation and a successful local recovery backup.
+
+Cloud sync and Settings incorporate app-template versions `0.0.1.61`–`0.0.1.67`. Older My Stuff cloud files remain readable and compact on explicit sync. Update other devices before syncing the new content-only format; older clients intentionally reject it. No repository provisioning or Git account configuration is changed by this port.
 
 ## Versioning
 

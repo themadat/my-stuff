@@ -18,7 +18,9 @@ Settings uses labelled vertical tabs for Appearance and data settings, Help, Wha
 
 ## Storage and sync status
 
-The floating status combines local persistence and optional GitHub state. It opens the relevant Settings surface. Sync choices never silently overwrite divergent data.
+The floating status combines local persistence and optional GitHub state. It runs Sync Now when available, or opens and focuses the sync credentials in Settings when setup/access is needed. Settings and the floating control share state-specific inline cloud symbols, semantic light/dark tints, and accessible text; only active comparison arrows rotate, with reduced-motion support. Sync choices never silently overwrite divergent data.
+
+Settings includes Sync Now, confirmed Restore from Cloud, safe repository/data-file links, masked saved credentials, and Test/Save/Forget actions. Draft token and remember-checkbox edits survive unrelated renders. On mobile, Settings fills the screen and scrolls as a single surface beneath its sticky close header; tabs and long target details scroll horizontally within their own rows.
 
 ## Shared dialogs
 

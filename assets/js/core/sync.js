@@ -6,16 +6,57 @@
   const u = App.utils;
   const model = App.stateModel;
   const storage = App.storage;
+  // The state presentation is shared by the floating control and Settings.
+  // Reconciliation (which copy changed) stays separate from work actually in progress.
+  const STATE_PRESENTATIONS = Object.freeze({
+    idle: { symbol: "icloud", kind: "neutral", title: "Cloud Sync", message: "Optional synchronization with GitHub.", animation: "none" },
+    upToDate: { symbol: "checkmark.icloud", kind: "success", title: "Up to Date", message: "This device is fully synchronized with GitHub.", animation: "none" },
+    syncing: { symbol: "arrow.trianglehead.2.clockwise.rotate.90.icloud", kind: "info", title: "Syncing…", message: "Comparing this device with GitHub.", animation: "rotate" },
+    uploading: { symbol: "icloud.and.arrow.up", kind: "info", title: "Uploading…", message: "Sending this device’s data to GitHub.", animation: "none" },
+    downloading: { symbol: "icloud.and.arrow.down", kind: "info", title: "Downloading…", message: "Retrieving the GitHub copy for this device.", animation: "none" },
+    pending: { symbol: "icloud.dashed", kind: "neutral", title: "Waiting to Sync", message: "Changes are queued for the next sync.", animation: "none" },
+    disabled: { symbol: "icloud.slash", kind: "neutral", title: "Sync Disabled", message: "Sync is disabled. Local data stays on this device.", animation: "none", primaryAction: "settings" },
+    offline: { symbol: "icloud.slash", kind: "neutral", title: "Offline", message: "Reconnect before syncing. Local data remains available.", animation: "none", primaryAction: "settings" },
+    warning: { symbol: "exclamationmark.icloud", kind: "warning", title: "Sync Needs Attention", message: "Review the sync connection or choose which copy to use.", animation: "none" },
+    failed: { symbol: "xmark.icloud", kind: "danger", title: "Sync Failed", message: "The sync attempt failed. Retry or review the connection.", animation: "none" },
+    authenticationRequired: { symbol: "key.icloud", kind: "warning", title: "Sign In Required", message: "Enter or renew the GitHub access token in Settings.", animation: "none", primaryAction: "settings" },
+    permissionDenied: { symbol: "lock.icloud", kind: "warning", title: "Access Required", message: "Grant the token Contents read and write access to the configured repository.", animation: "none", primaryAction: "settings" },
+    connected: { symbol: "link.icloud", kind: "info", title: "Connected", message: "The GitHub connection is configured. Sync to compare copies.", animation: "none" },
+    shared: { symbol: "person.icloud", kind: "info", title: "Shared", message: "This resource is associated with another user or account.", animation: "none" }
+  });
+  const CloudSyncState = Object.freeze(Object.fromEntries(Object.keys(STATE_PRESENTATIONS).map(function (name) {
+    Object.freeze(STATE_PRESENTATIONS[name]);
+    return [name, name];
+  })));
+  const ACTIONS = Object.freeze({
+    syncNow: Object.freeze({ symbol: "arrow.trianglehead.clockwise.icloud", title: "Sync Now", help: "Compare copies and sync changes with GitHub." }),
+    restore: Object.freeze({ symbol: "arrow.trianglehead.counterclockwise.icloud", title: "Restore from Cloud", help: "Replace this device with the GitHub copy after confirmation and a recovery backup." }),
+    settings: Object.freeze({ symbol: "support", title: "Sync Settings", help: "Open storage and GitHub Sync settings." })
+  });
+
+  function presentation(state, options) {
+    const value = STATE_PRESENTATIONS[state] || STATE_PRESENTATIONS.idle;
+    const kind = state === CloudSyncState.permissionDenied && options?.hardDenial ? "danger" : value.kind;
+    return Object.assign({}, value, {
+      kind: kind,
+      accessibilityLabel: value.title,
+      help: value.title + ". " + value.message,
+      primaryAction: value.primaryAction || "syncNow"
+    });
+  }
+
   const runtime = {
     busy: false,
     operation: "",
     checking: false,
     remoteSha: "",
     remoteHash: "",
-    remoteState: null,
+    remoteState: null, remoteLegacy: false,
     remoteMissing: false,
     checkedAt: "",
     error: "",
+    errorState: "",
+    deciding: false,
     offline: navigator.onLine === false,
     requestSequence: 0,
     controller: null
@@ -45,7 +86,7 @@
       owner: u.cleanLine(source.owner, 39),
       repo: u.cleanLine(source.repo, 100).replace(/\.git$/i, ""),
       branch: u.cleanLine(source.branch || "main", 250) || "main",
-      path: u.cleanLine(source.path || "data/workspace.json", 500).replace(/^\/+/, "")
+      path: u.cleanLine(source.path || config.cloudSync.path, 500).replace(/^\/+/, "")
     };
     if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(next.owner)) throw new Error("Enter a valid GitHub owner or organization.");
     if (!/^[A-Za-z0-9._-]+$/.test(next.repo)) throw new Error("Enter a valid repository name.");
@@ -62,6 +103,7 @@
     const rememberToken = input.rememberToken !== false;
     const secret = token || storage.getSecret();
     const previousTarget = target();
+    if (!storage.setSecret(secret, rememberToken)) throw new Error("This browser could not store the GitHub token.");
     storage.mutate(function (state) {
       const cloud = state.modules.cloudSync;
       cloud.owner = next.owner;
@@ -78,7 +120,6 @@
         cloud.lastCheckedAt = "";
       }
     }, { reason: "sync-settings" });
-    storage.setSecret(secret, rememberToken);
     resetRuntime();
     emit();
     return next;
@@ -92,10 +133,12 @@
       checking: false,
       remoteSha: "",
       remoteHash: "",
-      remoteState: null,
+      remoteState: null, remoteLegacy: false,
       remoteMissing: false,
       checkedAt: "",
       error: "",
+      errorState: "",
+      deciding: false,
       offline: navigator.onLine === false,
       requestSequence: runtime.requestSequence + 1,
       controller: null
@@ -121,11 +164,13 @@
   async function responseError(response) {
     let detail = "";
     try { detail = u.cleanLine((await response.json()).message, 300); } catch (error) { detail = ""; }
-    if (response.status === 401) return new Error("GitHub rejected the token. Create a new fine-grained token and try again.");
-    if (response.status === 403) return new Error("GitHub denied access. Confirm that the token has Contents read and write permission.");
-    if (response.status === 404) return new Error("GitHub could not find the repository or branch, or the token cannot access it.");
-    if (response.status === 409 || response.status === 422) return new Error("The GitHub copy changed while syncing. Check again before choosing a copy.");
-    return new Error(detail ? "GitHub: " + detail : "GitHub request failed (" + response.status + ").");
+    const failure = function (message, state) { return Object.assign(new Error(message), { syncState: state }); };
+    if (response.status === 401) return failure("GitHub rejected the token. Create a new fine-grained token and try again.", CloudSyncState.authenticationRequired);
+    if (response.status === 429 || (response.status === 403 && /rate limit|abuse|secondary rate/i.test(detail))) return failure("GitHub is limiting requests. Wait before trying again.", CloudSyncState.warning);
+    if (response.status === 403) return failure("GitHub denied access. Confirm that the token has Contents read and write permission.", CloudSyncState.permissionDenied);
+    if (response.status === 404) return failure("GitHub could not find the repository or branch, or the token cannot access it.", CloudSyncState.warning);
+    if (response.status === 409 || response.status === 422) return failure("The GitHub copy changed while syncing. Check again before choosing a copy.", CloudSyncState.warning);
+    return failure(detail ? "GitHub: " + detail : "GitHub request failed (" + response.status + ").", CloudSyncState.failed);
   }
 
   function requestContext(operation) {
@@ -141,7 +186,13 @@
   }
 
   function networkError(error) {
-    return navigator.onLine === false || error instanceof TypeError || /failed to fetch|network|load failed/i.test(String(error && error.message || error));
+    return navigator.onLine === false || /failed to fetch|network|load failed/i.test(String(error && error.message || error));
+  }
+
+  function recordError(error, fallback) {
+    runtime.error = error.message || fallback;
+    runtime.errorState = error.syncState || CloudSyncState.failed;
+    runtime.offline = networkError(error);
   }
 
   async function verifyTarget(cloud, token, context) {
@@ -167,8 +218,8 @@
     }
     let parsed;
     try { parsed = JSON.parse(decoded); } catch (error) { throw new Error("The GitHub data file is not valid JSON."); }
-    const prepared = model.prepare(parsed);
-    return { state: prepared.state, sha: file.sha, migrations: prepared.migrations };
+    const prepared = model.prepareSync(parsed);
+    return { state: prepared.state, sha: file.sha, legacy: prepared.legacy };
   }
 
   function utf8Base64(text) {
@@ -197,7 +248,7 @@
   }
 
   function localHash() {
-    return u.fingerprint(model.syncPayload(storage.getState()));
+    return model.syncHash(storage.getState());
   }
 
   function rememberBaseline(sha, hash) {
@@ -210,20 +261,15 @@
       cloud.lastSyncedAt = now;
       cloud.lastCheckedAt = now;
     }, { touch: false, reason: "sync-baseline" });
-    Object.assign(runtime, { remoteSha: sha || "", remoteHash: hash || localHash(), checkedAt: now, error: "", remoteMissing: false, offline: false });
+    Object.assign(runtime, { remoteSha: sha || "", remoteHash: hash || localHash(), checkedAt: now, error: "", errorState: "", remoteMissing: false, offline: false });
   }
 
-  function classification() {
-    if (!settings().enabled || !configured()) return "setup";
-    if (runtime.offline || navigator.onLine === false) return "offline";
-    if (runtime.busy) return runtime.operation === "uploading" ? "uploading" : runtime.operation === "downloading" ? "downloading" : "checking";
-    if (runtime.checking) return "checking";
-    if (runtime.error) return "error";
+  function reconciliation() {
     const cloud = settings();
     const hash = localHash();
-    const baselineMatchesTarget = cloud.baselineTarget === target(cloud) && Boolean(cloud.baselineHash);
+    const baselineMatchesTarget = cloud.baselineTarget === target(cloud) && cloud.baselineHash.startsWith("data-v1:");
     if (runtime.remoteMissing) return baselineMatchesTarget ? "local" : "first-sync";
-    if (!runtime.remoteSha || !runtime.remoteHash) return baselineMatchesTarget && hash !== cloud.baselineHash ? "local" : "checking";
+    if (!runtime.remoteSha || !runtime.remoteHash) return baselineMatchesTarget && hash !== cloud.baselineHash ? "local" : "unknown";
     if (hash === runtime.remoteHash) return "current";
     if (!baselineMatchesTarget) return "first-sync";
     const localChanged = hash !== cloud.baselineHash;
@@ -234,36 +280,48 @@
     return "conflict";
   }
 
-  function newerCopyText() {
+  function cloudState(change) {
+    if (!config.features.cloudSync || !settings().enabled) return CloudSyncState.disabled;
+    if (runtime.offline || navigator.onLine === false) return CloudSyncState.offline;
+    if (runtime.busy) return runtime.operation === "uploading" ? CloudSyncState.uploading : runtime.operation === "downloading" ? CloudSyncState.downloading : CloudSyncState.syncing;
+    if (runtime.checking) return CloudSyncState.syncing;
+    if (runtime.error) return runtime.errorState || CloudSyncState.failed;
+    if (!configured()) return CloudSyncState.authenticationRequired;
+    if (change === "current") return CloudSyncState.upToDate;
+    if (change === "local" || change === "remote" || runtime.remoteMissing) return CloudSyncState.pending;
+    if (change === "first-sync" || change === "conflict") return CloudSyncState.warning;
+    return CloudSyncState.connected;
+  }
+
+  function copyComparisonText() {
     if (!runtime.remoteState) return "The remote file has not been created yet.";
-    const localTime = Date.parse(storage.getState().meta.updatedAt);
-    const remoteTime = Date.parse(runtime.remoteState.meta.updatedAt);
-    if (!Number.isFinite(localTime) || !Number.isFinite(remoteTime) || localTime === remoteTime) return "The copies have the same recorded update time.";
-    return localTime > remoteTime
-      ? "This device is newer by its recorded update time (" + u.relativeTime(storage.getState().meta.updatedAt) + ")."
-      : "The GitHub copy is newer by its recorded update time (" + u.relativeTime(runtime.remoteState.meta.updatedAt) + ").";
+    return "This device and GitHub contain different saved content.";
   }
 
   function getInfo() {
-    const state = classification();
-    const map = {
-      setup: { icon: "○", title: "Setup required", message: "Configure optional GitHub sync.", action: "Set up sync", kind: "neutral" },
-      checking: { icon: "↻", title: "Checking", message: "Comparing this device with GitHub.", action: "Checking…", kind: "progress" },
-      uploading: { icon: "↑", title: "Uploading", message: "Sending this device’s data to GitHub.", action: "Uploading…", kind: "progress" },
-      downloading: { icon: "↓", title: "Downloading", message: "Preparing the GitHub copy for this device.", action: "Downloading…", kind: "progress" },
-      current: { icon: "✓", title: "Current", message: "This device matches GitHub.", action: "Check again", kind: "success" },
-      local: { icon: "↑", title: "Local changes", message: "This device has changes ready to upload.", action: "Sync changes", kind: "warning" },
-      remote: { icon: "↓", title: "Remote changes", message: "GitHub has changes ready to download.", action: "Sync changes", kind: "info" },
-      "first-sync": { icon: "◇", title: "First-sync decision", message: runtime.remoteMissing ? "The configured GitHub file does not exist yet." : "Choose which copy should start this sync connection.", action: "Choose first copy", kind: "warning" },
-      conflict: { icon: "!", title: "Conflict", message: "This device and GitHub both changed.", action: "Resolve conflict", kind: "danger" },
-      offline: { icon: "∕", title: "Offline", message: "Reconnect before using GitHub sync.", action: "Offline", kind: "neutral" },
-      error: { icon: "×", title: "Sync error", message: runtime.error || "GitHub sync is unavailable.", action: "Try again", kind: "danger" }
+    const change = reconciliation();
+    const state = cloudState(change);
+    const info = presentation(state);
+    const details = {
+      local: "This device has changes ready to upload.",
+      remote: "GitHub has changes ready to download.",
+      "first-sync": runtime.remoteMissing ? "Sync Now will create the GitHub data file after you confirm." : "Choose which copy should start this sync connection.",
+      conflict: "This device and GitHub both changed. Sync Now lets you choose or merge copies."
     };
-    return Object.assign({ state: state, checkedAt: runtime.checkedAt || settings().lastCheckedAt, busy: runtime.busy || runtime.checking, newer: newerCopyText() }, map[state]);
+    if (runtime.error && state !== CloudSyncState.offline) info.message = runtime.error;
+    else if (state === CloudSyncState.pending || state === CloudSyncState.warning) info.message = details[change] || info.message;
+    const busy = runtime.busy || runtime.checking || runtime.deciding;
+    info.help = info.title + ". " + info.message;
+    return Object.assign(info, {
+      state: state, change: change, checkedAt: runtime.checkedAt || settings().lastCheckedAt,
+      busy: busy, newer: copyComparisonText(), action: ACTIONS[info.primaryAction].title,
+      canSync: !busy && info.primaryAction === "syncNow" && configured(),
+      canRestore: !busy && info.primaryAction === "syncNow" && configured() && !runtime.remoteMissing
+    });
   }
 
   async function check(force) {
-    if (!configured() || runtime.busy || runtime.checking) { emit(); return getInfo(); }
+    if (!configured() || runtime.busy || runtime.checking || runtime.deciding) { emit(); return getInfo(); }
     if (navigator.onLine === false) { runtime.offline = true; emit(); return getInfo(); }
     const last = Date.parse(runtime.checkedAt || "");
     if (!force && Number.isFinite(last) && Date.now() - last < config.controls.syncCheckIntervalMs) return getInfo();
@@ -280,20 +338,27 @@
       if (remote) {
         runtime.remoteSha = remote.sha;
         runtime.remoteState = remote.state;
-        runtime.remoteHash = u.fingerprint(model.syncPayload(remote.state));
+        runtime.remoteHash = model.syncHash(remote.state);
+        runtime.remoteLegacy = remote.legacy;
         runtime.remoteMissing = false;
       } else {
         runtime.remoteSha = "";
         runtime.remoteState = null;
+        runtime.remoteLegacy = false;
         runtime.remoteHash = "";
         runtime.remoteMissing = true;
+      }
+      // Equal content establishes a baseline even after an upgrade or first check.
+      // An unchanged legacy SHA also identifies the old baseline's actual content.
+      if (remote && (localHash() === runtime.remoteHash
+        || (cloud.baselineTarget === target(cloud) && cloud.baselineSha === remote.sha && !cloud.baselineHash.startsWith("data-v1:")))) {
+        if (cloud.baselineTarget !== target(cloud) || cloud.baselineHash !== runtime.remoteHash || cloud.baselineSha !== remote.sha) rememberBaseline(remote.sha, runtime.remoteHash);
       }
       runtime.checkedAt = checkedAt;
       storage.mutate(function (state) { state.modules.cloudSync.lastCheckedAt = checkedAt; }, { touch: false, reason: "sync-check" });
     } catch (error) {
-      if (error && error.name === "AbortError") return getInfo();
-      runtime.error = error.message || "Could not check GitHub.";
-      runtime.offline = networkError(error);
+      if (!currentRequest(context) || error && error.name === "AbortError") return getInfo();
+      recordError(error, "Could not check GitHub.");
       runtime.checkedAt = u.isoNow();
     } finally {
       if (currentRequest(context)) {
@@ -306,20 +371,32 @@
   }
 
   async function testConnection(input) {
+    if (getInfo().busy) return null;
     const tokenInput = u.cleanLine(input.token, 500);
     const cloud = validateConfiguration(input, tokenInput);
     const token = tokenInput || storage.getSecret();
+    const rememberToken = input.rememberToken !== false;
     const context = requestContext("checking");
     runtime.checking = true;
     runtime.error = "";
+    runtime.offline = navigator.onLine === false;
     emit();
     try {
       await verifyTarget(cloud, token, context);
       const remote = await readRemote(cloud, token, context, true);
       if (!currentRequest(context)) return null;
-      return { ok: true, remoteExists: Boolean(remote), message: remote ? "Connection succeeded and the data file is readable." : "Connection succeeded. The data file will be created on first upload." };
+      if (!storage.setSecret(token, rememberToken)) throw new Error("Connection succeeded, but this browser could not store the token.");
+      storage.mutate(function (state) {
+        state.modules.cloudSync.rememberToken = rememberToken;
+        state.modules.cloudSync.enabled = true;
+      }, { touch: false, reason: "sync-token-tested" });
+      // A successful test establishes a connection; a sync check compares the copies.
+      Object.assign(runtime, { remoteSha: "", remoteHash: "", remoteState: null, remoteLegacy: false, remoteMissing: false, checkedAt: "", errorState: "", offline: false });
+      const storedMessage = rememberToken ? " The token is stored on this device." : " The token is stored for this browser tab.";
+      return { ok: true, remoteExists: Boolean(remote), message: (remote ? "Connection succeeded and the data file is readable." : "Connection succeeded. The data file will be created on first upload.") + storedMessage };
     } catch (error) {
-      if (error && error.name === "AbortError") return null;
+      if (!currentRequest(context) || error && error.name === "AbortError") return null;
+      recordError(error, "Connection test failed.");
       throw error;
     } finally {
       if (currentRequest(context)) { runtime.checking = false; runtime.operation = ""; emit(); }
@@ -333,19 +410,20 @@
     runtime.error = "";
     emit();
     try {
-      const state = storage.getState();
-      const hash = localHash();
+      const state = model.normalize(u.clone(storage.getState()));
+      const hash = model.syncHash(state);
       const sha = await writeRemote(settings(), storage.getSecret(), context, state, runtime.remoteSha);
       if (!currentRequest(context)) return false;
       rememberBaseline(sha, hash);
-      runtime.remoteState = model.normalize(u.clone(state));
+      runtime.remoteState = state;
+      runtime.remoteLegacy = false;
       App.components.toast("This device’s latest data is now on GitHub.", { title: "Sync complete", kind: "success" });
       return true;
     } catch (error) {
-      if (error && error.name === "AbortError") return false;
-      runtime.error = error.message || "Upload failed.";
-      runtime.offline = networkError(error);
-      App.components.toast(runtime.error, { title: "Upload failed", kind: "danger", duration: 6000 });
+      if (!currentRequest(context) || error && error.name === "AbortError") return false;
+      recordError(error, "Upload failed.");
+      const info = presentation(runtime.offline ? CloudSyncState.offline : runtime.errorState);
+      App.components.toast(runtime.error, { title: info.title, kind: info.kind, duration: 6000 });
       return false;
     } finally {
       if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); }
@@ -360,14 +438,16 @@
     runtime.error = "";
     emit();
     try {
-      const localCloud = u.clone(settings());
-      const next = model.normalize(u.clone(runtime.remoteState));
-      next.modules.cloudSync = localCloud;
-      storage.replace(next, { recoveryReason: "Before downloading GitHub data", reason: "sync-download", touch: false });
-      const hash = u.fingerprint(model.syncPayload(storage.getState()));
-      rememberBaseline(runtime.remoteSha, hash);
+      const next = model.applySync(storage.getState(), runtime.remoteState);
+      if (!storage.saveRecovery("Before downloading GitHub data")) throw new Error("The local recovery copy could not be saved. Export a backup before restoring from cloud.");
+      storage.replace(next, { saveRecovery: false, reason: "sync-download", touch: false });
+      rememberBaseline(runtime.remoteSha, runtime.remoteHash);
       App.components.toast("This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync complete", kind: "success", duration: 5000 });
       return true;
+    } catch (error) {
+      recordError(error, "Download failed.");
+      App.components.toast(runtime.error, { title: "Sync Failed", kind: "danger", duration: 6000 });
+      return false;
     } finally {
       if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); }
     }
@@ -375,26 +455,31 @@
 
   async function performMerge() {
     if (!runtime.remoteState) return performUpload();
-    const merged = model.merge(storage.getState(), runtime.remoteState);
-    const localCloud = u.clone(settings());
-    merged.modules.cloudSync = localCloud;
-    storage.replace(merged, { recoveryReason: "Before merging GitHub data", reason: "sync-merge", touch: false });
+    try {
+      const merged = model.merge(storage.getState(), runtime.remoteState);
+      if (!storage.saveRecovery("Before merging GitHub data")) throw new Error("The local recovery copy could not be saved. Export a backup before merging.");
+      storage.replace(merged, { saveRecovery: false, reason: "sync-merge", touch: false });
+    } catch (error) {
+      recordError(error, "Merge failed.");
+      App.components.toast(runtime.error, { title: "Sync Failed", kind: "danger", duration: 6000 });
+      emit();
+      return false;
+    }
     return performUpload();
   }
 
   async function syncNow(trigger) {
-    if (!configured()) {
+    const info = getInfo();
+    if (info.busy) return;
+    if (!configured() || info.primaryAction === "settings") {
       window.dispatchEvent(new CustomEvent("app:opensyncsettings", { detail: { trigger: trigger } }));
       return;
     }
-    if (navigator.onLine === false) {
-      App.components.toast("Reconnect to the internet before syncing.", { title: "Offline", kind: "warning" });
-      return;
-    }
     await check(true);
-    const state = classification();
-    if (state === "error" || state === "offline") return;
+    if (runtime.error || runtime.offline || !configured() || getInfo().busy) return;
+    const state = reconciliation();
     if (state === "current") {
+      if (runtime.remoteLegacy) return performUpload();
       App.components.toast("This device already matches GitHub.", { title: "Up to date", kind: "success" });
       return;
     }
@@ -404,21 +489,50 @@
       const choices = runtime.remoteMissing
         ? [{ value: "upload", label: "Upload this device", description: "Create the GitHub data file from this device.", kind: "primary" }]
         : [
-            { value: "merge", label: "Merge both copies", description: "Keep the newest version of each saved item.", kind: "primary" },
+            ...(model.canMerge(storage.getState(), runtime.remoteState) ? [{ value: "merge", label: "Merge both copies", description: "Combine matching or separate items, keeping content present in either copy.", kind: "primary" }] : []),
             { value: "upload", label: "Upload this device", description: "Replace the GitHub copy with this device.", kind: "secondary" },
-            { value: "download", label: "Download GitHub", description: "Replace this device after saving a recovery copy.", kind: "secondary" }
+            { value: "download", label: "Download GitHub", description: "Replace saved content after making a recovery copy; keep this device’s settings.", kind: "secondary" }
           ];
-      const choice = await App.components.choose({
-        title: state === "conflict" ? "Resolve sync conflict" : "Choose the first sync copy",
-        message: getInfo().newer + " Nothing will be overwritten until you choose.",
-        choices: choices,
-        cancelLabel: "Cancel sync",
-        trigger: trigger
-      });
+      const sequence = runtime.requestSequence;
+      runtime.deciding = true;
+      emit();
+      let choice;
+      try {
+        choice = await App.components.choose({
+          title: state === "conflict" ? "Resolve sync conflict" : "Choose the first sync copy",
+          message: getInfo().newer + " Nothing will be overwritten until you choose.",
+          choices: choices,
+          cancelLabel: "Cancel sync",
+          trigger: trigger
+        });
+      } finally { runtime.deciding = false; emit(); }
+      if (sequence !== runtime.requestSequence || navigator.onLine === false || !configured()) return;
       if (choice === "upload") return performUpload();
       if (choice === "download") return performDownload();
       if (choice === "merge") return performMerge();
     }
+  }
+
+  async function restoreFromCloud(trigger) {
+    if (!getInfo().canRestore) return;
+    await check(true);
+    if (runtime.error || runtime.offline || !configured() || getInfo().busy) return;
+    if (!runtime.remoteState) {
+      App.components.message("No cloud copy", "There is no GitHub data file to restore. Use Sync Now to create one.", { trigger: trigger });
+      return;
+    }
+    const sequence = runtime.requestSequence;
+    runtime.deciding = true;
+    emit();
+    let accepted;
+    try {
+      accepted = await App.components.confirm({
+        title: "Restore from Cloud?",
+        message: "Replace this device’s saved content with the GitHub copy? Device settings stay as they are. Your current local copy will be saved for recovery in Developer Tools.",
+        confirmLabel: ACTIONS.restore.title, cancelLabel: "Keep this device", danger: true, trigger: trigger
+      });
+    } finally { runtime.deciding = false; emit(); }
+    if (accepted && sequence === runtime.requestSequence && navigator.onLine !== false && configured()) return performDownload();
   }
 
   async function forget() {
@@ -445,6 +559,9 @@
   }
 
   App.sync = {
+    CloudSyncState: CloudSyncState,
+    presentation: presentation,
+    actions: ACTIONS,
     init: init,
     getInfo: getInfo,
     configured: configured,
@@ -452,6 +569,7 @@
     testConnection: testConnection,
     check: check,
     syncNow: syncNow,
+    restoreFromCloud: restoreFromCloud,
     forget: forget
   };
 })();

@@ -156,6 +156,7 @@
   }
 
   function prepare(input) {
+    if (input && ("syncFormat" in Object(input) || "syncVersion" in Object(input))) return prepareSync(input);
     const source = unwrapInput(input);
     if (Number(source.schemaVersion) !== config.schemaVersion) throw new Error("This backup uses an unsupported state-model version.");
     const state = normalize(source);
@@ -193,25 +194,43 @@
   }
 
   function syncPayload(state) {
-    const normalized = normalize(u.clone(state));
-    return {
-      schemaVersion: normalized.schemaVersion,
-      meta: normalized.meta,
-      notes: normalized.notes,
-      preferences: normalized.preferences,
-      ui: normalized.ui,
-      modules: { roadmap: normalized.modules.roadmap }
-    };
+    const notes = normalize(state).notes.text;
+    // Match the template's content-only protocol. Schema 5 prevents older clients
+    // from treating this envelope as a whole-state backup and silently clearing it.
+    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 5, data: notes ? { notes: notes } : {} };
   }
 
-  function merge(localState, remoteInput) {
-    const local = normalize(localState);
-    const remote = prepare(remoteInput).state;
-    const newer = Date.parse(remote.meta.updatedAt) > Date.parse(local.meta.updatedAt) ? remote : local;
-    const result = u.clone(newer);
-    result.notes = u.clone(Date.parse(remote.notes.updatedAt) > Date.parse(local.notes.updatedAt) ? remote.notes : local.notes);
-    result.modules.cloudSync = u.clone(local.modules.cloudSync);
-    return normalize(touch(result));
+  function syncHash(state) { return "data-v1:" + u.fingerprint(syncPayload(state)); }
+
+  function prepareSync(input) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("The cloud data must be an object.");
+    if (!("syncFormat" in input) && !("syncVersion" in input)) {
+      const source = unwrapInput(input);
+      if (!source.notes || typeof source.notes.text !== "string" || source.notes.text.length > config.controls.maxTextLength || source.workspace) throw new Error("This is not a supported My Stuff cloud copy.");
+      return Object.assign({}, prepare(input), { legacy: true });
+    }
+    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || input.schemaVersion !== 5) throw new Error("This cloud data uses an unsupported format or version.");
+    const data = input.data;
+    if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).some(function (key) { return key !== "notes"; })) throw new Error("The cloud data contains unsupported content.");
+    if ("notes" in data && (typeof data.notes !== "string" || data.notes.length > config.controls.maxTextLength)) throw new Error("Cloud Notes are invalid or too large.");
+    const state = normalize({ notes: { text: data.notes || "" } });
+    return { state: state, legacy: false, contentOnly: true, migrations: [], validation: validate(state) };
+  }
+
+  function applySync(localState, remoteState) {
+    const next = normalize(localState);
+    next.notes = normalize(remoteState).notes;
+    return normalize(touch(next));
+  }
+
+  function merge(localState, remoteState) {
+    const local = normalize(localState), remote = normalize(remoteState);
+    if (local.notes.text && remote.notes.text && local.notes.text !== remote.notes.text) throw new Error("Notes differ. Choose which copy to keep.");
+    return applySync(local, local.notes.text ? local : remote);
+  }
+
+  function canMerge(localState, remoteState) {
+    try { merge(localState, remoteState); return true; } catch (error) { return false; }
   }
 
   App.stateModel = {
@@ -224,6 +243,10 @@
     resetPreferences: resetPreferences,
     exportEnvelope: exportEnvelope,
     syncPayload: syncPayload,
+    syncHash: syncHash,
+    prepareSync: prepareSync,
+    applySync: applySync,
+    canMerge: canMerge,
     merge: merge
   };
 })();

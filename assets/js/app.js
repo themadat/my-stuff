@@ -44,7 +44,7 @@
     $("#versionButton").textContent = "v" + config.identity.version + (preferences.controls.developerMode ? " DEV" : "");
     $("#developerTab").hidden = !preferences.controls.developerMode;
     $$('[data-theme-mode]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.themeMode === appearance.mode)); });
-    $$('[data-button-style]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.buttonStyle === preferences.controls.buttonStyle)); });
+    $$('button[data-button-style]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.buttonStyle === preferences.controls.buttonStyle)); });
     $$('[data-hints-enabled]').forEach(function (button) { button.setAttribute("aria-pressed", String((button.dataset.hintsEnabled === "true") === preferences.hints.enabled)); });
     renderHint();
     App.pwa?.applyAppearanceAssets();
@@ -112,6 +112,7 @@
     });
     $$('[data-support-panel]').forEach(function (panel) { panel.hidden = panel.dataset.supportPanel !== tab; });
     $(".support-panels").scrollTop = 0;
+    $("#supportDialog").scrollTop = 0;
     renderSupport();
   }
 
@@ -121,9 +122,18 @@
   }
 
   function renderTextSize() {
+    const input = $("#textSizeSlider");
+    const output = $("#textSizeValue");
+    const wrap = $(".text-size-slider-wrap");
+    if (!input || !output || !wrap) return;
     const percent = Math.round(state().preferences.appearance.textScale * 100);
-    $("#textSizeSlider").value = String(percent);
-    $("#textSizeValue").value = percent + "%";
+    const minimum = Number(input.min) || 85;
+    const maximum = Number(input.max) || 130;
+    const ratio = Math.max(0, Math.min(1, (percent - minimum) / (maximum - minimum)));
+    input.value = String(percent);
+    input.style.setProperty("--range-pct", (ratio * 100) + "%");
+    wrap.style.setProperty("--thumb-ratio", String(ratio));
+    output.textContent = percent + "%";
   }
 
   async function renderStorageSummary() {
@@ -132,23 +142,98 @@
     $("#localStorageSettingsSummary").textContent = u.formatBytes(info.stateBytes) + " of application data is stored in this browser.";
   }
 
-  function renderSync() {
+  function renderCloudSyncVisual(element, info) {
+    element.dataset.syncState = info.state;
+    element.dataset.kind = info.kind;
+    element.dataset.animation = info.animation;
+    const icon = element.querySelector("[data-sync-icon]");
+    if (icon && icon.dataset.symbol !== info.symbol) App.icons.set(icon, info.symbol);
+  }
+
+  function renderSyncStatus() {
+    const info = App.sync.getInfo();
+    const localAvailable = storage.isPersistent();
+    const localLabel = localAvailable ? "Saved locally" : "Storage unavailable";
+    const syncLabel = "GitHub · " + info.title;
+    const button = $("#floatingStatus");
+    renderCloudSyncVisual(button, info);
+    button.dataset.localStorage = localAvailable ? "available" : "unavailable";
+    button.setAttribute("aria-disabled", String(info.busy));
+    button.title = localLabel + ". " + info.help + (info.busy ? "" : " " + info.action + ": " + App.sync.actions[info.primaryAction].help);
+    button.setAttribute("aria-label", button.title);
+    $("#floatingStatusTitle").textContent = localLabel;
+    $("#floatingStatusMessage").textContent = syncLabel;
+  }
+
+  function renderSyncSettings() {
+    const localAvailable = storage.isPersistent();
+    $("#localStorageSettingsState").textContent = localAvailable ? "Saved locally" : "Unavailable";
+    $("#localStorageSettingsState").dataset.kind = localAvailable ? "success" : "danger";
+    if (!config.features.cloudSync) { $("#cloudSyncSettings").hidden = true; return; }
     const cloud = state().modules.cloudSync;
     const info = App.sync.getInfo();
-    $("#syncOwner").value = cloud.owner;
-    $("#syncRepo").value = cloud.repo;
-    $("#syncBranch").value = cloud.branch;
-    $("#syncPath").value = cloud.path;
-    $("#syncRememberToken").checked = cloud.rememberToken;
-    $("#syncSettingsTarget").textContent = cloud.owner + "/" + cloud.repo + " · " + cloud.branch + "/" + cloud.path;
-    $("#syncSettingsState").textContent = info.title;
-    $("#syncSettingsState").dataset.kind = info.kind;
-    $("#storedTokenLabel").textContent = storage.hasSecret() ? "A token is already stored" : "No token is stored";
-    const floating = $("#floatingStatus");
-    floating.dataset.kind = info.kind;
-    $("#floatingStatusTitle").textContent = storage.isPersistent() ? "Saved locally" : "Session only";
-    $("#floatingStatusMessage").textContent = "GitHub: " + info.title;
+    $("#cloudSyncSettings").hidden = false;
+    const settingsStatus = $("#syncSettingsState");
+    renderCloudSyncVisual(settingsStatus, info);
+    settingsStatus.querySelector("[data-sync-label]").textContent = info.title;
+    settingsStatus.title = info.help;
+    [["#syncNowButton", "syncNow", info.canSync], ["#restoreCloudButton", "restore", info.canRestore]].forEach(function (entry) {
+      const button = $(entry[0]);
+      const action = App.sync.actions[entry[1]];
+      App.icons.set(button.querySelector("[data-sync-action-icon]"), action.symbol);
+      button.querySelector("[data-sync-action-label]").textContent = action.title;
+      button.setAttribute("aria-label", action.title);
+      button.title = action.help + (entry[2] ? "" : " " + info.help);
+      button.disabled = !entry[2];
+    });
+    const appRepositoryUrl = u.safeUrl(config.identity.repository.url);
+    const appRepositoryLink = $("#appRepositoryLink");
+    appRepositoryLink.textContent = appRepositoryUrl ? config.identity.repository.label : "App repository not configured";
+    appRepositoryLink.hidden = !appRepositoryUrl;
+    if (appRepositoryUrl) {
+      appRepositoryLink.href = appRepositoryUrl;
+      appRepositoryLink.setAttribute("aria-label", config.identity.repository.label + " (opens in a new tab)");
+    } else {
+      appRepositoryLink.removeAttribute("href");
+      appRepositoryLink.removeAttribute("aria-label");
+    }
+    $("#syncOwner").textContent = cloud.owner || "Not set";
+    $("#syncBranch").textContent = cloud.branch || "Not set";
+    const repositoryUrl = cloud.owner && cloud.repo ? u.safeUrl("https://github.com/" + encodeURIComponent(cloud.owner) + "/" + encodeURIComponent(cloud.repo)) : "";
+    const dataFileUrl = repositoryUrl && cloud.branch && cloud.path ? u.safeUrl(repositoryUrl + "/blob/" + encodeURIComponent(cloud.branch) + "/" + cloud.path.split("/").map(encodeURIComponent).join("/")) : "";
+    [["#syncRepo", cloud.repo, repositoryUrl, "Open GitHub repository"], ["#syncPath", cloud.path, dataFileUrl, "Open GitHub data file"]].forEach(function (entry) {
+      const link = $(entry[0]);
+      link.textContent = entry[1] || "Not set";
+      if (entry[2]) {
+        link.href = entry[2];
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.setAttribute("aria-label", entry[3] + " (opens in a new tab)");
+      } else {
+        link.removeAttribute("href");
+        link.removeAttribute("target");
+        link.removeAttribute("rel");
+        link.removeAttribute("aria-label");
+      }
+    });
+    const tokenInput = $("#syncToken");
+    const rememberInput = $("#syncRememberToken");
+    const hasStoredToken = storage.hasSecret();
+    if (tokenInput.dataset.dirty !== "true") tokenInput.value = hasStoredToken ? storage.getSecret() : "";
+    if (rememberInput.dataset.dirty !== "true") rememberInput.checked = cloud.rememberToken;
+    $("#storedTokenLabel").textContent = hasStoredToken ? (cloud.rememberToken ? "Stored on this device" : "Stored for this tab") : "Required";
+    tokenInput.placeholder = hasStoredToken ? "Token stored" : "Enter token";
+    $("#forgetSyncButton").disabled = !hasStoredToken && !cloud.baselineHash;
+    $("#saveSyncButton").disabled = info.busy;
+    $("#testSyncButton").disabled = info.busy;
   }
+
+  function markSyncCredentialFieldsClean() {
+    delete $("#syncToken").dataset.dirty;
+    delete $("#syncRememberToken").dataset.dirty;
+  }
+
+  function renderSync() { renderSyncStatus(); renderSyncSettings(); }
 
   function renderHelp() {
     const query = $("#helpSearch").value.trim().toLowerCase();
@@ -251,11 +336,12 @@
   }
 
   function syncForm() {
+    const cloud = state().modules.cloudSync;
     return {
-      owner: $("#syncOwner").value,
-      repo: $("#syncRepo").value,
-      branch: $("#syncBranch").value,
-      path: $("#syncPath").value,
+      owner: cloud.owner,
+      repo: cloud.repo,
+      branch: cloud.branch,
+      path: cloud.path,
       token: $("#syncToken").value,
       rememberToken: $("#syncRememberToken").checked
     };
@@ -264,9 +350,10 @@
   async function saveSync() {
     try {
       App.sync.saveConfiguration(syncForm());
-      $("#syncToken").value = "";
+      markSyncCredentialFieldsClean();
       renderSync();
       App.components.toast("GitHub Sync settings were saved.", { title: "Connection saved", kind: "success" });
+      App.sync.check(true);
     } catch (error) { App.components.message("Could not save GitHub Sync", error.message, { trigger: $("#saveSyncButton") }); }
   }
 
@@ -274,7 +361,10 @@
     try {
       App.components.setLoading(true, "Testing GitHub…");
       const result = await App.sync.testConnection(syncForm());
-      if (result) App.components.toast(result.message, { title: "Connection works", kind: "success", duration: 5000 });
+      if (result) {
+        markSyncCredentialFieldsClean();
+        App.components.toast(result.message, { title: "Connection works", kind: "success", duration: 5000 });
+      }
     } catch (error) { App.components.message("Connection failed", error.message, { trigger: $("#testSyncButton") }); }
     finally { App.components.setLoading(false); renderSync(); }
   }
@@ -282,6 +372,7 @@
   async function forgetSync() {
     if (!await App.components.confirm({ title: "Forget GitHub connection?", message: "The saved token and sync baseline will be removed from this browser.", confirmLabel: "Forget connection", danger: true, trigger: $("#forgetSyncButton") })) return;
     await App.sync.forget();
+    markSyncCredentialFieldsClean();
     renderSync();
   }
 
@@ -294,7 +385,9 @@
 
   async function eraseAll() {
     if (!await App.components.confirm({ title: "Erase all application data?", message: "This removes Notes, preferences, sync settings, token, and recovery data from this browser.", confirmLabel: "Erase all data", danger: true, trigger: $("#eraseAllButton") })) return;
+    await App.sync.forget();
     storage.clearAll();
+    markSyncCredentialFieldsClean();
     applyAppearance();
     renderAll();
     App.components.toast("All application data was erased.", { title: "Fresh start", kind: "success" });
@@ -312,7 +405,7 @@
     $("#notesButton").addEventListener("click", function () { openNotes(this); });
     $("#supportButton").addEventListener("click", function () { openSupport("settings", this); });
     $("#versionButton").addEventListener("click", function () { openSupport("releases", this); });
-    $("#floatingStatus").addEventListener("click", function () { openSupport("settings", this); });
+    $("#floatingStatus").addEventListener("click", function () { App.sync.syncNow(this); });
     $("#notesTextarea").addEventListener("input", function () { saveNotes(this.value); });
     $("#globalSearch").addEventListener("input", renderSearch);
     $("#globalSearchResults").addEventListener("click", function (event) { const button = event.target.closest("[data-result-type]"); if (button) activateSearchResult(button); });
@@ -334,13 +427,17 @@
       event.preventDefault(); tabs[next].focus(); switchSupportTab(tabs[next].dataset.supportTab);
     });
     $$('[data-theme-mode]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.appearance.mode = button.dataset.themeMode; }, { reason: "appearance" }); applyAppearance(); }); });
-    $$('[data-button-style]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.controls.buttonStyle = button.dataset.buttonStyle; }, { reason: "appearance" }); applyAppearance(); }); });
+    $$('button[data-button-style]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.controls.buttonStyle = button.dataset.buttonStyle; }, { reason: "appearance" }); applyAppearance(); }); });
     $$('[data-hints-enabled]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.hints.enabled = button.dataset.hintsEnabled === "true"; }, { reason: "hints" }); applyAppearance(); }); });
     $("#restoreHintsButton").addEventListener("click", function () { storage.mutate(function (next) { next.preferences.hints.enabled = true; next.preferences.hints.dismissed = []; }, { reason: "hints" }); applyAppearance(); });
     $("#textSizeSlider").addEventListener("input", function () { const scale = Number(this.value) / 100; storage.mutate(function (next) { next.preferences.appearance.textScale = scale; }, { reason: "text-size" }); applyAppearance(); renderTextSize(); });
     $("#helpSearch").addEventListener("input", renderHelp);
     $("#exportButton").addEventListener("click", App.portability.exportJson);
     $("#importButton").addEventListener("click", function () { $("#importFileInput").click(); });
+    $("#syncNowButton").addEventListener("click", function () { App.sync.syncNow(this); });
+    $("#restoreCloudButton").addEventListener("click", function () { App.sync.restoreFromCloud(this); });
+    $("#syncToken").addEventListener("input", function () { this.dataset.dirty = "true"; });
+    $("#syncRememberToken").addEventListener("change", function () { this.dataset.dirty = "true"; });
     $("#saveSyncButton").addEventListener("click", saveSync);
     $("#testSyncButton").addEventListener("click", testSync);
     $("#forgetSyncButton").addEventListener("click", forgetSync);
@@ -354,9 +451,18 @@
     icon.addEventListener("click", function () { if (iconHoldTriggered) { iconHoldTriggered = false; return; } toggleTheme(); });
     App.components.bindLongPress(icon, function () { iconHoldTriggered = true; toggleDeveloperMode(); navigator.vibrate?.(25); }, 650);
 
-    window.addEventListener("app:statechange", function () { renderSync(); renderDeveloper(); });
+    window.addEventListener("app:statechange", function (event) {
+      renderSync(); renderDeveloper();
+      if (["import", "recovery", "sync-download", "sync-merge"].includes(event.detail.reason)) {
+        $("#notesTextarea").value = state().notes.text;
+        applyAppearance(); renderSupport();
+      }
+    });
     window.addEventListener("app:syncchange", renderSync);
-    window.addEventListener("app:opensyncsettings", function (event) { openSupport("settings", event.detail.trigger); });
+    window.addEventListener("app:opensyncsettings", function (event) {
+      openSupport("settings", event.detail.trigger);
+      requestAnimationFrame(function () { $("#storageSyncSettings").scrollIntoView({ block: "start" }); $("#syncToken").focus({ preventScroll: true }); });
+    });
     window.addEventListener("app:networkchange", renderSync);
     matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyAppearance);
     document.addEventListener("keydown", function (event) {
@@ -369,6 +475,7 @@
       else if (key === "n") { event.preventDefault(); openNotes(document.activeElement); }
       else if (key === ",") { event.preventDefault(); openSupport("settings", document.activeElement); }
       else if (key === "v") { event.preventDefault(); openSupport("releases", document.activeElement); }
+      else if (key === "s") { event.preventDefault(); App.sync.syncNow(document.activeElement); }
       else if (key === "t") { event.preventDefault(); toggleTheme(); }
       if (chord && state().preferences.controls.shortcutHints) document.documentElement.classList.add("shortcut-hints-visible");
     });

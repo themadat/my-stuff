@@ -1,8 +1,12 @@
 # Agent handoff
 
-My Stuff is a clean local-first foundation at version `0.0.1.2`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, What’s New, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support. Its compact interface-symbol helper embeds the original SVG artwork required by every retained control without depending on removed product data.
+My Stuff is a clean local-first foundation at version `0.0.1.3`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, What’s New, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support. Its compact interface-symbol helper embeds the original SVG artwork required by every retained control without depending on removed product data.
 
 Application artwork is retained as a placeholder. The runtime is static and dependency-free. Browser data uses the app-specific `myStuff.*` namespace; GitHub Sync targets `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`.
+
+Settings/sync updates from app-template `0.0.1.61` through `0.0.1.67` (`c1ff33f`, verified remote HEAD) are integrated. This includes compact appearance/target controls, safe repository/file links, masked stored tokens and dirty-field retention, saved successful tests, explicit Sync Now/Restore actions, shared cloud symbols/tints, safe conflict/recovery handling, and single-scroller mobile Settings. Sync sends Notes only; local state/backups remain schema 1, while the compact cloud envelope uses sync version 1/schema 5. Legacy My Stuff files remain readable, with explicit compaction on sync. Update older devices before syncing the new envelope. No upstream icon-library product state, reset provisioning workflow, or Git account routing was imported.
+
+Verification: 31 simulated sync tests, 2 static consistency tests, and 7 isolated Chromium browser tests pass, including desktop/mobile (320px at 130% text), imports, export privacy, masked token persistence, cloud restore recovery, reduced motion, and offline reload. GitHub responses are mocked in tests; no live cloud upload or deployment was performed. The existing root-level button-style click handler was narrowed to actual buttons after it was found to interfere with remember-token checkbox edits.
 
 ## Repository map
 
@@ -22,6 +26,7 @@ Application artwork is retained as a placeholder. The runtime is static and depe
 - Preserve one plain-text Notes surface, Settings, combined storage/sync status, recovery, JSON portability, optional GitHub Sync, and offline support.
 - Secrets remain device-local and excluded from exports and normalized diagnostics.
 - Imported state cannot redirect the configuration-fixed GitHub target.
+- Cloud restores preserve device preferences and require a successful recovery write. Unknown cloud content is rejected, and unequal nonempty Notes require an explicit copy choice.
 - Use shared inline SVGs for standard controls, semantic elements, labelled inputs, visible focus, safe URLs, escaped text, safe areas, and reduced motion.
 - Application versions use four parts. Keep config identity/build, HTML queries, manifests, service-worker cache/version, release entry, and deployment workflow name identical.
 - GitHub Pages uses the checked-in Actions workflow as its only publishing path.
@@ -56,6 +61,7 @@ Never silently advance between stages.
 for file in assets/js/*.js assets/js/core/*.js sw.js; do node --check "$file" || exit 1; done
 node -e "const fs=require('fs'); for (const file of ['manifest.webmanifest','manifest-dark.webmanifest']) JSON.parse(fs.readFileSync(file,'utf8'));"
 git diff --check
+node --test tests/sync.test.mjs tests/static.test.mjs
 python3 -m http.server 8000
 ```
 

@@ -60,17 +60,22 @@
     if (!pendingImport) return;
     const accepted = await App.components.confirm({
       title: "Replace current data?",
-      message: "The validated backup will replace notes and preferences. A recoverable copy of the current data will be saved first.",
+      message: pendingImport.contentOnly ? "The cloud file will replace Notes only; device settings stay local. A recovery copy will be saved first." : "The validated backup will replace notes and preferences. A recoverable copy of the current data will be saved first.",
       confirmLabel: "Replace data",
       cancelLabel: "Keep current data",
       danger: true,
       trigger: document.querySelector("[data-import-confirm]")
     });
     if (!accepted) return;
-    storage.replace(pendingImport.state, { recoveryReason: "Before importing a backup", reason: "import" });
+    if (!storage.saveRecovery("Before importing a backup")) {
+      App.components.message("Import unavailable", "A recovery copy could not be saved. Export a backup before continuing.");
+      return;
+    }
+    const next = pendingImport.contentOnly ? model.applySync(storage.getState(), pendingImport.state) : pendingImport.state;
+    storage.replace(next, { saveRecovery: false, reason: "import" });
     pendingImport = null;
     App.components.closeDialog("#importPreviewDialog", "imported");
-    App.components.toast("Notes and preferences were restored.", { title: "Backup restored", kind: "success" });
+    App.components.toast("The selected data was restored.", { title: "Backup restored", kind: "success" });
   }
 
   function init() {
