@@ -2,11 +2,85 @@
 
 This is the durable, developer-facing backlog used by the `wish`, `plan`, `start`, and `cut` workflows. It is not application state and is never included in user backups.
 
-Next id: `WISH-001`
+Next id: `WISH-002`
 
 ## Active wishes
 
-None yet.
+### WISH-001 — Zones, rooms, spaces, and grouped tags
+
+- Status: Proposed
+- Priority: P2 (provisional)
+- Effort: Unestimated
+- Target: Unscheduled
+- Plan: —
+- Released: —
+- Affected modules: Inventory model and editor, location/tag suggestions and filters, state/backup/sync compatibility, Help.
+
+Behavior:
+Zones are groups of rooms. Rooms can have multiple parts called spaces. Use the supplied location hierarchy and grouped tag vocabulary below. Parentheses list spaces within the preceding room; rooms without parentheses have no supplied spaces.
+
+Zones: Upstairs, Main Level, Outside.
+
+| Zone | Room | Spaces |
+| --- | --- | --- |
+| Outside | Yard | — |
+| Outside | Shed | — |
+| Outside | Nest | — |
+| Outside | Patio | Pickle Bag |
+| Outside | Garage | Car |
+| Outside | Attic | — |
+| Outside | Crawl | — |
+| Main Level | Foyer | — |
+| Main Level | Hallway | — |
+| Main Level | Game Room | — |
+| Main Level | Kitchen | Pantry |
+| Main Level | Nook | Floating, Go Bag |
+| Main Level | Den | Bar |
+| Main Level | Doge’s Den | — |
+| Main Level | Mud Room | — |
+| Main Level | Powder Room | — |
+| Main Level | Primary Bedroom | Closet |
+| Main Level | Primary Bathroom | Closet, Water Closet |
+| Upstairs | Loft | Closet |
+| Upstairs | Office | Closet, Desk |
+| Upstairs | Utility Room | Closet |
+| Upstairs | Guest Room | Closet |
+| Upstairs | J&J Bathroom | Guest Sinkroom, Loft Sinkroom |
+
+| Tag group | Tags |
+| --- | --- |
+| Activity | Pickleball, Backpacking, Biking, Golfing, Hiking |
+| Apparel | Headware, Eyewear, Handware, Footware, Clothing, Scarf |
+| Power | Cable, Powerbank, Coax, Ethernet, Extension |
+| Systems | Fan, Fire, Fixture, HVAC, Temperature, Water, Switch |
+| Lighting | Bulb, Decor, LED, Night, String |
+| Tech | Curtain, Hub, Lock, Remote, Sensor, Shades, TV, Tracker |
+| Other | Paddles, Soccer Balls, Bags, Books, Games, Art, Memorabilia, Barware, Glassware, Dishware, Appliances, Tools |
+| Brands | Apple, Fracture, OXO, Ryobi, Popchart, Nespresso |
+
+Rationale:
+Capture the user's household locations and tag vocabulary so inventory can describe where an object belongs and how it is classified.
+
+Acceptance criteria:
+
+- Represent all 3 zones, 23 rooms, and 16 spaces with their supplied parent relationships.
+- Distinguish repeated space names such as Closet by their parent room.
+- Preserve all 8 tag groups and 54 supplied tags, including the user's spelling and punctuation.
+- Preserve existing inventory records when introducing structured locations or grouped tags.
+
+Constraints and assumptions:
+
+- This entry captures requirements only; no runtime, schema, version, or stored inventory changes are authorized by this capture.
+- Keep runtime static, local-first, and dependency-free, with backup/import and optional sync compatibility.
+- Preserve Pickle Bag, Car, Floating, and Go Bag as supplied spaces.
+- Priority is provisional; effort and implementation decisions belong to planning.
+
+Open questions:
+
+- Should locations and tags be fixed choices, editable defaults, or suggestions alongside custom entries?
+- Should an item allow multiple locations, and may its location stop at a zone or room?
+- Should grouped tags extend or replace existing category tags/presets, and should Brands remain a tag group?
+- How should existing free-text rooms and tags map to this vocabulary?
 
 ## Entry template
 
