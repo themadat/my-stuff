@@ -8,9 +8,9 @@
       name: "My Stuff",
       shortName: "My Stuff",
       slug: "my-stuff",
-      description: "A local-first application foundation.",
-      version: "0.0.1.7",
-      buildId: "0.0.1.7",
+      description: "A local-first inventory of the things you own and used to own.",
+      version: "0.0.1.8",
+      buildId: "0.0.1.8",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -24,7 +24,17 @@
         manifestDark: "manifest-dark.webmanifest"
       }
     },
-    schemaVersion: 1,
+    schemaVersion: 2,
+    inventory: {
+      defaultCurrency: "USD",
+      currencies: ["USD", "CAD", "EUR", "GBP", "AUD", "NZD", "JPY", "CHF"],
+      rooms: ["Living room", "Kitchen", "Bedroom", "Bathroom", "Office", "Garage", "Closet", "Storage"],
+      categories: [
+        { name: "Shoes", properties: [{ name: "Size", unit: "" }, { name: "Color", unit: "" }, { name: "Weight", unit: "g" }] },
+        { name: "Backpacking gear", properties: [{ name: "Weight", unit: "g" }] },
+        { name: "Cables", properties: [{ name: "Length", unit: "cm" }] }
+      ]
+    },
     storage: {
       stateKey: "myStuff.state.v1",
       legacyKeys: [],
@@ -44,6 +54,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.8",
+      date: "2026-09-08T21:57:55.000Z",
+      title: "Make room for your stuff",
+      summary: "A personal and household inventory, with room totals and a history of the things you used to own.",
+      features: ["Add and edit items with ownership, room, tags, acquisition details, current value, and obtaining price", "Category presets for shoes, backpacking gear, and cables, plus custom properties", "Current object counts and known values by owner and room", "Archive items with a gone date, reason, notes, and days owned; return them when needed"],
+      improvements: ["Search and filter your inventory", "Inventory and Notes travel together in backups and GitHub Sync", "Older Notes-only cloud files preserve existing inventory", "Unsaved forms and conflicting item edits are protected"],
+      fixes: [],
+      knownIssues: ["Want and Research are placeholders for later updates", "Update other devices before syncing inventory: older clients cannot read the new cloud format", "Amounts use one inventory currency, USD by default; changing currency does not convert amounts"]
+    }, {
       version: "0.0.1.7",
       date: "2026-09-08T17:18:05.000Z",
       title: "Sync to the dedicated app-data repository",
@@ -109,14 +128,17 @@
     }],
     roadmap: [],
     helpTopics: [
-      { id: "data-sync", title: "Data Sync", section: "Settings", keywords: "data connection sync json payload preview github braces", html: "<p>Open Settings → Data Sync for local storage status, GitHub connection details, and sync actions. Expand JSON sent to GitHub to inspect the exact outgoing data file generated from this device. It updates when Notes change, excludes the token and device settings, and does not fetch the current cloud copy. Backup, restore, and reset controls remain in general Settings.</p>" },
-      { id: "start", title: "Getting started", section: "Basics", keywords: "start blank workspace foundation", html: "<p>The main workspace is intentionally blank. Add the first product feature through a focused wish, plan, or implementation request.</p>" },
+      { id: "data-sync", title: "Data Sync", section: "Settings", keywords: "data connection sync json payload preview github braces", html: "<p>Open Settings → Data Sync for local storage status, GitHub connection details, and sync actions. Expand JSON sent to GitHub to inspect the exact outgoing data file generated from this device. It updates when inventory or Notes change, excludes the token and device settings, and does not fetch the current cloud copy. Backup, restore, and reset controls remain in general Settings.</p>" },
+      { id: "start", title: "Getting started", section: "Basics", keywords: "start inventory add item stuff have house me", html: "<p>Start in Stuff I have and choose Add an item. Each entry represents one object. Give it a name, choose whether it belongs to the house or to you, and set its current room. Everything else can be filled in later. Save item stores your changes on this device.</p><p>Stuff I want and Research are reserved for future updates. Previous stuff keeps the items you have archived.</p>" },
+      { id: "inventory-details", title: "Item details and categories", section: "Inventory", keywords: "properties tags shoes size weight color backpacking cables length obtained price source gift", html: "<p>Select an item name to edit its details. Record when and how you obtained it, where it came from, what you paid, and its current estimated value. Blank amounts are unknown; 0 means free or no value.</p><p>Separate category tags with commas. Presets suggest size, color, and weight for shoes, weight for backpacking gear, and length for cables. Add custom properties with a name, value, and optional unit. Removing a category never removes an existing property.</p>" },
+      { id: "inventory-stats", title: "Rooms, ownership, and totals", section: "Inventory", keywords: "stats totals house personal room value count currency", html: "<p>Ownership is separate from location: your belongings and house belongings can share a room. Counts and known-value totals include all current items, even when the list is filtered. Room totals separate House and Me; items without a room appear under Unassigned. Items without a value are counted but excluded from known-value totals.</p><p>Amounts use one inventory currency, USD by default. Use Values &amp; prices in below the room overview to change it. Existing amounts are relabelled, not converted.</p>" },
+      { id: "inventory-archive", title: "Previous stuff", section: "Inventory", keywords: "archive gone lost broken trashed sold donated duration previous return", html: "<p>Open an item and select Archive to record its gone date, reason, and optional departure notes. It moves to Previous stuff and stops counting toward current totals. Days owned are calculated from the obtained date to the gone date; unknown obtained dates have unknown duration.</p><p>Archived details remain editable. Return to stuff I have clears its departure details and restores it to current totals. There is no permanent item-delete action.</p>" },
       { id: "notes", title: "Notes", section: "Basics", keywords: "notes autosave local", html: "<p>Open Notes from the header or press <kbd>N</kbd>. Plain text saves automatically in this browser.</p>" },
       { id: "appearance", title: "Appearance", section: "Settings", keywords: "theme text size buttons hints", html: "<p>Settings includes system, light, and dark themes, text sizing, button presentation, and contextual hints.</p>" },
       { id: "backup", title: "Backup and restore", section: "Data", keywords: "backup export import json recovery reset", html: "<p>Export a JSON backup before major changes. Import validates the file and saves a recovery copy before replacement.</p>" },
-      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs Notes only. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting Notes require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
+      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs inventory and Notes. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting item or Notes edits require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing inventory and Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
       { id: "offline", title: "Install and offline updates", section: "Application", keywords: "install pwa offline update refresh", html: "<p>When served over HTTPS, My Stuff can be installed and keeps its shell available offline. Use Force refresh when an update notice appears.</p>" },
-      { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },
+      { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Inventory and Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },
       { id: "shortcuts", title: "Keyboard shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Press <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }
     ],
     shortcuts: [

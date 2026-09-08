@@ -279,7 +279,7 @@
   function reconciliation() {
     const cloud = settings();
     const hash = localHash();
-    const baselineMatchesTarget = cloud.baselineTarget === target(cloud) && cloud.baselineHash.startsWith("data-v1:");
+    const baselineMatchesTarget = cloud.baselineTarget === target(cloud) && cloud.baselineHash.startsWith(model.syncHashPrefix);
     if (runtime.remoteMissing) return baselineMatchesTarget ? "local" : "first-sync";
     if (!runtime.remoteSha || !runtime.remoteHash) return baselineMatchesTarget && hash !== cloud.baselineHash ? "local" : "unknown";
     if (hash === runtime.remoteHash) return "current";
@@ -363,7 +363,7 @@
       // Equal content establishes a baseline even after an upgrade or first check.
       // An unchanged legacy SHA also identifies the old baseline's actual content.
       if (remote && (localHash() === runtime.remoteHash
-        || (cloud.baselineTarget === target(cloud) && cloud.baselineSha === remote.sha && !cloud.baselineHash.startsWith("data-v1:")))) {
+        || (cloud.baselineTarget === target(cloud) && cloud.baselineSha === remote.sha && !cloud.baselineHash.startsWith(model.syncHashPrefix)))) {
         if (cloud.baselineTarget !== target(cloud) || cloud.baselineHash !== runtime.remoteHash || cloud.baselineSha !== remote.sha) rememberBaseline(remote.sha, runtime.remoteHash);
       }
       runtime.checkedAt = checkedAt;

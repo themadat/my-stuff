@@ -1,14 +1,16 @@
 # Agent handoff
 
-My Stuff is a clean local-first foundation at version `0.0.1.7`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, What’s New, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support. Its compact interface-symbol helper embeds the original SVG artwork required by every retained control without depending on removed product data.
+My Stuff is a local-first inventory app at version `0.0.1.8`. The main workspace prioritizes Stuff I have, with item editing, ownership (house/me), rooms, category tags/presets, acquisition details, value/price, custom properties, search/filters, and room/ownership totals. Previous stuff retains archived objects with gone date, reason, notes, and calendar days owned, and supports returning an item. Want and Research are explicitly labelled placeholders. The responsive header, centered support search, autosaving Notes, Settings, Help, release notes, Developer diagnostics, recovery, backup/import, optional GitHub Sync, and PWA/offline features remain intact.
 
-The supplied storage-box app artwork is preserved at `assets/icons/my-stuff-app-icon.svg` and used unchanged by both header themes and the favicon. Install PNGs, padded maskable variants, opaque Apple touch icons, and themed splash SVG/PNG assets are aligned. `scripts/generate-icons.mjs` regenerates PNGs with development-only Playwright; see `docs/CUSTOMIZATION.md`. Unused template reference files remain untouched. The runtime is static and dependency-free. Browser data uses the app-specific `myStuff.*` namespace; GitHub Sync targets `themadat/app-data`, branch `main`, at `data/my-stuff.json`.
+The supplied storage-box artwork is preserved at `assets/icons/my-stuff-app-icon.svg` and used unchanged by both header themes and the favicon. Install PNGs, maskable variants, Apple touch icons, and splash assets remain aligned. `scripts/generate-icons.mjs` regenerates PNGs with development-only Playwright; see `docs/CUSTOMIZATION.md`. User changes observed during the inventory work deleted six unused App Icon Template reference assets and added `my-stuff-app-icon-wip.svg`; these are unrelated edits, left untouched and excluded from the suggested inventory commit. Runtime remains static and dependency-free. Browser storage keeps the same `myStuff.*` keys; GitHub Sync still targets `themadat/app-data/main/data/my-stuff.json`.
 
-Settings/sync updates from app-template `0.0.1.61` through `0.0.1.67` (`c1ff33f`, verified remote HEAD) are integrated. This includes compact appearance/target controls, safe repository/file links, masked stored tokens and dirty-field retention, saved successful tests, explicit Sync Now/Restore actions, shared cloud symbols/tints, safe conflict/recovery handling, and single-scroller mobile Settings. Sync sends Notes only; local state/backups remain schema 1, while the compact cloud envelope uses sync version 1/schema 5. Legacy My Stuff files remain readable, with explicit compaction on sync. Update older devices before syncing the new envelope. No upstream icon-library product state, reset provisioning workflow, or Git account routing was imported.
+Settings/sync updates from app-template `0.0.1.61` through `0.0.1.67` remain integrated. Local state/backups now use schema 2 and migrate schema 1 without losing Notes/preferences. Cloud writes use sync version 1/schema 6, including inventory (currency plus current and archived records) and Notes, with a `data-v2:` hash and stable item-ID ordering. Older Notes-only cloud copies preserve local inventory on download; full old backup import explicitly replaces everything after a warning/recovery save. Merge unions distinct IDs, but different records for one ID, different currencies, or divergent nonempty Notes require choosing a copy. Update older devices before syncing inventory; older clients intentionally reject schema 6.
 
-Verification: 38 simulated sync tests, 3 static consistency/artwork tests, and 9 isolated Chromium browser tests pass, including desktop/mobile (320px at 130% text), theme-specific icon loading, imports, export privacy, masked token persistence, cloud restore recovery, reduced motion, and offline reload. The supplied SVG is preserved byte-for-byte; install dimensions, maskable foreground padding, and opaque Apple touch assets were checked. GitHub responses are mocked in tests; no live cloud upload or deployment was performed. The existing root-level button-style click handler was narrowed to actual buttons after it was found to interfere with remember-token checkbox edits.
+Verification covers 47 simulated inventory/sync tests, 3 static consistency/artwork tests, and 13 isolated Chromium browser tests, including real inventory forms, category properties, unknown/zero values, ownership/room totals, archive/return, leap-day duration, stale drafts, nested Escape, cloud/backup privacy and recovery, desktop/mobile (320px at 130% text), and offline persistence. Desktop/mobile screenshots use temporary fixture records in an isolated browser, not actual user data. No real token, live cloud upload, commit, push, or deployment was performed.
 
 ## Repository map
+
+Inventory model: `assets/js/core/inventory.js`, loaded after utilities and before state. Workspace/forms: `assets/js/inventory-ui.js`, initialized after storage load and before shared dialog bindings. Item edits are explicit saves; Escape/Cancel confirm before dropping drafts. Each entry is one object; rooms/tags are free text with suggestions, presets never remove properties, archived items are excluded from current totals, and unknown value is distinct from zero. Currency is inventory-wide, USD by default, adjustable without automatic conversion. Limits: 5,000 records, 40 properties per item. List filters are session-local. No example items ship in state.
 
 Version 0.0.1.7 corrects the sync target to `themadat/app-data/main/data/my-stuff.json`; application/support links still use `themadat/my-stuff`. Normalization moves existing devices to the configured destination without changing Notes or tokens. Existing reconciliation ignores baselines from the old repository and requires a first-sync choice for differing or missing cloud data. A regression test verifies the target for every read/write request, permission guidance, preserved Notes/token, and confirmation before creating the new file. No live GitHub upload was performed.
 
@@ -16,7 +18,7 @@ Settings now has a dedicated `data-sync` tab with the supplied braces SVG. Data 
 
 Current sync UX: first-sync/conflict options are left-aligned with leading shared cloud symbols. Test uses GET requests only and labels its result “Read check passed — uploads unverified”; it rejects known archived/disabled/read-only repositories but never claims that read access proves Contents write permission. Access failures retain GitHub’s message and show repository-specific guidance in Settings. Branch-rule denials are distinguished from stale-content conflicts. Tests reproduce successful reads followed by a denied upload; no real token permissions or repository rules were changed. The earlier Notes-highlighting clarification remains unresolved and no Notes changes have been made.
 
-- `index.html`: shell, blank workspace, Notes, Settings, and shared dialogs.
+- `index.html`: shell, inventory mount point, Notes, Settings, and shared dialogs.
 - `assets/css/app.css`: themes, components, responsive layout, safe areas, and reduced motion.
 - `assets/js/config.js`: identity, version, storage/sync settings, Help, releases, Roadmap, and shortcuts.
 - `assets/js/icons.js`: small inline interface-symbol helper.
@@ -28,7 +30,7 @@ Current sync UX: first-sync/conflict options are left-aligned with leading share
 ## Invariants
 
 - Keep the runtime static, backend-free, and usable on an ordinary static host.
-- Preserve the blank main workspace until an explicit feature request replaces it.
+- Keep current inventory as the primary workspace; Want/Research remain placeholders until requested.
 - Preserve one plain-text Notes surface, Settings, combined storage/sync status, recovery, JSON portability, optional GitHub Sync, and offline support.
 - Secrets remain device-local and excluded from exports and normalized diagnostics.
 - Imported state cannot redirect the configuration-fixed GitHub target.
@@ -71,7 +73,7 @@ node --test tests/sync.test.mjs tests/static.test.mjs
 python3 -m http.server 8000
 ```
 
-Check desktop/mobile startup, no console errors or horizontal overflow, blank workspace, Notes autosave, all Settings tabs, appearance, empty Roadmap, Help/release search, shortcuts, backup/import, recovery, combined status, GitHub setup, PWA registration/update/offline reload, visible focus, and reduced motion. Stop the server afterward.
+Check desktop/mobile startup, no console errors or horizontal overflow, empty/populated inventory, item fields and archive/return, totals/filters, Notes autosave, Settings, appearance, Help/release search, shortcuts, backup/import, recovery, GitHub setup, PWA/offline reload and edits, visible focus, and reduced motion. Stop the server afterward.
 
 ## End of turn
 

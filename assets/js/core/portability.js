@@ -11,6 +11,8 @@
   function summaryFor(state, migrations) {
     return {
       noteCharacters: state.notes.text.length,
+      currentItems: state.inventory.items.filter(function (item) { return !item.archive; }).length,
+      previousItems: state.inventory.items.filter(function (item) { return item.archive; }).length,
       schemaVersion: state.schemaVersion,
       appVersion: state.meta.appVersion,
       updatedAt: state.meta.updatedAt,
@@ -45,6 +47,7 @@
       const current = summaryFor(storage.getState(), []);
       document.querySelector("[data-import-file]").textContent = file.name || "Selected backup";
       document.querySelector("[data-import-notes]").textContent = summary.noteCharacters + " characters (current: " + current.noteCharacters + ")";
+      document.querySelector("[data-import-inventory]").textContent = pendingImport.state.syncNotesOnly ? "Notes-only cloud file; current inventory will be preserved" : summary.currentItems + " current, " + summary.previousItems + " previous (current device: " + current.currentItems + " current, " + current.previousItems + " previous)";
       document.querySelector("[data-import-version]").textContent = "State v" + summary.schemaVersion + " · app v" + (summary.appVersion || "unknown");
       document.querySelector("[data-import-updated]").textContent = u.dateLabel(summary.updatedAt);
       App.components.openDialog("#importPreviewDialog", { trigger: trigger, focus: "[data-import-confirm]" });
@@ -60,7 +63,7 @@
     if (!pendingImport) return;
     const accepted = await App.components.confirm({
       title: "Replace current data?",
-      message: pendingImport.contentOnly ? "The cloud file will replace Notes only; device settings stay local. A recovery copy will be saved first." : "The validated backup will replace notes and preferences. A recoverable copy of the current data will be saved first.",
+      message: pendingImport.contentOnly ? (pendingImport.state.syncNotesOnly ? "This older cloud file replaces Notes only; inventory and device settings stay. A recovery copy will be saved first." : "The cloud file will replace Notes and inventory; device settings stay local. A recovery copy will be saved first.") : "The validated backup will replace Notes, inventory, and preferences. Older backups without inventory will clear current items. A recoverable copy of the current data will be saved first.",
       confirmLabel: "Replace data",
       cancelLabel: "Keep current data",
       danger: true,

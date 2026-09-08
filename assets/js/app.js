@@ -386,14 +386,14 @@
   }
 
   async function resetPreferences() {
-    if (!await App.components.confirm({ title: "Reset preferences?", message: "Notes will stay, while appearance, hints, and view settings return to defaults.", confirmLabel: "Reset preferences", danger: true, trigger: $("#resetPreferencesButton") })) return;
+    if (!await App.components.confirm({ title: "Reset preferences?", message: "Notes and inventory will stay, while appearance, hints, and view settings return to defaults.", confirmLabel: "Reset preferences", danger: true, trigger: $("#resetPreferencesButton") })) return;
     storage.replace(model.resetPreferences(state()), { recoveryReason: "Before resetting preferences", reason: "reset-preferences", touch: false });
     applyAppearance();
     renderSupport();
   }
 
   async function eraseAll() {
-    if (!await App.components.confirm({ title: "Erase all application data?", message: "This removes Notes, preferences, sync settings, token, and recovery data from this browser.", confirmLabel: "Erase all data", danger: true, trigger: $("#eraseAllButton") })) return;
+    if (!await App.components.confirm({ title: "Erase all application data?", message: "This removes inventory, Notes, preferences, sync settings, token, and recovery data from this browser.", confirmLabel: "Erase all data", danger: true, trigger: $("#eraseAllButton") })) return;
     await App.sync.forget();
     storage.clearAll();
     markSyncCredentialFieldsClean();
@@ -494,6 +494,7 @@
 
   function init() {
     storage.load();
+    App.inventoryUI.init();
     App.icons.mount();
     App.components.init();
     App.portability.init();

@@ -38,7 +38,7 @@
     document.documentElement.classList.toggle("dialog-open", stillOpen);
     const origin = focusOrigins.get(dialog);
     focusOrigins.delete(dialog);
-    if (origin && origin.isConnected && !stillOpen) requestAnimationFrame(function () { origin.focus({ preventScroll: true }); });
+    if (origin && origin.isConnected && (!stillOpen || origin.closest("dialog")?.open)) requestAnimationFrame(function () { origin.focus({ preventScroll: true }); });
   }
 
   function confirm(options) {
@@ -266,10 +266,10 @@
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape" && !activePopover) {
         const dialogs = Array.from(document.querySelectorAll("dialog[open]"));
-        const dialog = dialogs[dialogs.length - 1];
+        const dialog = event.target.closest("dialog[open]") || dialogs[dialogs.length - 1];
         if (dialog && dialog.id !== "confirmDialog" && dialog.id !== "choiceDialog") {
           event.preventDefault();
-          closeDialog(dialog, "cancel");
+          if (dialog.dispatchEvent(new Event("cancel", { cancelable: true }))) closeDialog(dialog, "cancel");
         }
         return;
       }

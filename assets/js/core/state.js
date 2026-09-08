@@ -23,6 +23,7 @@
         lastMutationId: u.uid("mutation")
       },
       notes: { text: "", updatedAt: now },
+      inventory: App.inventoryModel.normalize(),
       preferences: {
         appearance: Object.assign({ mode: "system", textScale: 1 }, config.themeDefaults),
         controls: {
@@ -93,6 +94,7 @@
         text: u.cleanText(notes.text, config.controls.maxTextLength),
         updatedAt: u.ensureIso(notes.updatedAt, meta.updatedAt || now)
       },
+      inventory: App.inventoryModel.normalize(source.inventory),
       preferences: {
         appearance: {
           mode: ["system", "light", "dark"].includes(appearance.mode) ? appearance.mode : "system",
@@ -158,11 +160,12 @@
   function prepare(input) {
     if (input && ("syncFormat" in Object(input) || "syncVersion" in Object(input))) return prepareSync(input);
     const source = unwrapInput(input);
-    if (Number(source.schemaVersion) !== config.schemaVersion) throw new Error("This backup uses an unsupported state-model version.");
+    if (![1, config.schemaVersion].includes(Number(source.schemaVersion))) throw new Error("This backup uses an unsupported state-model version.");
+    if (Number(source.schemaVersion) === 2 && !source.inventory) throw new Error("This backup is missing inventory data.");
     const state = normalize(source);
     const validation = validate(state);
     if (!validation.ok) throw new Error(validation.errors.join(" "));
-    return { state: state, migrations: [], validation: validation };
+    return { state: state, migrations: Number(source.schemaVersion) === 1 ? ["Added inventory without changing existing Notes or preferences"] : [], validation: validation };
   }
 
   function touch(state) {
@@ -194,39 +197,48 @@
   }
 
   function syncPayload(state) {
-    const notes = normalize(state).notes.text;
-    // Match the template's content-only protocol. Schema 5 prevents older clients
-    // from treating this envelope as a whole-state backup and silently clearing it.
-    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 5, data: notes ? { notes: notes } : {} };
+    const normalized = normalize(state), data = { inventory: normalized.inventory };
+    data.inventory.items.sort(function (a, b) { return a.id.localeCompare(b.id); });
+    if (normalized.notes.text) data.notes = normalized.notes.text;
+    // Schema 6 makes Notes-only clients reject inventory data instead of erasing it.
+    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 6, data: data };
   }
 
-  function syncHash(state) { return "data-v1:" + u.fingerprint(syncPayload(state)); }
+  function syncHash(state) { return "data-v2:" + u.fingerprint(syncPayload(state)); }
 
   function prepareSync(input) {
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("The cloud data must be an object.");
     if (!("syncFormat" in input) && !("syncVersion" in input)) {
       const source = unwrapInput(input);
       if (!source.notes || typeof source.notes.text !== "string" || source.notes.text.length > config.controls.maxTextLength || source.workspace) throw new Error("This is not a supported My Stuff cloud copy.");
-      return Object.assign({}, prepare(input), { legacy: true });
+      const prepared = prepare(input);
+      if (!source.inventory) prepared.state.syncNotesOnly = true;
+      return Object.assign({}, prepared, { legacy: true });
     }
-    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || input.schemaVersion !== 5) throw new Error("This cloud data uses an unsupported format or version.");
+    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
     const data = input.data;
-    if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).some(function (key) { return key !== "notes"; })) throw new Error("The cloud data contains unsupported content.");
+    const keys = input.schemaVersion === 5 ? ["notes"] : ["notes", "inventory"];
+    if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).some(function (key) { return !keys.includes(key); })) throw new Error("The cloud data contains unsupported content.");
     if ("notes" in data && (typeof data.notes !== "string" || data.notes.length > config.controls.maxTextLength)) throw new Error("Cloud Notes are invalid or too large.");
-    const state = normalize({ notes: { text: data.notes || "" } });
-    return { state: state, legacy: false, contentOnly: true, migrations: [], validation: validate(state) };
+    if (input.schemaVersion === 6 && !data.inventory) throw new Error("Cloud inventory is missing.");
+    const state = normalize({ notes: { text: data.notes || "" }, inventory: data.inventory });
+    if (input.schemaVersion === 5) state.syncNotesOnly = true;
+    return { state: state, legacy: input.schemaVersion === 5, contentOnly: true, migrations: [], validation: validate(state) };
   }
 
   function applySync(localState, remoteState) {
     const next = normalize(localState);
     next.notes = normalize(remoteState).notes;
+    if (!remoteState.syncNotesOnly) next.inventory = normalize(remoteState).inventory;
     return normalize(touch(next));
   }
 
   function merge(localState, remoteState) {
     const local = normalize(localState), remote = normalize(remoteState);
     if (local.notes.text && remote.notes.text && local.notes.text !== remote.notes.text) throw new Error("Notes differ. Choose which copy to keep.");
-    return applySync(local, local.notes.text ? local : remote);
+    const next = applySync(local, local.notes.text ? local : remote);
+    next.inventory = remoteState.syncNotesOnly ? local.inventory : App.inventoryModel.merge(local.inventory, remote.inventory);
+    return next;
   }
 
   function canMerge(localState, remoteState) {
@@ -244,6 +256,7 @@
     exportEnvelope: exportEnvelope,
     syncPayload: syncPayload,
     syncHash: syncHash,
+    syncHashPrefix: "data-v2:",
     prepareSync: prepareSync,
     applySync: applySync,
     canMerge: canMerge,

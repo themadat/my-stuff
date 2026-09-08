@@ -17,7 +17,7 @@ function harness({ token = 'test-token', online = true } = {}) {
     TextEncoder, TextDecoder, Uint8Array, AbortController, structuredClone, atob, btoa, URL, console,
     fetch: async (url, options) => { requests.push({ url, options }); return h.respond(url, options); }
   });
-  for (const file of ['config.js', 'icons.js', 'core/utils.js', 'core/state.js']) {
+  for (const file of ['config.js', 'icons.js', 'core/utils.js', 'core/inventory.js', 'core/state.js']) {
     vm.runInContext(readFileSync(new URL('../assets/js/' + file, import.meta.url), 'utf8'), context);
   }
   const App = window.LocalApp;
@@ -50,6 +50,110 @@ function harness({ token = 'test-token', online = true } = {}) {
 function response(status, body = {}) { return { status, ok: status >= 200 && status < 300, json: async () => body }; }
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 function changeNotes(state, text) { state.notes.text = text; state.notes.updatedAt = state.meta.updatedAt; }
+
+function inventoryItem(h, overrides = {}) {
+  return h.App.inventoryModel.normalizeItem({ id: 'item-1', name: 'Trail shoes', owner: 'me', room: 'Office', categories: ['Shoes'], obtainedDate: '2024-02-28', obtainedHow: 'Purchased', source: 'Local store', price: 90, value: 100, properties: [{ name: 'Size', value: '9', unit: 'US' }], ...overrides });
+}
+
+test('schema 1 backups migrate to inventory without losing Notes, preferences, or credentials configuration', () => {
+  const h = harness(), old = structuredClone(h.state);
+  delete old.inventory; old.schemaVersion = 1; old.notes.text = 'Existing Notes'; old.preferences.appearance.mode = 'dark';
+  const prepared = h.App.stateModel.prepare(old);
+  assert.equal(prepared.state.schemaVersion, 2);
+  assert.equal(prepared.state.notes.text, 'Existing Notes');
+  assert.equal(prepared.state.preferences.appearance.mode, 'dark');
+  assert.equal(prepared.state.inventory.items.length, 0);
+  assert.equal(prepared.migrations.length, 1);
+  assert.throws(() => h.App.stateModel.prepare({ ...old, schemaVersion: 2 }), /missing inventory/);
+});
+
+test('inventory totals distinguish ownership, rooms, unknown values, zero values, and archives', () => {
+  const h = harness(), items = [inventoryItem(h, { value: 0.1 }), inventoryItem(h, { id: '2', owner: 'house', room: 'office', value: 0.2 }), inventoryItem(h, { id: '3', owner: 'house', value: null }), inventoryItem(h, { id: '4', room: '', value: 0 }), inventoryItem(h, { id: '5', value: 500, archive: { date: '2024-03-01', reason: 'Broken' } })];
+  const totals = h.App.inventoryModel.stats(items);
+  assert.equal(totals.all.count, 4); assert.equal(totals.all.valueCents, 30); assert.equal(totals.all.unknown, 1);
+  assert.equal(totals.me.count, 2); assert.equal(totals.house.count, 2);
+  assert.equal(totals.rooms.length, 2);
+  assert.equal(totals.rooms.find(room => room.name === 'Office').all.count, 3);
+  assert.equal(totals.rooms.find(room => room.name === 'Unassigned').me.count, 1);
+});
+
+test('item normalization preserves custom categories and properties and rejects invalid dates, prices, or duplicates', () => {
+  const h = harness(), m = h.App.inventoryModel;
+  const item = inventoryItem(h, { categories: ['Shoes', 'shoes', ' My custom tag '], value: '', price: '0', properties: [{ name: 'Color', value: '<script>literal</script>', unit: '' }] });
+  assert.equal(item.categories.join(','), 'Shoes,My custom tag');
+  assert.equal(item.value, null); assert.equal(item.price, 0);
+  assert.equal(item.properties[0].value, '<script>literal</script>');
+  for (const overrides of [{ value: -1 }, { price: Infinity }, { value: {} }, { obtainedDate: '2025-02-29' }, { owner: 'unknown' }, { name: ' ' }, { properties: [{ name: 'Weight' }, { name: 'weight' }] }, { archive: { date: '2023-01-01', reason: 'Lost' } }, { archive: { date: '2026-01-01', reason: '' } }]) assert.throws(() => inventoryItem(h, overrides));
+  assert.throws(() => m.normalize({ currency: 'USD', items: [item, item] }), /duplicate/);
+  assert.throws(() => m.normalize({ currency: '???', items: [] }), /currency/);
+});
+
+test('duration counts calendar days including leap days and distinguishes unknown obtained dates', () => {
+  const h = harness(), m = h.App.inventoryModel;
+  assert.equal(m.daysOwned(inventoryItem(h, { archive: { date: '2024-03-01', reason: 'Lost' } })), 2);
+  assert.equal(m.daysOwned(inventoryItem(h), '2024-02-28'), 0);
+  assert.equal(m.daysOwned(inventoryItem(h, { obtainedDate: '' })), null);
+});
+
+test('current and archived inventory round trip through backup, cloud and recovery while settings and tokens stay local', async () => {
+  const h = harness(), model = h.App.stateModel;
+  h.state.inventory.items = [inventoryItem(h), inventoryItem(h, { id: 'archive', archive: { date: '2024-03-01', reason: 'Broken', notes: 'Sole separated' } })];
+  const expected = JSON.stringify(h.state.inventory), hash = model.syncHash(h.state);
+  assert.equal(JSON.stringify(model.prepare(model.exportEnvelope(h.state)).state.inventory), expected);
+  const payload = model.syncPayload(h.state);
+  assert.equal(payload.schemaVersion, 6); assert.equal(payload.data.inventory.items.length, 2);
+  assert.doesNotMatch(JSON.stringify(payload), /test-token|preferences|cloudSync|baseline/);
+  const prepared = model.prepareSync(payload);
+  h.remote = prepared.state; h.remote.preferences.appearance.mode = 'dark';
+  h.state.inventory.items = [];
+  h.confirmation = true;
+  await h.sync.restoreFromCloud();
+  assert.equal(h.state.inventory.items.length, 2); assert.equal(h.recovery.inventory.items.length, 0);
+  assert.equal(h.state.preferences.appearance.mode, 'system'); assert.equal(h.token, 'test-token');
+  assert.equal(model.syncHash(h.state), hash);
+});
+
+test('old Notes-only cloud restores preserve current inventory and migrate on explicit upload', async () => {
+  const h = harness(); h.state.inventory.items = [inventoryItem(h)];
+  const old = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Old cloud Notes' } };
+  h.respond = () => response(200, { type: 'file', sha: 'old-sha', content: Buffer.from(JSON.stringify(old)).toString('base64') });
+  h.confirmation = true; await h.sync.restoreFromCloud();
+  assert.equal(h.state.inventory.items.length, 1); assert.equal(h.state.notes.text, 'Old cloud Notes');
+  h.choice = 'upload';
+  h.respond = (url, options) => options.method === 'PUT' ? response(200, { content: { sha: 'new-sha' } }) : response(200, { type: 'file', sha: 'old-sha', content: Buffer.from(JSON.stringify(old)).toString('base64') });
+  await h.sync.syncNow();
+  const write = h.requests.find(request => request.options.method === 'PUT');
+  assert.equal(JSON.parse(Buffer.from(JSON.parse(write.options.body).content, 'base64').toString()).data.inventory.items.length, 1);
+});
+
+test('merge unions distinct items but refuses conflicting edits, archives, and currencies', () => {
+  const h = harness(), model = h.App.stateModel;
+  h.state.inventory.items = [inventoryItem(h)];
+  h.remote.inventory.items = [inventoryItem(h, { id: '2', name: 'Desk', owner: 'house' })];
+  assert.equal(model.merge(h.state, h.remote).inventory.items.length, 2);
+  h.remote.inventory.items = [inventoryItem(h, { archive: { date: '2025-01-01', reason: 'Lost' } })];
+  assert.equal(model.canMerge(h.state, h.remote), false);
+  assert.throws(() => model.merge(h.state, h.remote), /item differs/);
+  h.remote.inventory.items = []; h.remote.inventory.currency = 'EUR';
+  assert.throws(() => model.merge(h.state, h.remote), /currencies differ/);
+});
+
+test('inventory changes affect the sync hash while item ordering and local preferences do not', () => {
+  const h = harness(), model = h.App.stateModel;
+  h.state.inventory.items = [inventoryItem(h), inventoryItem(h, { id: '2' })];
+  const hash = model.syncHash(h.state);
+  h.state.inventory.items.reverse(); h.state.preferences.appearance.mode = 'dark';
+  assert.equal(model.syncHash(h.state), hash);
+  h.state.inventory.items[0].room = 'Garage'; assert.notEqual(model.syncHash(h.state), hash);
+});
+
+test('malformed inventory cloud files are rejected rather than silently dropping records', async () => {
+  const h = harness(); h.state.inventory.items = [inventoryItem(h)]; const original = JSON.stringify(h.state.inventory);
+  for (const inventory of [null, {}, { currency: 'USD', items: [{}] }, { currency: 'USD', items: [inventoryItem(h), inventoryItem(h)] }]) {
+    h.respond = () => response(200, { type: 'file', sha: 'bad', content: Buffer.from(JSON.stringify({ syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory } })).toString('base64') });
+    await h.sync.check(true); assert.equal(h.sync.getInfo().state, 'failed'); assert.equal(JSON.stringify(h.state.inventory), original);
+  }
+});
 
 test('existing devices switch to app-data without reusing the old repository baseline or losing Notes', async () => {
   const h = harness();
@@ -280,11 +384,11 @@ test('first upload still requires a choice; a synchronized copy needs no write',
 });
 
 
-test('empty foundations sync only an empty content envelope, independent of device, UI, or save metadata', () => {
+test('empty inventories sync only content, independent of device, UI, or save metadata', () => {
   const h = harness(), model = h.App.stateModel;
   const original = JSON.stringify(model.syncPayload(h.state));
-  assert.deepEqual(JSON.parse(original), { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: {} });
-  assert.ok(Buffer.byteLength(JSON.stringify(model.syncPayload(h.state), null, 2)) < 120);
+  assert.deepEqual(JSON.parse(original), { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: { currency: 'USD', items: [] } } });
+  assert.ok(Buffer.byteLength(JSON.stringify(model.syncPayload(h.state), null, 2)) < 250);
   h.App.storage.mutate(state => {
     state.preferences.appearance.mode = 'dark'; state.ui.search = 'cloud'; state.ui.supportTab = 'storage';
     state.ui.seenReleaseVersion = 'next-build'; 
@@ -324,11 +428,11 @@ test('legacy whole-state files migrate without false conflicts and compact on ex
   h.respond = (url, options) => options.method === 'PUT' ? response(200, { content: { sha: 'compact-sha' } }) : h.file();
   await h.sync.check(true);
   assert.equal(h.sync.getInfo().state, 'upToDate');
-  assert.match(h.state.modules.cloudSync.baselineHash, /^data-v1:/);
+  assert.match(h.state.modules.cloudSync.baselineHash, /^data-v2:/);
   assert.ok(h.requests.every(request => request.options.method !== 'PUT'));
   await h.sync.syncNow();
   const written = JSON.parse(Buffer.from(JSON.parse(h.requests.find(r => r.options.method === 'PUT').options.body).content, 'base64').toString());
-  assert.deepEqual(written.data, {});
+  assert.deepEqual(written.data, { inventory: { currency: 'USD', items: [] } });
   assert.equal(written.syncVersion, 1);
   assert.equal(h.state.preferences.appearance.mode, 'system');
 });

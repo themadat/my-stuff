@@ -8,6 +8,131 @@ let browser;
 before(async () => { browser = await chromium.launch({ headless: true }); });
 after(async () => { await browser?.close(); });
 
+async function addInventoryItem(page, { name = 'Trail shoes', owner = 'me', room = 'Office', value = '100' } = {}) {
+  await page.locator('#addItemButton').click();
+  await page.locator('#itemName').fill(name); await page.locator('#itemOwner').selectOption(owner);
+  await page.locator('#itemRoom').fill(room); await page.locator('#itemValue').fill(value);
+  await page.locator('#saveItemButton').click();
+}
+
+test('inventory editor, category properties, ownership totals, filters, archive duration and return work end to end', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  assert.equal(await page.locator('#inventoryTitle').textContent(), 'Stuff I have');
+  await page.locator('#addItemButton').click();
+  await page.locator('#itemName').fill('Trail shoes <img src=x onerror=alert(1)>');
+  await page.locator('#itemDescription').fill('Everyday walking shoes');
+  await page.locator('#itemRoom').fill('Office'); await page.locator('#itemValue').fill('129.95');
+  await page.locator('#itemPrice').fill('99.95'); await page.locator('#itemObtainedDate').fill('2025-01-15');
+  await page.locator('#itemObtainedHow').selectOption('Purchased'); await page.locator('#itemSource').fill('Local outdoor shop');
+  await page.locator('[data-category-preset="0"]').click();
+  await page.locator('[data-property-value]').nth(0).fill('9');
+  await page.locator('[data-property-value]').nth(1).fill('Green');
+  await page.locator('[data-property-value]').nth(2).fill('300');
+  await page.locator('[data-category-preset="1"]').click(); await page.locator('[data-category-preset="2"]').click();
+  assert.equal(await page.locator('.item-property').count(), 4);
+  await page.locator('#itemCategories').fill('Shoes, Everyday'); await page.locator('#itemCategories').blur();
+  assert.equal(await page.locator('.item-property').count(), 4, 'removing a category must not erase properties');
+  await page.locator('#saveItemButton').click();
+  await page.reload();
+  assert.equal(await page.locator('#inventoryList img').count(), 0);
+  assert.match(await page.locator('#inventoryList').textContent(), /Trail shoes <img/);
+  await addInventoryItem(page, { name: 'Desk', owner: 'house', value: '500' });
+  await addInventoryItem(page, { name: 'Lamp', owner: 'house', value: '' });
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*629\.95.*1 not valued/);
+  assert.match(await page.locator('[data-inventory-total="house"]').textContent(), /2objects.*500\.00/);
+  assert.match(await page.locator('[data-inventory-total="me"]').textContent(), /1objects.*129\.95/);
+  assert.match(await page.locator('#roomStats').textContent(), /Office/);
+  await page.locator('#inventoryOwnerFilter').selectOption('me');
+  assert.equal(await page.locator('[data-edit-item]').count(), 1);
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects/);
+  await page.locator('#clearInventoryFilters').click();
+  await page.locator('#inventorySearch').fill('Green');
+  assert.equal(await page.locator('[data-edit-item]').count(), 1);
+  await page.locator('[data-edit-item]').click();
+  assert.equal(await page.locator('#itemPrice').inputValue(), '99.95');
+  await page.locator('#archiveItemButton').click();
+  await page.locator('#itemGoneDate').fill('2026-01-15'); await page.locator('#itemGoneReason').selectOption('Broken');
+  await page.locator('#itemGoneNotes').fill('Sole separated');
+  assert.match(await page.locator('#archiveDuration').textContent(), /365 days/);
+  await page.locator('#archiveForm button[type="submit"]').click();
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /2objects.*500\.00/);
+  await page.locator('#clearInventoryFilters').click();
+  await page.locator('[data-inventory-view="previous"]').click();
+  assert.match(await page.locator('#inventoryList').textContent(), /Broken.*365 days owned/);
+  await page.locator('[data-edit-item]').click();
+  assert.equal(await page.locator('.item-property').count(), 4);
+  assert.match(await page.locator('#itemArchiveSummary').textContent(), /Sole separated/);
+  await page.locator('#restoreItemButton').click(); await page.locator('[data-confirm-action]').click();
+  await page.locator('[data-inventory-view="have"]').click();
+  assert.equal(await page.locator('[data-edit-item]').count(), 3);
+  await page.locator('[data-inventory-view="want"]').click(); assert.match(await page.locator('#inventoryComingSoon').textContent(), /future update/);
+  await page.locator('[data-inventory-view="research"]').click(); assert.match(await page.locator('#inventoryComingSoon').textContent(), /comparison/);
+});
+
+test('unsaved inventory drafts, nested Escape, invalid input and concurrent edits are protected', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click(); await page.locator('#itemName').fill('Unsaved object');
+  await page.keyboard.press('Escape'); await page.locator('[data-confirm-cancel]').click();
+  assert.equal(await page.locator('#itemDialog').evaluate(el => el.open), true);
+  await page.locator('#itemName').focus(); await page.keyboard.press('Escape');
+  await page.locator('[data-confirm-action]').click();
+  assert.equal(await page.locator('#itemDialog').evaluate(el => el.open), false);
+  assert.equal(await page.locator('[data-edit-item]').count(), 0);
+  await addInventoryItem(page);
+  await page.locator('[data-edit-item]').click();
+  await page.locator('#itemValue').fill('-1'); await page.locator('#saveItemButton').click();
+  assert.equal(await page.locator('#itemValue').evaluate(el => el.validity.valid), false);
+  await page.locator('#itemValue').fill('200');
+  await page.evaluate(() => window.LocalApp.storage.mutate(state => { state.inventory.items[0].room = 'Garage'; }));
+  await page.locator('#saveItemButton').click();
+  assert.match(await page.locator('#itemFormError').textContent(), /changed while you were editing/);
+  assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].value), 100);
+});
+
+test('inventory sync payload, old-cloud preservation, restore recovery and backup include complete items without secrets', { timeout: 30000 }, async t => {
+  const h = await fixture(t), { page } = h;
+  await page.locator('[data-close-dialog="supportDialog"]').click(); await addInventoryItem(page);
+  await page.locator('#supportButton').click(); await page.locator('#dataSyncTab').click();
+  await page.locator('#syncToken').fill('fake-inventory-token'); await page.locator('#saveSyncButton').click();
+  await page.locator('#syncNowButton').click(); await page.locator('[data-choice-value="upload"]').click();
+  await page.waitForFunction(() => window.LocalApp.sync.getInfo().state === 'upToDate');
+  assert.equal(h.writes.length, 1); assert.equal(h.writes[0].data.inventory.items[0].name, 'Trail shoes');
+  await page.locator('#syncPayloadDisclosure summary').click();
+  await page.waitForFunction(() => document.querySelector('#syncPayloadJson').textContent.includes('Trail shoes'));
+  assert.deepEqual(JSON.parse(await page.locator('#syncPayloadJson').textContent()), h.writes[0]);
+  assert.doesNotMatch(await page.locator('#syncPayloadJson').textContent(), /fake-inventory-token|preferences/);
+  h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'An older device' } };
+  await page.locator('#restoreCloudButton').click(); await page.locator('[data-confirm-action]').click();
+  await page.waitForFunction(() => window.LocalApp.storage.getState().notes.text === 'An older device');
+  assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items.length), 1);
+  const remote = structuredClone(h.writes[0]); remote.data.inventory.items[0].archive = { date: '2026-01-15', reason: 'Donated', notes: 'A second life' };
+  h.remote = remote;
+  await page.locator('#restoreCloudButton').click(); await page.locator('[data-confirm-action]').click();
+  await page.waitForFunction(() => window.LocalApp.storage.getState().inventory.items[0].archive?.reason === 'Donated');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem(window.LocalApp.config.storage.recoveryKey)).state.inventory.items[0].archive), null);
+  await page.locator('#settingsTab').click();
+  const download = page.waitForEvent('download'); await page.locator('#exportButton').click();
+  const stream = await (await download).createReadStream(), chunks = []; for await (const chunk of stream) chunks.push(chunk);
+  const json = Buffer.concat(chunks).toString();
+  assert.equal(JSON.parse(json).state.inventory.items[0].archive.reason, 'Donated'); assert.doesNotMatch(json, /fake-inventory-token/);
+});
+
+test('inventory and its editor fit narrow screens, large text and dark mode', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t, { viewport: { width: 320, height: 844 }, isMobile: true, hasTouch: true });
+  await page.locator('#textSizeSlider').fill('130'); await page.locator('[data-theme-mode="dark"]').click();
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click();
+  await page.locator('#itemName').fill('Cable '.repeat(20)); await page.locator('[data-category-preset="2"]').click();
+  await page.locator('[data-property-value]').fill('150');
+  assert.equal(await page.locator('#itemDialog').evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  assert.equal(await page.locator('#itemForm .dialog-body').evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  await page.locator('#saveItemButton').click();
+  assert.equal(await page.locator('#inventoryWorkspace').evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  assert.equal(await page.locator('#inventoryList').evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
+
 async function fixture(t, options = {}) {
   const context = await browser.newContext({ serviceWorkers: 'block', ...options });
   t.after(() => context.close());
@@ -134,7 +259,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
   await page.locator('#syncNowButton').click();
   await page.locator('#choiceDialog').getByRole('button', { name: /Upload this device/ }).click();
   await page.waitForFunction(() => window.LocalApp.sync.getInfo().state === 'upToDate');
-  assert.deepEqual(h.writes[0], { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Local ☁️\n<literal> Notes' } });
+  assert.deepEqual(h.writes[0], { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: { currency: 'USD', items: [] }, notes: 'Local ☁️\n<literal> Notes' } });
   h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Cloud Notes' } };
   await page.locator('#restoreCloudButton').click(); await page.locator('[data-confirm-cancel]').click();
   assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().notes.text), 'Local ☁️\n<literal> Notes');
@@ -205,7 +330,7 @@ test('Data Sync shows the exact outgoing JSON without credentials and stays curr
   assert.equal(await details.evaluate(el => el.open), false);
   await details.locator('summary').focus(); await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.querySelector('#syncPayloadJson').textContent.length > 0);
-  const empty = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: {} };
+  const empty = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: { currency: 'USD', items: [] } } };
   assert.deepEqual(JSON.parse(await page.locator('#syncPayloadJson').textContent()), empty);
   await page.locator('#syncToken').fill('secret-not-in-json');
   await page.locator('#saveSyncButton').click(); await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
@@ -253,10 +378,10 @@ test('JSON imports distinguish cloud content from full backups and preserve a re
   assert.ok(await page.evaluate(() => window.LocalApp.storage.recoveryInfo()));
 });
 
-test('service worker caches this release and Notes remain available after offline reload', { timeout: 30000 }, async t => {
+test('service worker caches this release and inventory and Notes remain available after offline reload', { timeout: 30000 }, async t => {
   const context = await browser.newContext(); t.after(() => context.close());
   const page = await context.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto(base); await page.locator('#notesButton').click();
+  await page.goto(base); await addInventoryItem(page, { name: 'Offline backpack' }); await page.locator('#notesButton').click();
   await page.locator('#notesTextarea').fill('Offline Notes');
   await page.evaluate(async () => { window.LocalApp.storage.saveNow(); await navigator.serviceWorker.ready; });
   await page.reload();
@@ -268,6 +393,12 @@ test('service worker caches this release and Notes remain available after offlin
   assert.equal(await page.locator('#floatingStatus').getAttribute('data-sync-state'), 'offline');
   await page.reload(); await page.locator('#notesButton').click();
   assert.equal(await page.locator('#notesTextarea').inputValue(), 'Offline Notes');
+  await page.locator('[data-close-dialog="notesDialog"]').click();
+  assert.match(await page.locator('#inventoryList').textContent(), /Offline backpack/);
+  await page.locator('[data-edit-item]').click();
+  await page.locator('#itemRoom').fill('Closet'); await page.locator('#saveItemButton').click();
+  await page.reload();
+  assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Closet');
   await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
   // Chromium can reset navigator.onLine on a worker-controlled navigation;
   // verify the transport is actually offline independently of that indicator.

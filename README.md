@@ -1,8 +1,12 @@
 # My Stuff
 
-My Stuff is a clean, static, local-first application foundation. It has no required build step, runtime dependency, backend, account, or sign-in.
+My Stuff is a static, local-first inventory for personal and household belongings. It has no required build step, runtime dependency, backend, account, or sign-in.
 
-The starter keeps a responsive application header, centered support search, blank semantic workspace, one plain-text Notes modal, vertical Settings, appearance controls, Help, What’s New, an empty Roadmap, shortcuts, local persistence and recovery, JSON backup/import, optional GitHub Sync, and PWA/offline behavior.
+Start in **Stuff I have**. Add one entry per physical object, recording whether it belongs to the house or to you, its current room, category tags, obtained date/method/source, current value, obtaining price, and custom properties. Shoes suggest size/color/weight, backpacking gear suggests weight, and cables suggest length. Presets are optional; tags and properties remain editable.
+
+Current counts and known values are split by ownership and room. Unknown values are not treated as zero. Archive an item to **Previous stuff** with its gone date, reason, and departure notes; days owned are calculated from its obtained date. Archived items leave current totals but retain their details and can be returned. **Stuff I want** and **Research** are placeholders for later development.
+
+The application keeps its centered support search, one Notes modal, Settings, appearance controls, Help, release notes, shortcuts, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline behavior. No example items are added to your real inventory.
 
 ## Run locally
 
@@ -20,6 +24,8 @@ assets/css/app.css         Theme, layout, components, and responsive styles
 assets/js/config.js        Identity, version, help, releases, and roadmap data
 assets/js/icons.js         Small inline interface-symbol helper
 assets/js/app.js           Rendering, events, Notes, Settings, and shortcuts
+assets/js/inventory-ui.js  Inventory workspace, filters, item and archive editors
+assets/js/core/inventory.js Item validation, totals, duration, and conservative merge
 assets/js/core/            State, storage, backup, sync, components, and PWA modules
 assets/icons/              My Stuff application and install artwork
 manifest*.webmanifest      Light and dark install metadata
@@ -28,15 +34,17 @@ sw.js                      Offline shell cache
 
 ## Customize
 
-Start with `assets/js/config.js` for identity, colors, Help, release notes, and optional GitHub Sync target. Add the first product feature to the blank `<main>` workspace without introducing a backend unless the product requires one.
+Start with `assets/js/config.js` for identity, colors, Help, releases, category presets, room suggestions, currency choices, and optional GitHub Sync target. Amounts use one inventory currency, USD by default. The room overview includes a currency selector; it relabels existing amounts without converting them.
 
-Application artwork comes from the supplied `assets/icons/my-stuff-app-icon.svg`, preserved unchanged in the header and favicon for both themes. Matching PNGs cover ordinary and maskable installation icons, Apple touch icons, and light/dark splash screens. The unused `App Icon Template` reference files are retained separately. See `docs/CUSTOMIZATION.md` for regeneration.
+Application artwork comes from the supplied `assets/icons/my-stuff-app-icon.svg`, preserved unchanged in the header and favicon for both themes. Matching PNGs cover ordinary and maskable installation icons, Apple touch icons, and light/dark splash screens. See `docs/CUSTOMIZATION.md` for regeneration.
 
 ## Data and privacy
 
-Open Settings → Data Sync for Data & connection, GitHub credentials, sync actions, and the collapsible “JSON sent to GitHub” preview. The preview uses the actual upload payload, updates with local Notes, and renders as read-only escaped text. It is not a full backup or a fetched remote copy. General Settings retains appearance, backup/import, and reset controls.
+Open Settings → Data Sync for Data & connection, GitHub credentials, sync actions, and the collapsible “JSON sent to GitHub” preview. The preview uses the actual upload payload, updates with inventory and Notes, and renders as read-only escaped text. It is not a full backup or a fetched remote copy. General Settings retains appearance, backup/import, and reset controls.
 
-Notes and preferences use the app-specific `myStuff.*` browser-storage namespace. Full JSON backups include device preferences but exclude the GitHub token. Optional GitHub Sync sends Notes only to `themadat/app-data`, branch `main`, at `data/my-stuff.json`; appearance, search, settings, and save metadata stay local. Supply a fine-grained token with Contents read and write access to that repository.
+Inventory, Notes, and preferences use the app-specific `myStuff.*` browser-storage namespace. Full JSON backups include device preferences but exclude the GitHub token. Optional GitHub Sync sends current and archived inventory plus Notes to `themadat/app-data`, branch `main`, at `data/my-stuff.json`; appearance, search, settings, and save metadata stay local. Supply a fine-grained token with Contents read and write access to that repository.
+
+Local backups now use schema 2; schema 1 backups still migrate. Cloud writes use sync version 1/schema 6 so Notes-only clients reject them safely. Update all devices before syncing inventory. Older Notes-only cloud files remain readable and do not erase existing inventory. Importing a full old backup is an explicit replacement and clears inventory absent from that backup, after creating recovery. Distinct item IDs can merge, but different edits to the same item (including archive status) require choosing a copy. There is no automatic last-write-wins deletion.
 
 Settings shows linked repository/file targets and masked saved credentials. Test retains a token after a read check, but explicitly does not verify upload permission or write anything to GitHub. Save stores it and checks the cloud copy. Remember keeps it on this device; otherwise it lasts for the browser tab. Sync Now (or `S`/the floating status) compares copies and asks how to resolve first sync or conflicting Notes, using left-aligned choices with leading symbols. Restore from Cloud requires confirmation and a successful local recovery backup.
 
