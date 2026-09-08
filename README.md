@@ -21,7 +21,7 @@ assets/js/config.js        Identity, version, help, releases, and roadmap data
 assets/js/icons.js         Small inline interface-symbol helper
 assets/js/app.js           Rendering, events, Notes, Settings, and shortcuts
 assets/js/core/            State, storage, backup, sync, components, and PWA modules
-assets/icons/              Placeholder application and install artwork
+assets/icons/              My Stuff application and install artwork
 manifest*.webmanifest      Light and dark install metadata
 sw.js                      Offline shell cache
 ```
@@ -30,7 +30,7 @@ sw.js                      Offline shell cache
 
 Start with `assets/js/config.js` for identity, colors, Help, release notes, and optional GitHub Sync target. Add the first product feature to the blank `<main>` workspace without introducing a backend unless the product requires one.
 
-Application artwork is intentionally retained as a placeholder. Replace the editable SVG and generated PNG assets together, keeping the existing filenames or updating every reference.
+Application artwork comes from the supplied `assets/icons/my-stuff-app-icon.svg`, preserved unchanged in the header and favicon for both themes. Matching PNGs cover ordinary and maskable installation icons, Apple touch icons, and light/dark splash screens. The unused `App Icon Template` reference files are retained separately. See `docs/CUSTOMIZATION.md` for regeneration.
 
 ## Data and privacy
 

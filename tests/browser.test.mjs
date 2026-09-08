@@ -47,6 +47,11 @@ test('desktop Settings, safe links, appearance controls, and all retained SVGs',
   }
   await page.locator('[data-theme-mode="dark"]').click();
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+  await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
+  assert.match(await page.locator('#appIcon').getAttribute('src'), /app-icon-dark\.svg\?v=/);
+  await page.locator('[data-theme-mode="light"]').click();
+  await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
+  assert.match(await page.locator('#appIcon').getAttribute('src'), /app-icon-light\.svg\?v=/);
   await page.locator('[data-button-style="icons"]').click();
   assert.equal(await page.locator('html').getAttribute('data-button-style'), 'icons');
   await page.locator('#textSizeSlider').fill('130');
@@ -182,12 +187,14 @@ test('service worker caches this release and Notes remain available after offlin
   await page.evaluate(async () => { window.LocalApp.storage.saveNow(); await navigator.serviceWorker.ready; });
   await page.reload();
   assert.ok(await page.evaluate(() => navigator.serviceWorker.controller));
-  assert.ok((await page.evaluate(() => caches.keys())).includes('my-stuff-shell-0.0.1.3'));
+  const expectedCache = await page.evaluate(() => window.LocalApp.config.identity.slug + '-shell-' + window.LocalApp.config.identity.buildId);
+  assert.ok((await page.evaluate(() => caches.keys())).includes(expectedCache));
   await context.setOffline(true);
   await page.waitForFunction(() => navigator.onLine === false);
   assert.equal(await page.locator('#floatingStatus').getAttribute('data-sync-state'), 'offline');
   await page.reload(); await page.locator('#notesButton').click();
   assert.equal(await page.locator('#notesTextarea').inputValue(), 'Offline Notes');
+  await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
   // Chromium can reset navigator.onLine on a worker-controlled navigation;
   // verify the transport is actually offline independently of that indicator.
   assert.equal(await page.evaluate(async () => { try { await fetch('/uncached-offline-probe-' + Date.now()); return false; } catch { return true; } }), true);

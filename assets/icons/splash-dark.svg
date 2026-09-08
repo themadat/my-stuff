@@ -1,22 +1,112 @@
-<svg width="1026" height="1026" viewBox="0 0 1026 1026" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="1024" height="1024" transform="translate(0.53033 0.530334)" fill="black" style="fill:black;fill-opacity:1;"/>
-<path d="M1024.53 896.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 768.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 640.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 512.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 384.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 256.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 128.53H0.53033" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M896.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M768.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M640.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M512.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M384.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M256.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M128.53 1024.53V0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 0.530334L0.53033 1024.53" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M1024.53 1024.53L0.53033 0.530334" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M512.53 922.53C738.967 922.53 922.53 738.967 922.53 512.53C922.53 286.094 738.967 102.53 512.53 102.53C286.094 102.53 102.53 286.094 102.53 512.53C102.53 738.967 286.094 922.53 512.53 922.53Z" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M512.53 768.53C653.915 768.53 768.53 653.915 768.53 512.53C768.53 371.145 653.915 256.53 512.53 256.53C371.145 256.53 256.53 371.145 256.53 512.53C256.53 653.915 371.145 768.53 512.53 768.53Z" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
-<path d="M512.53 614.53C568.863 614.53 614.53 568.863 614.53 512.53C614.53 456.197 568.863 410.53 512.53 410.53C456.197 410.53 410.53 456.197 410.53 512.53C410.53 568.863 456.197 614.53 512.53 614.53Z" stroke="#5DB3F9" style="stroke:#5DB3F9;stroke:color(display-p3 0.3647 0.7020 0.9765);stroke-opacity:1;" stroke-width="1.5" stroke-miterlimit="10"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 1170" width="1170" height="1170"><rect width="1170" height="1170" fill="#121616"/>
+<svg x="405" y="405" width="360" height="360" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">My Stuff app icon</title>
+  <desc id="desc">A storage box containing a backpack, shoes, and power bank, with tiles representing owned, wanted, and retired items.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1879F2"/>
+      <stop offset="1" stop-color="#0A4FB8"/>
+    </linearGradient>
+    <linearGradient id="boxFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F6B75E"/>
+      <stop offset="1" stop-color="#D98A2E"/>
+    </linearGradient>
+    <linearGradient id="boxFlap" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFC56B"/>
+      <stop offset="1" stop-color="#E89A37"/>
+    </linearGradient>
+    <linearGradient id="backpack" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#31445F"/>
+      <stop offset="1" stop-color="#18283B"/>
+    </linearGradient>
+    <linearGradient id="powerbank" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#40516A"/>
+      <stop offset="1" stop-color="#1F2D40"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#052C6A" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+
+  <!-- Status tiles -->
+  <g filter="url(#shadow)">
+    <g transform="translate(155 205) rotate(-13 126 160)">
+      <rect x="0" y="0" width="252" height="320" rx="42" fill="#24B77A"/>
+      <path d="M67 157l44 42 79-100" fill="none" stroke="#FFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(386 148)">
+      <rect x="0" y="0" width="252" height="342" rx="42" fill="#FFF9EE"/>
+      <path d="M57 90h22l15 88h99l21-63H105" fill="none" stroke="#243247" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M99 178h93" fill="none" stroke="#243247" stroke-width="18" stroke-linecap="round"/>
+      <circle cx="119" cy="220" r="15" fill="#243247"/>
+      <circle cx="180" cy="220" r="15" fill="#243247"/>
+    </g>
+
+    <g transform="translate(640 208) rotate(13 126 160)">
+      <rect x="0" y="0" width="252" height="320" rx="42" fill="#F2503D"/>
+      <path d="M78 105h96M104 84h44M92 120l9 92h51l9-92" fill="none" stroke="#FFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M117 140v50M144 140v50" fill="none" stroke="#FFF" stroke-width="14" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Objects -->
+  <g filter="url(#shadow)">
+    <!-- Backpack -->
+    <g transform="translate(210 365)">
+      <path d="M91 62c0-44 30-72 68-72s68 28 68 72" fill="none" stroke="#17263A" stroke-width="22" stroke-linecap="round"/>
+      <path d="M26 132c0-55 44-100 99-100h70c55 0 99 45 99 100v184H26z" fill="url(#backpack)"/>
+      <rect x="60" y="72" width="200" height="114" rx="44" fill="#2D405A"/>
+      <path d="M167 145v69" stroke="#D6DCE6" stroke-width="22" stroke-linecap="round"/>
+      <rect x="149" y="152" width="37" height="42" rx="10" fill="#ADB7C7"/>
+      <path d="M146 190h46" stroke="#16263A" stroke-width="16" stroke-linecap="round"/>
+    </g>
+
+    <!-- Shoes -->
+    <g transform="translate(480 415)">
+      <g transform="rotate(13 75 120)">
+        <path d="M38 22c32-10 72 5 91 35l61 100c19 31-3 67-40 67H72c-26 0-49-17-56-42L1 126c-8-32 8-81 37-104z" fill="#F4F6FA"/>
+        <path d="M55 47c29-2 55 10 70 35" fill="none" stroke="#7D8798" stroke-width="18" stroke-linecap="round"/>
+        <path d="M58 100l43 13M50 129l49 14M43 159l49 13" stroke="#A6AFBF" stroke-width="15" stroke-linecap="round"/>
+        <path d="M17 181h142" stroke="#D3D8E0" stroke-width="18" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(110 42) rotate(13 75 120)">
+        <path d="M38 22c32-10 72 5 91 35l61 100c19 31-3 67-40 67H72c-26 0-49-17-56-42L1 126c-8-32 8-81 37-104z" fill="#F4F6FA"/>
+        <path d="M55 47c29-2 55 10 70 35" fill="none" stroke="#7D8798" stroke-width="18" stroke-linecap="round"/>
+        <path d="M58 100l43 13M50 129l49 14M43 159l49 13" stroke="#A6AFBF" stroke-width="15" stroke-linecap="round"/>
+        <path d="M17 181h142" stroke="#D3D8E0" stroke-width="18" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <!-- Power bank -->
+    <g transform="translate(720 430) rotate(11 70 120)">
+      <rect x="0" y="45" width="120" height="190" rx="24" fill="url(#powerbank)"/>
+      <circle cx="84" cy="97" r="6" fill="#D9E0EA"/>
+      <circle cx="84" cy="117" r="6" fill="#D9E0EA"/>
+      <circle cx="84" cy="137" r="6" fill="#D9E0EA"/>
+      <path d="M87 48c6-39 35-63 66-57 31 7 50 37 44 69" fill="none" stroke="#1A2B40" stroke-width="14" stroke-linecap="round"/>
+      <rect x="188" y="52" width="20" height="42" rx="5" fill="#E6EAF0"/>
+      <rect x="188" y="58" width="20" height="21" rx="3" fill="#B9C2D0"/>
+    </g>
+  </g>
+
+  <!-- Box flaps -->
+  <g>
+    <path d="M175 545l93-79 82 78-105 80z" fill="url(#boxFlap)"/>
+    <path d="M849 545l-93-79-82 78 105 80z" fill="url(#boxFlap)"/>
+  </g>
+
+  <!-- Box front -->
+  <g filter="url(#shadow)">
+    <path d="M214 556h596v245c0 44-36 80-80 80H294c-44 0-80-36-80-80z" fill="url(#boxFront)"/>
+    <path d="M214 556h52v325h-12c-22-14-40-33-40-80z" fill="#C7782D" opacity="0.55"/>
+    <path d="M758 556h52v245c0 46-18 66-40 80h-12z" fill="#B96B28" opacity="0.5"/>
+    <rect x="415" y="610" width="194" height="54" rx="27" fill="#623916"/>
+  </g>
+</svg>
+
 </svg>

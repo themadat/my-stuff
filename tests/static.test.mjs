@@ -41,3 +41,17 @@ test('release, HTML, install assets, deployment label and offline cache align', 
     assert.ok(existsSync(new URL(path.split('?')[0], root)), 'Missing asset: ' + path);
   }
 });
+
+test('app artwork is preserved across themes and install PNGs have the declared dimensions', () => {
+  const source = read('assets/icons/my-stuff-app-icon.svg');
+  for (const file of ['app-icon-light.svg', 'app-icon-dark.svg', 'favicon.svg']) assert.equal(read('assets/icons/' + file), source);
+  assert.doesNotMatch(source, /<script|<foreignObject|(?:href|src)=["']https?:/i);
+  for (const suffix of ['', '-dark']) {
+    for (const [file, size] of [['icon-192' + suffix, 192], ['icon-512' + suffix, 512], ['icon-512-maskable' + suffix, 512], ['apple-touch-icon' + suffix, 180], ['splash-' + (suffix ? 'dark' : 'light'), 1170]]) {
+      const png = readFileSync(new URL('assets/icons/' + file + '.png', root));
+      assert.equal(png.subarray(1, 4).toString(), 'PNG');
+      assert.equal(png.readUInt32BE(16), size, file);
+      assert.equal(png.readUInt32BE(20), size, file);
+    }
+  }
+});

@@ -1,12 +1,12 @@
 # Agent handoff
 
-My Stuff is a clean local-first foundation at version `0.0.1.3`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, What’s New, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support. Its compact interface-symbol helper embeds the original SVG artwork required by every retained control without depending on removed product data.
+My Stuff is a clean local-first foundation at version `0.0.1.4`. The repository contains a responsive header with centered support search, intentionally blank semantic workspace, one autosaving plain-text Notes modal, vertical Settings, Appearance, Help, What’s New, an empty Roadmap, shortcut reference, Developer diagnostics, combined local/GitHub status, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline support. Its compact interface-symbol helper embeds the original SVG artwork required by every retained control without depending on removed product data.
 
-Application artwork is retained as a placeholder. The runtime is static and dependency-free. Browser data uses the app-specific `myStuff.*` namespace; GitHub Sync targets `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`.
+The supplied storage-box app artwork is preserved at `assets/icons/my-stuff-app-icon.svg` and used unchanged by both header themes and the favicon. Install PNGs, padded maskable variants, opaque Apple touch icons, and themed splash SVG/PNG assets are aligned. `scripts/generate-icons.mjs` regenerates PNGs with development-only Playwright; see `docs/CUSTOMIZATION.md`. Unused template reference files remain untouched. The runtime is static and dependency-free. Browser data uses the app-specific `myStuff.*` namespace; GitHub Sync targets `themadat/my-stuff`, branch `main`, at `data/my-stuff.json`.
 
 Settings/sync updates from app-template `0.0.1.61` through `0.0.1.67` (`c1ff33f`, verified remote HEAD) are integrated. This includes compact appearance/target controls, safe repository/file links, masked stored tokens and dirty-field retention, saved successful tests, explicit Sync Now/Restore actions, shared cloud symbols/tints, safe conflict/recovery handling, and single-scroller mobile Settings. Sync sends Notes only; local state/backups remain schema 1, while the compact cloud envelope uses sync version 1/schema 5. Legacy My Stuff files remain readable, with explicit compaction on sync. Update older devices before syncing the new envelope. No upstream icon-library product state, reset provisioning workflow, or Git account routing was imported.
 
-Verification: 31 simulated sync tests, 2 static consistency tests, and 7 isolated Chromium browser tests pass, including desktop/mobile (320px at 130% text), imports, export privacy, masked token persistence, cloud restore recovery, reduced motion, and offline reload. GitHub responses are mocked in tests; no live cloud upload or deployment was performed. The existing root-level button-style click handler was narrowed to actual buttons after it was found to interfere with remember-token checkbox edits.
+Verification: 31 simulated sync tests, 3 static consistency/artwork tests, and 7 isolated Chromium browser tests pass, including desktop/mobile (320px at 130% text), theme-specific icon loading, imports, export privacy, masked token persistence, cloud restore recovery, reduced motion, and offline reload. The supplied SVG is preserved byte-for-byte; install dimensions, maskable foreground padding, and opaque Apple touch assets were checked. GitHub responses are mocked in tests; no live cloud upload or deployment was performed. The existing root-level button-style click handler was narrowed to actual buttons after it was found to interfere with remember-token checkbox edits.
 
 ## Repository map
 
@@ -16,7 +16,7 @@ Verification: 31 simulated sync tests, 2 static consistency tests, and 7 isolate
 - `assets/js/icons.js`: small inline interface-symbol helper.
 - `assets/js/app.js`: shell rendering, Notes, Settings, search, appearance, and shortcuts.
 - `assets/js/core/`: state, storage, components, portability, sync, utilities, and PWA behavior.
-- `assets/icons/`: placeholder application and install assets.
+- `assets/icons/`: supplied application artwork and generated install assets.
 - `manifest*.webmanifest`, `sw.js`, `.github/workflows/deploy-pages.yml`: install, offline, and hosting surfaces.
 
 ## Invariants

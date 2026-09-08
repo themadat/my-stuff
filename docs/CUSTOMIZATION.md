@@ -10,7 +10,9 @@ Theme defaults live in `assets/js/config.js`; light and dark surfaces live in `a
 
 ## Application artwork
 
-Files in `assets/icons/` are placeholders. Replace light and dark application SVGs and regenerate the matching 192px, 512px, maskable, Apple touch, and splash PNG assets. Verify important artwork remains inside maskable safe bounds.
+The supplied artwork is preserved at `assets/icons/my-stuff-app-icon.svg`; `app-icon-light.svg`, `app-icon-dark.svg`, and `favicon.svg` are identical copies. Both themes retain its original colors. Splash SVGs embed the same artwork on the appropriate theme background. Unused `App Icon Template` files are reference assets, not active application artwork.
+
+After editing the source, align those SVG copies and the embedded splash SVGs, then run `node scripts/generate-icons.mjs` using a development-only Playwright/Chromium installation (`PLAYWRIGHT_MODULE` can point to an external `index.mjs`). This regenerates the checked-in 192px/512px icons, 180px Apple touch icons, 512px maskable icons, and 1170px splash PNGs. It adds no runtime dependency. The current maskable foreground is scaled to 72% over an opaque blue background to keep the key artwork inside platform masks; Apple touch icons have opaque corners. Review the maskable layout if the source composition changes.
 
 ## Content
 

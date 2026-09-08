@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first application foundation.",
-      version: "0.0.1.3",
-      buildId: "0.0.1.3",
+      version: "0.0.1.4",
+      buildId: "0.0.1.4",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -44,6 +44,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.4",
+      date: "2026-09-08T03:42:06.000Z",
+      title: "Add the My Stuff app icon",
+      summary: "Your storage-box artwork now identifies My Stuff across the app and installation surfaces.",
+      features: ["Original supplied SVG for the header and favicon in both themes"],
+      improvements: ["Matching 192px, 512px, Apple touch, maskable, and light/dark splash assets", "Padded foreground and an opaque background for platform-masked install icons"],
+      fixes: ["Replaced the active placeholder application artwork"],
+      knownIssues: []
+    }, {
       version: "0.0.1.3",
       date: "2026-09-08T03:28:10.000Z",
       title: "Bring Settings and cloud sync up to date",
