@@ -21,7 +21,7 @@
     failed: { symbol: "xmark.icloud", kind: "danger", title: "Sync Failed", message: "The sync attempt failed. Retry or review the connection.", animation: "none" },
     authenticationRequired: { symbol: "key.icloud", kind: "warning", title: "Sign In Required", message: "Enter or renew the GitHub access token in Settings.", animation: "none", primaryAction: "settings" },
     permissionDenied: { symbol: "lock.icloud", kind: "warning", title: "Access Required", message: "Grant the token Contents read and write access to the configured repository.", animation: "none", primaryAction: "settings" },
-    connected: { symbol: "link.icloud", kind: "info", title: "Connected", message: "The GitHub connection is configured. Sync to compare copies.", animation: "none" },
+    connected: { symbol: "link.icloud", kind: "info", title: "Connected", message: "The GitHub connection is configured. Read access does not confirm upload permission. Sync to compare copies.", animation: "none" },
     shared: { symbol: "person.icloud", kind: "info", title: "Shared", message: "This resource is associated with another user or account.", animation: "none" }
   });
   const CloudSyncState = Object.freeze(Object.fromEntries(Object.keys(STATE_PRESENTATIONS).map(function (name) {
@@ -161,13 +161,21 @@
     };
   }
 
-  async function responseError(response) {
+  async function responseError(response, operation) {
     let detail = "";
     try { detail = u.cleanLine((await response.json()).message, 300); } catch (error) { detail = ""; }
     const failure = function (message, state) { return Object.assign(new Error(message), { syncState: state }); };
     if (response.status === 401) return failure("GitHub rejected the token. Create a new fine-grained token and try again.", CloudSyncState.authenticationRequired);
     if (response.status === 429 || (response.status === 403 && /rate limit|abuse|secondary rate/i.test(detail))) return failure("GitHub is limiting requests. Wait before trying again.", CloudSyncState.warning);
-    if (response.status === 403) return failure("GitHub denied access. Confirm that the token has Contents read and write permission.", CloudSyncState.permissionDenied);
+    if (response.status === 403 || ([409, 422].includes(response.status) && /protected branch|repository rule|rule violation|pull request|signed commit|GH006|GH013/i.test(detail))) {
+      const cloud = settings();
+      const action = operation === "upload" ? "the upload" : "access";
+      return failure("GitHub denied " + action + " to " + cloud.owner + "/" + cloud.repo + ". "
+        + (detail ? "GitHub: " + detail + ". " : "")
+        + "In the fine-grained token settings, select this repository and grant Contents: Read and write. Confirm the token owner has write access and any required organization approval. "
+        + (operation === "upload" ? "A passing read test does not verify uploads; branch rules may also block direct writes to " + cloud.branch + ". " : "")
+        + "After correcting access, save the token in Settings and retry Sync Now.", CloudSyncState.permissionDenied);
+    }
     if (response.status === 404) return failure("GitHub could not find the repository or branch, or the token cannot access it.", CloudSyncState.warning);
     if (response.status === 409 || response.status === 422) return failure("The GitHub copy changed while syncing. Check again before choosing a copy.", CloudSyncState.warning);
     return failure(detail ? "GitHub: " + detail : "GitHub request failed (" + response.status + ").", CloudSyncState.failed);
@@ -199,6 +207,10 @@
     const repositoryUrl = apiRepositoryUrl(cloud);
     const repository = await fetch(repositoryUrl, { headers: headers(token), signal: context.signal });
     if (!repository.ok) throw await responseError(repository);
+    const repositoryInfo = await repository.json();
+    if (repositoryInfo.archived || repositoryInfo.disabled || repositoryInfo.permissions?.push === false) {
+      throw Object.assign(new Error("GitHub reports that " + cloud.owner + "/" + cloud.repo + " is read-only for this connection. Check repository write access and whether the repository is archived or disabled."), { syncState: CloudSyncState.permissionDenied });
+    }
     const branch = await fetch(repositoryUrl + "/branches/" + encodeURIComponent(cloud.branch), { headers: headers(token), signal: context.signal });
     if (!branch.ok) throw await responseError(branch);
   }
@@ -242,7 +254,7 @@
       body: JSON.stringify(body),
       signal: context.signal
     });
-    if (!response.ok) throw await responseError(response);
+    if (!response.ok) throw await responseError(response, "upload");
     const result = await response.json();
     return result && result.content && result.content.sha ? result.content.sha : sha;
   }
@@ -393,7 +405,13 @@
       // A successful test establishes a connection; a sync check compares the copies.
       Object.assign(runtime, { remoteSha: "", remoteHash: "", remoteState: null, remoteLegacy: false, remoteMissing: false, checkedAt: "", errorState: "", offline: false });
       const storedMessage = rememberToken ? " The token is stored on this device." : " The token is stored for this browser tab.";
-      return { ok: true, remoteExists: Boolean(remote), message: (remote ? "Connection succeeded and the data file is readable." : "Connection succeeded. The data file will be created on first upload.") + storedMessage };
+      return {
+        ok: true, writeVerified: false, remoteExists: Boolean(remote),
+        title: "Read check passed — uploads unverified",
+        message: (remote ? "The repository, branch, and data file are readable." : "The repository and branch are readable, but the data file is missing or not accessible.")
+          + " Test makes no changes on GitHub and cannot verify upload permission. The token must select " + cloud.owner + "/" + cloud.repo
+          + " with Contents: Read and write; repository access and branch rules must also allow direct writes. Only a successful upload confirms this." + storedMessage
+      };
     } catch (error) {
       if (!currentRequest(context) || error && error.name === "AbortError") return null;
       recordError(error, "Connection test failed.");
@@ -487,11 +505,11 @@
     if (state === "remote") return performDownload();
     if (state === "first-sync" || state === "conflict") {
       const choices = runtime.remoteMissing
-        ? [{ value: "upload", label: "Upload this device", description: "Create the GitHub data file from this device.", kind: "primary" }]
+        ? [{ value: "upload", symbol: "icloud.and.arrow.up", label: "Upload this device", description: "Create the GitHub data file from this device.", kind: "primary" }]
         : [
-            ...(model.canMerge(storage.getState(), runtime.remoteState) ? [{ value: "merge", label: "Merge both copies", description: "Combine matching or separate items, keeping content present in either copy.", kind: "primary" }] : []),
-            { value: "upload", label: "Upload this device", description: "Replace the GitHub copy with this device.", kind: "secondary" },
-            { value: "download", label: "Download GitHub", description: "Replace saved content after making a recovery copy; keep this device’s settings.", kind: "secondary" }
+            ...(model.canMerge(storage.getState(), runtime.remoteState) ? [{ value: "merge", symbol: "arrow.trianglehead.2.clockwise.rotate.90.icloud", label: "Merge both copies", description: "Combine matching or separate items, keeping content present in either copy.", kind: "primary" }] : []),
+            { value: "upload", symbol: "icloud.and.arrow.up", label: "Upload this device", description: "Replace the GitHub copy with this device.", kind: "secondary" },
+            { value: "download", symbol: "icloud.and.arrow.down", label: "Download GitHub", description: "Replace saved content after making a recovery copy; keep this device’s settings.", kind: "secondary" }
           ];
       const sequence = runtime.requestSequence;
       runtime.deciding = true;

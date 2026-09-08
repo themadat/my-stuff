@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first application foundation.",
-      version: "0.0.1.4",
-      buildId: "0.0.1.4",
+      version: "0.0.1.5",
+      buildId: "0.0.1.5",
       repository: { label: "Project repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -44,6 +44,15 @@
     },
     themeDefaults: { accent: "#315f73", accent2: "#b86b4b", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.5",
+      date: "2026-09-08T16:55:28.000Z",
+      title: "Clarify cloud choices and access checks",
+      summary: "Cloud copy choices are left-aligned with symbols, and token tests distinguish read access from upload permission.",
+      features: [],
+      improvements: ["Leading cloud symbols for Merge, Upload, and Download choices", "Read-test results explain that uploads require separate write permission", "GitHub access errors are visible in Settings with the configured repository and recovery steps"],
+      fixes: ["Read-only connection tests no longer claim the connection fully works", "Known read-only repositories fail the test without replacing stored credentials", "Branch-rule denials retain their explanation instead of appearing as stale-content conflicts"],
+      knownIssues: ["Test does not write to GitHub. Repository selection, Contents: Read and write, and branch rules must permit an actual upload."]
+    }, {
       version: "0.0.1.4",
       date: "2026-09-08T03:42:06.000Z",
       title: "Add the My Stuff app icon",
@@ -86,7 +95,7 @@
       { id: "notes", title: "Notes", section: "Basics", keywords: "notes autosave local", html: "<p>Open Notes from the header or press <kbd>N</kbd>. Plain text saves automatically in this browser.</p>" },
       { id: "appearance", title: "Appearance", section: "Settings", keywords: "theme text size buttons hints", html: "<p>Settings includes system, light, and dark themes, text sizing, button presentation, and contextual hints.</p>" },
       { id: "backup", title: "Backup and restore", section: "Data", keywords: "backup export import json recovery reset", html: "<p>Export a JSON backup before major changes. Import validates the file and saves a recovery copy before replacement.</p>" },
-      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs Notes only. Add a fine-grained token with Contents read and write access to the configured repository. Test saves working credentials; Save stores them and checks the cloud copy. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting Notes require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
+      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs Notes only. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting Notes require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
       { id: "offline", title: "Install and offline updates", section: "Application", keywords: "install pwa offline update refresh", html: "<p>When served over HTTPS, My Stuff can be installed and keeps its shell available offline. Use Force refresh when an update notice appears.</p>" },
       { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },
       { id: "shortcuts", title: "Keyboard shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Press <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }

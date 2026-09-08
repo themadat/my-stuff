@@ -383,3 +383,57 @@ test('imported configuration cannot redirect the fixed target and compact import
   assert.equal(imported.modules.cloudSync.path, h.App.config.cloudSync.path);
   assert.equal(model.prepare(model.syncPayload(h.state)).contentOnly, true);
 });
+
+test('read-only Test never claims write verification and reproduces a later upload denial', async () => {
+  const h = harness();
+  const result = await h.sync.testConnection({ ...h.state.modules.cloudSync, token: h.token });
+  assert.equal(result.ok, true); assert.equal(result.writeVerified, false);
+  assert.match(result.title, /uploads unverified/);
+  assert.match(result.message, /Contents: Read and write/);
+  assert.ok(h.requests.every(r => !r.options.method || r.options.method === 'GET'));
+  h.choice = 'upload'; changeNotes(h.state, 'Upload me');
+  h.respond = (url, options) => options.method === 'PUT' ? response(403, { message: 'Resource not accessible by personal access token' }) : h.file();
+  await h.sync.syncNow();
+  assert.equal(h.sync.getInfo().state, 'permissionDenied');
+  assert.match(h.sync.getInfo().message, /denied the upload to themadat\/my-stuff/);
+  assert.match(h.sync.getInfo().message, /Resource not accessible by personal access token/);
+  assert.match(h.sync.getInfo().message, /passing read test does not verify uploads/);
+  assert.equal(h.state.notes.text, 'Upload me');
+});
+
+test('missing cloud files do not make Test promise that an upload will succeed', async () => {
+  const h = harness();
+  h.respond = url => url.includes('/contents/') ? response(404) : response(200);
+  const result = await h.sync.testConnection({ ...h.state.modules.cloudSync, token: h.token });
+  assert.equal(result.remoteExists, false); assert.equal(result.writeVerified, false);
+  assert.match(result.message, /missing or not accessible/);
+  assert.ok(h.requests.every(r => r.options.method !== 'PUT'));
+});
+
+test('known read-only repositories fail Test without saving a replacement token', async () => {
+  for (const metadata of [{ archived: true }, { disabled: true }, { permissions: { push: false } }]) {
+    const h = harness(); h.respond = () => response(200, metadata);
+    await assert.rejects(h.sync.testConnection({ ...h.state.modules.cloudSync, token: 'new-token' }), /read-only/);
+    assert.equal(h.sync.getInfo().state, 'permissionDenied'); assert.equal(h.token, 'test-token');
+    assert.ok(h.requests.every(r => r.options.method !== 'PUT'));
+  }
+});
+
+test('branch-rule rejections are not misreported as stale content conflicts', async () => {
+  const h = harness(); h.setBaseline(); changeNotes(h.state, 'New note');
+  h.respond = (url, options) => options.method === 'PUT' ? response(422, { message: 'Changes must be made through a pull request' }) : h.file();
+  await h.sync.syncNow();
+  assert.equal(h.sync.getInfo().state, 'permissionDenied');
+  assert.match(h.sync.getInfo().message, /pull request/);
+  assert.match(h.sync.getInfo().message, /branch rules/);
+});
+
+test('every first-sync choice supplies a shared SVG symbol', async () => {
+  const h = harness(); changeNotes(h.remote, 'Cloud-only note');
+  await h.sync.syncNow();
+  assert.deepEqual(Array.from(h.choices[0].choices, c => c.value), ['merge', 'upload', 'download']);
+  for (const choice of h.choices[0].choices) assert.match(h.App.icons.markup(choice.symbol), /<svg/);
+  const missing = harness(); missing.respond = () => response(404);
+  await missing.sync.syncNow();
+  assert.equal(missing.choices[0].choices[0].symbol, 'icloud.and.arrow.up');
+});

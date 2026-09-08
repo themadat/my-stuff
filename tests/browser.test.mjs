@@ -89,6 +89,9 @@ test('Test retains masked credentials and draft edits survive background renders
   assert.equal(await page.locator('#syncRememberToken').isChecked(), false);
   await page.locator('#testSyncButton').click();
   await page.waitForFunction(() => document.querySelector('#storedTokenLabel').textContent === 'Stored for this tab');
+  assert.match(await page.locator('[data-message-title]').textContent(), /Read check passed.*uploads unverified/);
+  assert.match(await page.locator('[data-message-text]').textContent(), /cannot verify upload permission/);
+  await page.locator('[data-message-close]').click();
   assert.equal(await page.locator('#syncToken').getAttribute('type'), 'password');
   assert.equal(await page.locator('#syncToken').inputValue(), 'fake-test-token');
   assert.match(await page.locator('#syncSettingsState').textContent(), /Connected/);
@@ -144,6 +147,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
 test('comparison alone animates arrows, reduced motion stops them, and authentication failure has a static symbol', { timeout: 30000 }, async t => {
   const h = await fixture(t), { page } = h;
   await page.locator('#syncToken').fill('fake-token'); await page.locator('#testSyncButton').click();
+  await page.locator('[data-message-close]').click();
   await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
   let release; h.delay = new Promise(resolve => { release = resolve; });
   await page.evaluate(() => { window.LocalApp.sync.check(true); });
@@ -157,6 +161,29 @@ test('comparison alone animates arrows, reduced motion stops them, and authentic
   await page.evaluate(() => window.LocalApp.sync.check(true));
   assert.equal(await page.locator('#syncSettingsState').getAttribute('data-sync-state'), 'authenticationRequired');
   assert.equal(await page.locator('#syncSettingsState').getAttribute('data-animation'), 'none');
+});
+
+test('first-sync options are left-aligned with leading symbols at desktop and mobile widths', { timeout: 30000 }, async t => {
+  const h = await fixture(t), { page } = h;
+  h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Cloud-only notes' } };
+  await page.locator('#syncToken').fill('fake-token'); await page.locator('#saveSyncButton').click();
+  await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
+  for (const width of [1280, 390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.locator('#syncNowButton').click();
+    await page.locator('#choiceDialog').waitFor({ state: 'visible' });
+    const choices = await page.locator('[data-choice-value]').evaluateAll(buttons => buttons.map(button => {
+      const icon = button.querySelector('.choice-icon'), copy = button.querySelector('.choice-copy');
+      return { value: button.dataset.choiceValue, alignment: getComputedStyle(button).justifyContent, text: getComputedStyle(button).textAlign, icon: !!icon?.querySelector('svg'), iconRight: icon?.getBoundingClientRect().right, copyLeft: copy.getBoundingClientRect().left, overflow: button.scrollWidth > button.clientWidth };
+    }));
+    assert.deepEqual(choices.map(c => c.value), ['merge', 'upload', 'download']);
+    for (const choice of choices) {
+      assert.equal(choice.alignment, 'flex-start'); assert.equal(choice.text, 'left');
+      assert.ok(choice.icon); assert.ok(choice.iconRight <= choice.copyLeft); assert.equal(choice.overflow, false);
+    }
+    await page.locator('[data-choice-cancel]').click();
+  }
+  assert.equal(h.writes.length, 0);
 });
 
 test('JSON imports distinguish cloud content from full backups and preserve a recovery copy', { timeout: 30000 }, async t => {

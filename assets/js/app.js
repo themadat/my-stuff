@@ -177,6 +177,7 @@
     renderCloudSyncVisual(settingsStatus, info);
     settingsStatus.querySelector("[data-sync-label]").textContent = info.title;
     settingsStatus.title = info.help;
+    $("#syncSettingsMessage").textContent = info.message;
     [["#syncNowButton", "syncNow", info.canSync], ["#restoreCloudButton", "restore", info.canRestore]].forEach(function (entry) {
       const button = $(entry[0]);
       const action = App.sync.actions[entry[1]];
@@ -363,7 +364,7 @@
       const result = await App.sync.testConnection(syncForm());
       if (result) {
         markSyncCredentialFieldsClean();
-        App.components.toast(result.message, { title: "Connection works", kind: "success", duration: 5000 });
+        App.components.message(result.title, result.message, { trigger: $("#testSyncButton") });
       }
     } catch (error) { App.components.message("Connection failed", error.message, { trigger: $("#testSyncButton") }); }
     finally { App.components.setLoading(false); renderSync(); }
