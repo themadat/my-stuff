@@ -2,7 +2,9 @@
 
 My Stuff is a static, local-first inventory for personal and household belongings. It has no required build step, runtime dependency, backend, account, or sign-in.
 
-Start in **Stuff I Have**. Add one entry per physical object, recording whether it belongs to the house or to you, its current room, category tags, obtained date/method/source, current value, obtaining price, and custom properties. Shoes suggest size/color/weight, backpacking gear suggests weight, and cables suggest length. Presets are optional; tags and properties remain editable.
+Start in **Stuff I Have**. Smart Complete accepts a purchase line and highlights its object, brand, seller, obtaining price, and bracketed value. Payment/account text and unknown markers remain in Notes. Review and correct the fields; manual corrections survive continued typing. Use explicit annotations such as `brand: Acme; owner: house; obtained: Gift;` for unfamiliar brands or overrides. New items default to **Me** and **Purchased**, with single-click segmented choices. Search zones, rooms, spaces, and tags using the full WISH-001 vocabulary or add custom choices. More Details contains notes, date, and custom properties. Brand, Zone, and Space are stored as existing named properties, preserving the current backup/cloud schema.
+
+ Add one entry per physical object, recording whether it belongs to the house or to you, its current room, category tags, obtained date/method/source, current value, obtaining price, and custom properties. Shoes suggest size/color/weight, backpacking gear suggests weight, and cables suggest length. Presets are optional; tags and properties remain editable.
 
 Current counts and known values are split by ownership and room. Unknown values are not treated as zero. Archive an item to **Previous Stuff** with its gone date, reason, and departure notes; days owned are calculated from its obtained date. Archived items leave current totals but retain their details and can be returned. **Stuff I Want** and **Research** are placeholders for later development.
 

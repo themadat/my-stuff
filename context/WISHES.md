@@ -8,12 +8,12 @@ Next id: `WISH-002`
 
 ### WISH-001 — Zones, rooms, spaces, and grouped tags
 
-- Status: Proposed
+- Status: Shipped
 - Priority: P2 (provisional)
 - Effort: Unestimated
 - Target: Unscheduled
 - Plan: —
-- Released: —
+- Released: 0.0.1.10 on 2026-09-08
 - Affected modules: Inventory model and editor, location/tag suggestions and filters, state/backup/sync compatibility, Help.
 
 Behavior:
@@ -70,17 +70,17 @@ Acceptance criteria:
 
 Constraints and assumptions:
 
-- This entry captures requirements only; no runtime, schema, version, or stored inventory changes are authorized by this capture.
+- Initially captured as requirements only. The 2026-09-08 request explicitly authorized pre-populating the form with this vocabulary.
 - Keep runtime static, local-first, and dependency-free, with backup/import and optional sync compatibility.
 - Preserve Pickle Bag, Car, Floating, and Go Bag as supplied spaces.
 - Priority is provisional; effort and implementation decisions belong to planning.
 
-Open questions:
+Implementation decisions (authorized by the compact-form request):
 
-- Should locations and tags be fixed choices, editable defaults, or suggestions alongside custom entries?
-- Should an item allow multiple locations, and may its location stop at a zone or room?
-- Should grouped tags extend or replace existing category tags/presets, and should Brands remain a tag group?
-- How should existing free-text rooms and tags map to this vocabulary?
+- Suggestions remain editable and support custom entries alongside supplied vocabulary.
+- An item has one location and may stop at a zone or room; choosing a space fills its parent room and zone.
+- Grouped tags extend existing categories/presets; Brands remains a tag group.
+- Existing rooms and tags remain unchanged. Brand, Zone, and Space use named properties, retaining backup/sync compatibility.
 
 ## Entry template
 

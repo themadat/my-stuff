@@ -5,13 +5,13 @@ import { pathToFileURL } from 'node:url';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright');
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:8765';
 let browser;
-before(async () => { browser = await chromium.launch({ headless: true }); });
+before(async () => { browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) }); });
 after(async () => { await browser?.close(); });
 
 async function addInventoryItem(page, { name = 'Trail shoes', owner = 'me', room = 'Office', value = '100' } = {}) {
-  await page.locator('#addItemButton').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
-  await page.locator('#itemName').fill(name); await page.locator('#itemOwner').selectOption(owner);
+  await page.locator('#itemName').fill(name); await page.locator('input[name="itemOwnerChoice"][value="' + owner + '"]').check();
   await page.locator('#itemRoom').fill(room); await page.locator('#itemValue').fill(value);
   await page.locator('#saveItemButton').click();
 }
@@ -20,19 +20,19 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   const { page } = await fixture(t);
   await page.locator('[data-close-dialog="supportDialog"]').click();
   assert.equal(await page.locator('#inventoryTitle').textContent(), 'Stuff I Have');
-  await page.locator('#addItemButton').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   await page.locator('#itemName').fill('Trail shoes <img src=x onerror=alert(1)>');
-  await page.locator('#itemDescription').fill('Everyday walking shoes');
+  await page.locator('#itemMoreDetails > summary').click(); await page.locator('#itemDescription').fill('Everyday walking shoes');
   await page.locator('#itemRoom').fill('Office'); await page.locator('#itemValue').fill('129.95');
   await page.locator('#itemPrice').fill('99.95'); await page.locator('#itemObtainedDate').fill('2025-01-15');
-  await page.locator('#itemObtainedHow').selectOption('Purchased'); await page.locator('#itemSource').fill('Local outdoor shop');
+  await page.locator('input[name="itemObtainedHowChoice"][value="Purchased"]').check(); await page.locator('#itemSource').fill('Local outdoor shop');
   await page.locator('[data-category-preset="0"]').click();
   await page.locator('[data-property-value]').nth(0).fill('9');
   await page.locator('[data-property-value]').nth(1).fill('Green');
   await page.locator('[data-property-value]').nth(2).fill('300');
   await page.locator('[data-category-preset="1"]').click(); await page.locator('[data-category-preset="2"]').click();
   assert.equal(await page.locator('.item-property').count(), 4);
-  await page.locator('#itemCategories').fill('Shoes, Everyday'); await page.locator('#itemCategories').blur();
+  await page.getByRole('button', { name: 'Remove Backpacking gear', exact: true }).click(); await page.getByRole('button', { name: 'Remove Cables', exact: true }).click(); await page.locator('#itemTagSearch').fill('Everyday'); await page.locator('#itemTagSearch').press('Enter');
   assert.equal(await page.locator('.item-property').count(), 4, 'removing a category must not erase properties');
   await page.locator('#saveItemButton').click();
   await page.reload();
@@ -73,7 +73,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
 
 test('unsaved inventory drafts, nested Escape, invalid input and concurrent edits are protected', { timeout: 30000 }, async t => {
   const { page } = await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
-  await page.locator('#addItemButton').click(); await page.locator('#itemName').fill('Unsaved object');
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry'); await page.locator('#itemName').fill('Unsaved object');
   await page.keyboard.press('Escape'); await page.locator('[data-confirm-cancel]').click();
   assert.equal(await page.locator('#itemDialog').evaluate(el => el.open), true);
   await page.locator('#itemName').focus(); await page.keyboard.press('Escape');
@@ -123,7 +123,7 @@ test('inventory and its editor fit narrow screens, large text and dark mode', { 
   const { page } = await fixture(t, { viewport: { width: 320, height: 844 }, isMobile: true, hasTouch: true });
   await page.locator('#textSizeSlider').fill('130'); await page.locator('[data-theme-mode="dark"]').click();
   await page.locator('[data-close-dialog="supportDialog"]').click();
-  await page.locator('#addItemButton').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   await page.locator('#itemName').fill('Cable '.repeat(20)); await page.locator('[data-category-preset="2"]').click();
   await page.locator('[data-property-value]').fill('150');
   assert.equal(await page.locator('#itemDialog').evaluate(el => el.scrollWidth <= el.clientWidth), true);
@@ -421,7 +421,7 @@ test('Title Case labels, USD and burnt orange remain usable in both themes on de
     assert.equal(await page.locator('html').getAttribute('data-theme'), mode);
     for (const width of [1280, 320]) {
       await page.setViewportSize({ width, height: 900 });
-      await page.locator('#addItemButton').click();
+      await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
       assert.equal(await page.locator('#itemDialogTitle').textContent(), 'Add an Item');
       assert.deepEqual(await page.locator('[data-currency-label]').allTextContents(), ['(USD)', '(USD)']);
       const colors = await page.evaluate(() => {
@@ -435,4 +435,57 @@ test('Title Case labels, USD and burnt orange remain usable in both themes on de
       await page.locator('#itemDialog [data-inv-close]').first().click();
     }
   }
+});
+
+test('smart completion preserves manual corrections, searchable locations and multi-tags round trip', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+  assert.equal(await page.locator('input[name="itemOwnerChoice"][value="me"]').isChecked(), true);
+  assert.equal(await page.locator('input[name="itemObtainedHowChoice"][value="Purchased"]').isChecked(), true);
+  await page.locator('#smartExample').click();
+  assert.equal(await page.locator('#itemPrice').inputValue(), '62.77');
+  assert.equal(await page.locator('#itemValue').inputValue(), '65');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Final Touch');
+  assert.equal(await page.locator('#itemSource').inputValue(), 'Amazon');
+  assert.equal(await page.locator('[data-smart-target="price"]').getAttribute('title'), '62.77');
+  assert.match(await page.locator('#itemDescription').inputValue(), /Chase Prime: 125.54.*\[O\]/);
+  await page.locator('#itemPrice').fill('60');
+  await page.locator('#itemSmartEntry').fill(await page.locator('#itemSmartEntry').inputValue() + ' owner: house;');
+  assert.equal(await page.locator('#itemPrice').inputValue(), '60');
+  assert.equal(await page.locator('input[name="itemOwnerChoice"][value="house"]').isChecked(), true);
+  await page.locator('#itemRoom').fill('Office');
+  await page.locator('#itemRoom').press('ArrowDown'); await page.locator('#itemRoom').press('Enter');
+  assert.equal(await page.locator('#itemZone').inputValue(), 'Upstairs');
+  await page.locator('#itemSpace').fill('Closet');
+  assert.equal(await page.locator('#itemSpaceOptions [role="option"]').count(), 7);
+  await page.locator('#itemSpace').press('ArrowDown'); await page.locator('#itemSpace').press('Enter');
+  assert.equal(await page.locator('#itemRoom').inputValue(), 'Office');
+  await page.locator('#itemRoom').focus(); await page.locator('#itemRoom').press('Escape');
+  assert.equal(await page.locator('#itemDialog').evaluate(el => el.open), true);
+  assert.equal(await page.locator('#itemRoom').getAttribute('aria-expanded'), 'false');
+  await page.locator('#itemTagSearch').fill('Barw'); await page.locator('#itemTagSearch').press('ArrowDown'); await page.locator('#itemTagSearch').press('Enter');
+  await page.locator('#itemTagSearch').fill('Glass'); await page.getByRole('option', { name: 'Glassware Other', exact: true }).click();
+  await page.locator('#itemTagSearch').fill('Custom Tag');
+  await page.locator('#saveItemButton').click();
+  await page.reload(); await page.locator('[data-edit-item]').click();
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Final Touch');
+  assert.equal(await page.locator('#itemZone').inputValue(), 'Upstairs');
+  assert.equal(await page.locator('#itemSpace').inputValue(), 'Closet');
+  assert.equal(await page.locator('#itemCategories').inputValue(), 'Barware, Glassware, Custom Tag');
+  const item = await page.evaluate(() => window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()).data.inventory.items[0]);
+  assert.equal(item.properties.find(p => p.name === 'Brand').value, 'Final Touch');
+  assert.equal(item.price, 60);
+});
+
+test('smart suggestions escape markup, defaults preserve old unknown methods, and clearing suggestions preserves edits', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+  await page.locator('#itemSmartEntry').fill('<img src=x onerror=alert(1)> [0]');
+  assert.equal(await page.locator('#smartPreview img, #smartDestinations img').count(), 0);
+  await page.locator('#itemName').fill('My Object'); await page.locator('#itemSmartEntry').fill('');
+  assert.equal(await page.locator('#itemName').inputValue(), 'My Object');
+  assert.equal(await page.locator('#itemValue').inputValue(), '');
+  await page.locator('input[name="itemObtainedHowChoice"][value=""]').check();
+  await page.locator('#saveItemButton').click(); await page.locator('[data-edit-item]').click();
+  assert.equal(await page.locator('input[name="itemObtainedHowChoice"][value=""]').isChecked(), true);
 });

@@ -1,26 +1,28 @@
 # Goal
-Apply Title Case, burnt orange accents, fixed USD, and resolve the reported cloud-copy rejection.
+Compact item entry with highlighted Smart Complete, searchable wish vocabulary, and single-click defaults.
 # Status
-BLOCKED
+COMPLETE
 # Checkpoint
-No checkpoint commit. Application update 0.0.1.9 is verified locally; sync migration awaits the actual cloud structure.
+Application version 0.0.1.10. No checkpoint commit.
 # Completed
-- Title Case inventory/support labels and burnt orange accents in both themes, including existing saved preferences.
-- Fixed USD across forms, totals, normalization, backup, and outgoing sync; existing numeric amounts remain intact.
-- Replaced generic legacy cloud rejection with specific workspace/Notes diagnostics; neither copy is overwritten on rejection.
-- Aligned version, release, cache, manifests, deployment label, Help, README, and handoff.
+- Compact form with expandable notes/date/properties and a visible Save action.
+- Sample parsing maps price, value, Amazon, Final Touch, and object; payment text and unknown markers remain in Notes.
+- Manual corrections survive continued smart entry; explicit owner/method/brand annotations supported.
+- Me/Purchased defaults and accessible segmented selections; existing unknown methods remain unknown.
+- Searchable zones, rooms, spaces, and multiple tags with all WISH-001 vocabulary and custom entries.
+- Existing property storage retains Brand, Zone, and Space through backup/sync/archive without schema changes.
+- Aligned version/cache/manifests/workflow, release/help/docs, and wish ledger.
 # Remaining
-- Reproduce and fix the user's actual cloud-copy rejection once its redacted JSON structure is available.
+- None for this form update. The separate legacy cloud diagnosis remains pending, as noted below.
 # Verification
-- Build: PASS (static runtime syntax and asset/manifest/version consistency; no build step)
-- Tests: PASS (53 model/static checks and 14 isolated Chromium browser checks, including offline)
-- Lint: PASS (git diff --check; no standalone linter configured)
-- Review: PASS (completed UI/USD changes and desktop/mobile visual review; actual cloud migration unverified)
+- Build: PASS (runtime syntax, assets, manifests, release and cache consistency; static app has no build step)
+- Tests: PASS (56 parser/model/static checks and 16 isolated Chromium browser checks, including offline)
+- Lint: PASS (diff whitespace check; no standalone linter configured)
+- Review: PASS (request coverage and desktop/light, 320px/dark at 130% text visual review)
 # Next
-Inspect the user's redacted data/my-stuff.json. Add a fixture reproducing its rejection, implement a lossless supported migration if possible, verify sync/restore protections, and update release/handoff/status.
+User may review and commit/push the task files; no further implementation work remains for this request.
 # Decisions
-- GitHub connector returned 404 for the configured file; asked user for JSON structure. Never guess or strip legacy workspace data.
-- Existing supported currency labels normalize to USD without converting numeric amounts.
-- App accents override old saved accent colors; display mode/scale and semantic colors remain intact.
-- WISH-001 remains Proposed and outside this update.
-- Preserved unrelated icon edits; no commit, push, or live cloud write.
+- Suggestions supplement existing values and presets; choosing a space fills its parent room and zone.
+- Smart completion stays local and dependency-free; unknown brands remain in the object unless explicitly labelled or entered manually.
+- The separate legacy cloud-copy rejection still awaits the actual cloud file structure; it is not part of this form task.
+- No live cloud write, commit, push, or deployment is authorized in this turn.
