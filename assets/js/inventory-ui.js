@@ -49,28 +49,36 @@
         <header class="dialog-header"><div><h2 id="itemDialogTitle">Add an Item</h2></div><button type="button" class="icon-button" data-inv-close="itemDialog" aria-label="Close item">${icon("close")}</button></header>
         <div class="dialog-body"><p id="itemFormError" class="inventory-error" role="alert" tabindex="-1" hidden></p>
           <section class="smart-entry" aria-label="Smart Complete">
-            <div class="smart-heading"><label for="itemSmartEntry">Smart Complete</label><button type="button" id="smartExample" class="button small">Try Example</button></div>
-            <textarea id="itemSmartEntry" rows="2" maxlength="1800" placeholder="Paste a purchase line, or type an item…" aria-describedby="smartHint"></textarea>
-            <p id="smartHint">Highlights show what goes where. Edit any field below.</p>
+            <div class="smart-heading"><label for="itemSmartEntry">Smart Complete</label><p id="smartHint">Highlights show what goes where. Edit any field below.</p><button type="button" id="smartExample" class="button small">Try Example</button></div>
+            <textarea id="itemSmartEntry" rows="1" maxlength="1800" placeholder="Paste a purchase line, or type an item…" aria-describedby="smartHint"></textarea>
             <div id="smartPreview" class="smart-preview" hidden></div><div id="smartDestinations" class="smart-destinations" aria-live="polite"></div>
           </section>
           <div class="item-form-grid compact-item-grid">
-            <label class="field full"><span>Object <small>(required)</small></span><input id="itemName" required maxlength="160" placeholder="Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand"></label>
-            ${field("itemBrand", "Brand", 'type="text" maxlength="300" placeholder="Final Touch"')}
-            ${field("itemSource", "Seller / Source", 'type="text" maxlength="240" placeholder="Amazon"')}
-            ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-            ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-            <div class="full item-choice-row">${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}</div>
-            <div class="full item-location-row">${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Search rooms…")}${picker("itemSpace", "Space", "Search spaces…")}</div>
-            <div class="full"><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div></div>
-          </div>
-          <div id="categoryPresets" class="category-presets" aria-label="Category Presets">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div>
-          <details id="itemMoreDetails" class="item-more"><summary>More Details <span id="itemMoreCount"></span></summary>
-            <div class="item-form-grid">
-              ${field("itemObtainedDate", "Date Obtained", 'type="date"')}
-              <label class="field full"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
+            <div class="full item-identity-row">
+              ${field("itemSource", "Seller / Source", 'type="text" maxlength="240" placeholder="Amazon"')}
+              ${field("itemBrand", "Brand", 'type="text" maxlength="300" placeholder="Final Touch"')}
+              <label class="field"><span>Object <small>(required)</small></span><input id="itemName" required maxlength="160" placeholder="Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand"></label>
             </div>
-            <fieldset class="item-fieldset"><legend>Custom Properties</legend><div id="itemProperties"></div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></fieldset>
+            <div class="full item-purchase-row">
+              ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
+              ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
+              ${field("itemObtainedDate", "Date Obtained", 'type="date"')}
+              ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
+              ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
+            </div>
+            <div class="full item-location-row">
+              ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Search rooms…")}${picker("itemSpace", "Space", "Search spaces…")}
+              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div></div>
+            </div>
+          </div>
+          <details id="itemMoreDetails" class="item-more" open><summary>More Details <span id="itemMoreCount"></span></summary>
+            <div class="item-more-content">
+              <label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
+              <fieldset class="item-fieldset"><legend>Custom Properties</legend>
+                <div class="item-property-tools"><div id="categoryPresets" class="category-presets" aria-label="Category Presets">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
+                <div id="itemProperties"></div>
+              </fieldset>
+            </div>
           </details>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
@@ -117,7 +125,7 @@
     });
     render();
   }
-  const smartLabels = { name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes" };
+  const smartLabels = { name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained" };
   let smartApplied = {}, smartManual = new Set();
   function smartField(key) { return $("#item" + key[0].toUpperCase() + key.slice(1)); }
   function resetSmart() {
@@ -305,7 +313,7 @@
     $("#itemProperties").innerHTML = "";
     ["Brand", "Zone", "Space"].forEach(function (key) { $("#item" + key).value = values.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); })?.value || ""; });
     values.properties.filter(function (property) { return !["brand", "zone", "space"].includes(property.name.toLowerCase()); }).forEach(function (property) { addProperty(property); });
-    $("#itemMoreDetails").open = false;
+    $("#itemMoreDetails").open = true;
     $("#itemMoreCount").textContent = values.properties.length || values.description || values.obtainedDate ? "· Saved Details" : "";
     resetSmart(); renderTags(); syncSegments();
     $$(".picker-options").forEach(function (el) { el.hidden = true; });

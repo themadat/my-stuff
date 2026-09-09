@@ -1,28 +1,27 @@
 # Goal
-Compact item entry with highlighted Smart Complete, searchable wish vocabulary, and single-click defaults.
+Fix date-prefixed Smart Complete and widen the item form with details expanded.
 # Status
 COMPLETE
 # Checkpoint
-Application version 0.0.1.10. No checkpoint commit.
+Application version 0.0.1.11. Previous release commit c9a8e75 (0.0.1.10); no checkpoint commit.
 # Completed
-- Compact form with expandable notes/date/properties and a visible Save action.
-- Sample parsing maps price, value, Amazon, Final Touch, and object; payment text and unknown markers remain in Notes.
-- Manual corrections survive continued smart entry; explicit owner/method/brand annotations supported.
-- Me/Purchased defaults and accessible segmented selections; existing unknown methods remain unknown.
-- Searchable zones, rooms, spaces, and multiple tags with all WISH-001 vocabulary and custom entries.
-- Existing property storage retains Brand, Zone, and Space through backup/sync/archive without schema changes.
-- Aligned version/cache/manifests/workflow, release/help/docs, and wish ledger.
+- Leading US/ISO dates are extracted before obtaining price and brand; the reported object name is correct.
+- Date highlights, field navigation, and manual-edit protection are included; invalid calendar dates remain in Notes.
+- Seller, Brand, and Object share a wide desktop row; Date Obtained sits beside amounts and choices.
+- More Details opens on add/edit; notes and property controls stay visible.
+- Sample fits 1366×768 and 1440×900 without modal scrolling at default text size; mobile retains accessible scrolling.
+- Version/cache/manifests/workflow and release/help/docs aligned to 0.0.1.11.
 # Remaining
-- None for this form update. The separate legacy cloud diagnosis remains pending, as noted below.
+- None for this request.
 # Verification
-- Build: PASS (runtime syntax, assets, manifests, release and cache consistency; static app has no build step)
-- Tests: PASS (56 parser/model/static checks and 16 isolated Chromium browser checks, including offline)
-- Lint: PASS (diff whitespace check; no standalone linter configured)
-- Review: PASS (request coverage and desktop/light, 320px/dark at 130% text visual review)
+- Build: PASS (static syntax, assets, manifests, release/cache/version checks; no build step)
+- Tests: PASS (58 parser/model/static checks and 17 isolated Chromium browser checks, including offline)
+- Lint: PASS (diff whitespace checks; no standalone linter configured)
+- Review: PASS (1366×768 laptop and 320px/dark at 130% text screenshots inspected; exact sample fields and expanded details verified)
 # Next
-User may review and commit/push the task files; no further implementation work remains for this request.
+User may review and commit/push the 0.0.1.11 task files; no further implementation work remains.
 # Decisions
-- Suggestions supplement existing values and presets; choosing a space fills its parent room and zone.
-- Smart completion stays local and dependency-free; unknown brands remain in the object unless explicitly labelled or entered manually.
-- The separate legacy cloud-copy rejection still awaits the actual cloud file structure; it is not part of this form task.
-- No live cloud write, commit, push, or deployment is authorized in this turn.
+- 08/03/26 means August 3, 2026; two-digit years use 20xx.
+- Keep scrolling available on constrained screens and for expanded property lists rather than hiding content.
+- Separate legacy cloud-copy rejection still awaits the actual file structure.
+- No live cloud write, commit, push, or deployment requested.

@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   const App = window.LocalApp;
-  const example = "($62.77)\tChase Prime: 125.54\tAmazon Mktplace - Final Touch Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand [65] [O]";
+  const example = "08/03/26\t($62.77)\tChase Prime: 125.54\tAmazon Mktplace - Final Touch Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand [65] [O]";
   // Match only known brands or explicit labels. Unrecognized metadata remains in notes.
   function parse(text, knownBrands) {
     const fields = {}, spans = []; let rest = text.split("");
@@ -10,8 +10,17 @@
       spans.push({ start: start, end: start + length, field: field });
       rest.fill(" ", start, start + length); if (field) fields[field] = value;
     }
-    let match = /^\s*\(?\$([\d,]+(?:\.\d{1,2})?)\)?/.exec(text);
-    if (match) take(match.index, match[0].length, "price", match[1].replace(/,/g, ""));
+    // Purchase exports use US month/day/year dates; two-digit years mean 20xx.
+    let match = /^\s*(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})(?=\s|$)/.exec(text);
+    if (match) {
+      const raw = match[1], parts = raw.split("/");
+      const date = parts.length === 3 ? (parts[2].length === 2 ? "20" + parts[2] : parts[2]) + "-" + parts[0].padStart(2, "0") + "-" + parts[1].padStart(2, "0") : raw;
+      let valid = true;
+      try { App.inventoryModel.dateOnly(date); } catch (_) { valid = false; }
+      take(match[0].length - raw.length, raw.length, valid ? "obtainedDate" : null, date);
+    }
+    match = /^\s*(\(?\$([\d,]+(?:\.\d{1,2})?)\)?)/.exec(rest.join(""));
+    if (match) take(match[0].length - match[1].length, match[1].length, "price", match[2].replace(/,/g, ""));
     match = /\[\$?([\d,]+(?:\.\d{1,2})?)\]/.exec(text);
     if (match) take(match.index, match[0].length, "value", match[1].replace(/,/g, ""));
     // Explicit annotations work regardless of order; semicolons separate text fields.

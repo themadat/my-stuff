@@ -22,7 +22,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   assert.equal(await page.locator('#inventoryTitle').textContent(), 'Stuff I Have');
   await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   await page.locator('#itemName').fill('Trail shoes <img src=x onerror=alert(1)>');
-  await page.locator('#itemMoreDetails > summary').click(); await page.locator('#itemDescription').fill('Everyday walking shoes');
+  await page.locator('#itemDescription').fill('Everyday walking shoes');
   await page.locator('#itemRoom').fill('Office'); await page.locator('#itemValue').fill('129.95');
   await page.locator('#itemPrice').fill('99.95'); await page.locator('#itemObtainedDate').fill('2025-01-15');
   await page.locator('input[name="itemObtainedHowChoice"][value="Purchased"]').check(); await page.locator('#itemSource').fill('Local outdoor shop');
@@ -443,6 +443,9 @@ test('smart completion preserves manual corrections, searchable locations and mu
   assert.equal(await page.locator('input[name="itemOwnerChoice"][value="me"]').isChecked(), true);
   assert.equal(await page.locator('input[name="itemObtainedHowChoice"][value="Purchased"]').isChecked(), true);
   await page.locator('#smartExample').click();
+  assert.equal(await page.locator('#itemObtainedDate').inputValue(), '2026-08-03');
+  assert.equal(await page.locator('#itemName').inputValue(), 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand');
+  assert.equal(await page.locator('#itemMoreDetails').evaluate(el => el.open), true);
   assert.equal(await page.locator('#itemPrice').inputValue(), '62.77');
   assert.equal(await page.locator('#itemValue').inputValue(), '65');
   assert.equal(await page.locator('#itemBrand').inputValue(), 'Final Touch');
@@ -475,6 +478,7 @@ test('smart completion preserves manual corrections, searchable locations and mu
   const item = await page.evaluate(() => window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()).data.inventory.items[0]);
   assert.equal(item.properties.find(p => p.name === 'Brand').value, 'Final Touch');
   assert.equal(item.price, 60);
+  assert.equal(item.obtainedDate, '2026-08-03');
 });
 
 test('smart suggestions escape markup, defaults preserve old unknown methods, and clearing suggestions preserves edits', { timeout: 30000 }, async t => {
@@ -488,4 +492,24 @@ test('smart suggestions escape markup, defaults preserve old unknown methods, an
   await page.locator('input[name="itemObtainedHowChoice"][value=""]').check();
   await page.locator('#saveItemButton').click(); await page.locator('[data-edit-item]').click();
   assert.equal(await page.locator('input[name="itemObtainedHowChoice"][value=""]').isChecked(), true);
+});
+
+test('wide item modal shows the dated sample and expanded details without scrolling on desktop', { timeout: 30000 }, async t => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1366, height: 768 }]) {
+    const { page } = await fixture(t, { viewport });
+    await page.locator('[data-close-dialog="supportDialog"]').click();
+    await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+    await page.locator('#smartExample').click();
+    const rows = await Promise.all(['#itemSource', '#itemBrand', '#itemName'].map(id => page.locator(id).boundingBox()));
+    assert.ok(rows.every(row => Math.abs(row.y - rows[0].y) < 2), 'seller, brand and object share a row');
+    assert.equal(await page.locator('#itemMoreDetails').evaluate(el => el.open), true);
+    assert.equal(await page.locator('#itemDescription').isVisible(), true);
+    assert.equal(await page.locator('#addPropertyButton').isVisible(), true);
+    assert.equal(await page.locator('#itemForm .dialog-body').evaluate(el => el.scrollHeight <= el.clientHeight + 1), true, 'default form fits without scrolling at ' + viewport.width + 'x' + viewport.height);
+    await page.locator('#itemObtainedDate').fill('2026-08-04');
+    await page.locator('#itemSmartEntry').fill(await page.locator('#itemSmartEntry').inputValue() + ' owner: house;');
+    assert.equal(await page.locator('#itemObtainedDate').inputValue(), '2026-08-04', 'manual date correction is preserved');
+    await page.locator('#saveItemButton').click(); await page.locator('[data-edit-item]').click();
+    assert.equal(await page.locator('#itemMoreDetails').evaluate(el => el.open), true, 'details also open when editing');
+  }
 });
