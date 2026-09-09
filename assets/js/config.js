@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.11",
-      buildId: "0.0.1.11",
+      version: "0.0.1.12",
+      buildId: "0.0.1.12",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -57,6 +57,15 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.12",
+      date: "2026-09-09T04:50:12.390Z",
+      title: "Your Section Symbols",
+      summary: "Supplied SVG symbols identify Stuff I Have, Stuff I Want, Research, and Stuff I Had.",
+      features: [],
+      improvements: ["Use the supplied box, shopping bag, research document, and archive symbols with theme-aware color", "Rename Previous Stuff to Stuff I Had throughout the interface and Help"],
+      fixes: [],
+      knownIssues: []
+    }, {
       version: "0.0.1.11",
       date: "2026-09-09T04:37:37.384Z",
       title: "Dated Purchases and a Wider Form",
@@ -159,10 +168,10 @@
     roadmap: [],
     helpTopics: [
       { id: "data-sync", title: "Data Sync", section: "Settings", keywords: "data connection sync json payload preview github braces", html: "<p>Open Settings → Data Sync for local storage status, GitHub connection details, and sync actions. Expand JSON sent to GitHub to inspect the exact outgoing data file generated from this device. It updates when inventory or Notes change, excludes the token and device settings, and does not fetch the current cloud copy. Backup, restore, and reset controls remain in general Settings.</p>" },
-      { id: "start", title: "Getting Started", section: "Basics", keywords: "start inventory add item stuff have house me", html: "<p>Start in Stuff I Have and choose Add an Item. Each entry represents one object. Paste a purchase line into Smart Complete to see highlighted fields, or enter the object directly. New items default to Me and Purchased; change either with one click. Leading dates use MM/DD/YY or MM/DD/YYYY (two-digit years mean 20xx); ISO dates also work. Invalid calendar dates remain in Notes for review. Prices in parentheses and bracketed values stay separate from payment amounts. Recognized brands and sellers fill their own fields. Use brand: Acme; or owner: house; for explicit annotations. Unrecognized markers and payment columns go to Notes; manual field edits are preserved as you type. Search for a room, space, and tags. Date Obtained appears beside the price and value. More Details starts expanded with notes and custom properties. The wide desktop form places Seller, Brand, and Object on one row. Everything else can be filled in later. Save Item stores your changes on this device.</p><p>Stuff I Want and Research are reserved for future updates. Previous Stuff keeps the items you have archived.</p>" },
+      { id: "start", title: "Getting Started", section: "Basics", keywords: "start inventory add item stuff have house me", html: "<p>Start in Stuff I Have and choose Add an Item. Each entry represents one object. Paste a purchase line into Smart Complete to see highlighted fields, or enter the object directly. New items default to Me and Purchased; change either with one click. Leading dates use MM/DD/YY or MM/DD/YYYY (two-digit years mean 20xx); ISO dates also work. Invalid calendar dates remain in Notes for review. Prices in parentheses and bracketed values stay separate from payment amounts. Recognized brands and sellers fill their own fields. Use brand: Acme; or owner: house; for explicit annotations. Unrecognized markers and payment columns go to Notes; manual field edits are preserved as you type. Search for a room, space, and tags. Date Obtained appears beside the price and value. More Details starts expanded with notes and custom properties. The wide desktop form places Seller, Brand, and Object on one row. Everything else can be filled in later. Save Item stores your changes on this device.</p><p>Stuff I Want and Research are reserved for future updates. Stuff I Had keeps the items you have archived.</p>" },
       { id: "inventory-details", title: "Item Details and Categories", section: "Inventory", keywords: "properties tags shoes size weight color backpacking cables length obtained price source gift", html: "<p>Select an item name to edit its details. Record when and how you obtained it, where it came from, what you paid, and its current estimated value. Blank amounts are unknown; 0 means free or no value.</p><p>Search and select tags individually, or type custom tags and press Enter. Zones, rooms, and spaces include the household vocabulary; choosing a space fills its parent room and zone. Brand, Zone, and Space use existing custom-property storage for backup and sync compatibility. Presets suggest size, color, and weight for shoes, weight for backpacking gear, and length for cables. Add custom properties with a name, value, and optional unit. Removing a category never removes an existing property.</p>" },
       { id: "inventory-stats", title: "Rooms, Ownership, and Totals", section: "Inventory", keywords: "stats totals house personal room value count currency", html: "<p>Ownership is separate from location: your belongings and house belongings can share a room. Counts and known-value totals include all current items, even when the list is filtered. Room totals separate House and Me; items without a room appear under Unassigned. Items without a value are counted but excluded from known-value totals.</p><p>All values and prices are in USD. Currency is fixed for this app.</p>" },
-      { id: "inventory-archive", title: "Previous Stuff", section: "Inventory", keywords: "archive gone lost broken trashed sold donated duration previous return", html: "<p>Open an item and select Archive to record its gone date, reason, and optional departure notes. It moves to Previous Stuff and stops counting toward current totals. Days owned are calculated from the obtained date to the gone date; unknown obtained dates have unknown duration.</p><p>Archived details remain editable. Return to Stuff I Have clears its departure details and restores it to current totals. There is no permanent item-delete action.</p>" },
+      { id: "inventory-archive", title: "Stuff I Had", section: "Inventory", keywords: "archive gone lost broken trashed sold donated duration previous return", html: "<p>Open an item and select Archive to record its gone date, reason, and optional departure notes. It moves to Stuff I Had and stops counting toward current totals. Days owned are calculated from the obtained date to the gone date; unknown obtained dates have unknown duration.</p><p>Archived details remain editable. Return to Stuff I Have clears its departure details and restores it to current totals. There is no permanent item-delete action.</p>" },
       { id: "notes", title: "Notes", section: "Basics", keywords: "notes autosave local", html: "<p>Open Notes from the header or press <kbd>N</kbd>. Plain text saves automatically in this browser.</p>" },
       { id: "appearance", title: "Appearance", section: "Settings", keywords: "theme text size buttons hints", html: "<p>Settings includes system, light, and dark themes, text sizing, button presentation, and contextual hints.</p>" },
       { id: "backup", title: "Backup and Restore", section: "Data", keywords: "backup export import json recovery reset", html: "<p>Export a JSON backup before major changes. Import validates the file and saves a recovery copy before replacement.</p>" },

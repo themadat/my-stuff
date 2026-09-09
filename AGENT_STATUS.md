@@ -1,27 +1,25 @@
 # Goal
-Fix date-prefixed Smart Complete and widen the item form with details expanded.
+Apply the four supplied section SVGs and rename Previous Stuff to Stuff I Had.
 # Status
 COMPLETE
 # Checkpoint
-Application version 0.0.1.11. Previous release commit c9a8e75 (0.0.1.10); no checkpoint commit.
+Verified application version 0.0.1.12; no checkpoint commit.
 # Completed
-- Leading US/ISO dates are extracted before obtaining price and brand; the reported object name is correct.
-- Date highlights, field navigation, and manual-edit protection are included; invalid calendar dates remain in Notes.
-- Seller, Brand, and Object share a wide desktop row; Date Obtained sits beside amounts and choices.
-- More Details opens on add/edit; notes and property controls stay visible.
-- Sample fits 1366×768 and 1440×900 without modal scrolling at default text size; mobile retains accessible scrolling.
-- Version/cache/manifests/workflow and release/help/docs aligned to 0.0.1.11.
+- Installed supplied path geometry/viewBoxes in shared inline symbols, with valid SVG namespaces and decorative accessibility attributes.
+- Research uses its own symbol; section headings, archive copy, Help, and docs use Stuff I Had.
+- Aligned version/cache/manifests/workflow, release entry, and handoff.
+- Completed checks and visual review; preview server stopped.
 # Remaining
-- None for this request.
+- None for this icon and naming update.
 # Verification
-- Build: PASS (static syntax, assets, manifests, release/cache/version checks; no build step)
-- Tests: PASS (58 parser/model/static checks and 17 isolated Chromium browser checks, including offline)
-- Lint: PASS (diff whitespace checks; no standalone linter configured)
-- Review: PASS (1366×768 laptop and 320px/dark at 130% text screenshots inspected; exact sample fields and expanded details verified)
+- Build: PASS (script syntax, manifests, version alignment, and assets; no build step)
+- Tests: PASS (58 parser/model/static checks and 17 browser checks, including offline)
+- Lint: PASS (git diff --check)
+- Review: PASS (supplied path geometry and desktop/light/mobile/dark visuals inspected)
 # Next
-User may review and commit/push the 0.0.1.11 task files; no further implementation work remains.
+Ready for user review and optional commit/push of task files only.
 # Decisions
-- 08/03/26 means August 3, 2026; two-digit years use 20xx.
-- Keep scrolling available on constrained screens and for expanded property lists rather than hiding content.
-- Separate legacy cloud-copy rejection still awaits the actual file structure.
-- No live cloud write, commit, push, or deployment requested.
+- Preserve existing internal previous-view identifiers and all inventory data.
+- Reuse symbols for related totals/empty states/archive actions.
+- Preserve already staged unrelated icon changes; do not commit or push.
+- Separate legacy cloud diagnosis still awaits its actual file structure.

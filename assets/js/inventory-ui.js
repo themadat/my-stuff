@@ -25,8 +25,8 @@
       <nav class="inventory-nav" aria-label="Your stuff">
         <button class="inventory-tab" type="button" data-inventory-view="have" aria-current="page">${icon("inventoryBox")}<span>Stuff I Have</span><small id="haveCount">0</small></button>
         <button class="inventory-tab" type="button" data-inventory-view="want">${icon("inventoryWant")}<span>Stuff I Want</span><small>Later</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="research">${icon("search")}<span>Research</span><small>Later</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="previous">${icon("inventoryArchive")}<span>Previous Stuff</span><small id="previousCount">0</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="research">${icon("inventoryResearch")}<span>Research</span><small>Later</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="previous">${icon("inventoryArchive")}<span>Stuff I Had</span><small id="previousCount">0</small></button>
       </nav>
       <header class="inventory-heading"><div><span class="eyebrow">A Place for Everything</span><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle">Know what you own, where it lives, and what it’s worth.</p></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryPlus")} Add an Item</button></header>
       <div id="inventoryStats" class="inventory-stats" aria-label="All current inventory totals"></div>
@@ -84,11 +84,11 @@
         </div>
         <footer class="dialog-footer inventory-editor-footer"><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" class="button primary" type="submit">Save Item</button></footer>
       </form></dialog>
-      <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Previous Stuff</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
+      <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
         ${field("itemGoneDate", "Gone Date", 'type="date" required')}
         ${select("itemGoneReason", "What Happened?", '<option value="">Choose a reason</option>' + options(m.reasons))}
         <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" maxlength="2000" rows="3" placeholder="Anything you want to remember"></textarea></label>
-      </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Previous Stuff. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
+      </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
     initSmartControls();
     $("#itemGoneReason").required = true;
@@ -254,14 +254,14 @@
     $("#haveCount").textContent = stats.all.count;
     $("#previousCount").textContent = data.items.length - stats.all.count;
     $$('[data-inventory-view]').forEach(function (button) { if (button.dataset.inventoryView === view) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); });
-    const titles = { have: "Stuff I Have", previous: "Previous Stuff", want: "Stuff I Want", research: "Research & Compare" };
+    const titles = { have: "Stuff I Have", previous: "Stuff I Had", want: "Stuff I Want", research: "Research" };
     $("#inventoryTitle").textContent = titles[view];
     $("#inventorySubtitle").textContent = view === "have" ? "Know what you own, where it lives, and what it’s worth." : view === "previous" ? "Gone, but not forgotten. The things that were part of your life." : "A little space for what comes next.";
     const active = view === "have" || view === "previous";
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
     $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = view !== "have";
     $("#roomOverview").hidden = view !== "have"; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
-    if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "search") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
+    if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
     $("#inventoryStats").innerHTML = [["all", "Everything I Have", "inventoryBox"], ["house", "Belongs to the House", "inventoryHome"], ["me", "Belongs to Me", "inventoryPerson"]].map(function (entry) {
       const total = stats[entry[0]];
       return '<section class="inventory-stat" data-inventory-total="' + entry[0] + '"><div class="inventory-stat-label">' + icon(entry[2]) + '<h2>' + entry[1] + '</h2></div><div class="inventory-stat-count">' + total.count.toLocaleString() + '<span>objects</span></div><div class="inventory-stat-value">' + esc(money(total.valueCents / 100)) + '<small>known value' + (total.unknown ? ' · ' + total.unknown + ' not valued' : '') + '</small></div></section>';
@@ -367,7 +367,7 @@
       const next = m.normalizeItem(Object.assign({}, item, { archive: { date: $("#itemGoneDate").value, reason: $("#itemGoneReason").value, notes: $("#itemGoneNotes").value } }));
       App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); }, { reason: "inventory-archive" });
       App.storage.saveNow(); App.components.closeDialog("#archiveDialog", "saved"); App.components.closeDialog("#itemDialog", "saved");
-      App.components.toast(next.name + " is in Previous Stuff. Its details are preserved.", { title: "Item Archived", kind: "success" });
+      App.components.toast(next.name + " is in Stuff I Had. Its details are preserved.", { title: "Item Archived", kind: "success" });
       $('[data-inventory-view="previous"]').focus();
     } catch (error) { formError("#archiveError", error.message); }
   }

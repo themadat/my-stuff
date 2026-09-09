@@ -6,7 +6,7 @@ Start in **Stuff I Have**. Smart Complete accepts a purchase line and highlights
 
 Add one entry per physical object, recording whether it belongs to the house or to you, its current room, category tags, obtained date/method/source, current value, obtaining price, and custom properties. Shoes suggest size/color/weight, backpacking gear suggests weight, and cables suggest length. Presets are optional; tags and properties remain editable.
 
-Current counts and known values are split by ownership and room. Unknown values are not treated as zero. Archive an item to **Previous Stuff** with its gone date, reason, and departure notes; days owned are calculated from its obtained date. Archived items leave current totals but retain their details and can be returned. **Stuff I Want** and **Research** are placeholders for later development.
+Current counts and known values are split by ownership and room. Unknown values are not treated as zero. Archive an item to **Stuff I Had** with its gone date, reason, and departure notes; days owned are calculated from its obtained date. Archived items leave current totals but retain their details and can be returned. **Stuff I Want** and **Research** are placeholders for later development.
 
 The application keeps its centered support search, one Notes modal, Settings, appearance controls, Help, release notes, shortcuts, recovery, JSON backup/import, optional GitHub Sync, and PWA/offline behavior. No example items are added to your real inventory.
 
