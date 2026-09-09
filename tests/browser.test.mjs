@@ -513,3 +513,72 @@ test('wide item modal shows the dated sample and expanded details without scroll
     assert.equal(await page.locator('#itemMoreDetails').evaluate(el => el.open), true, 'details also open when editing');
   }
 });
+
+async function objectWordPoint(page, word, occurrence = 0) {
+  return page.locator('#itemName').evaluate((input, { word, occurrence }) => {
+    const style = getComputedStyle(input), rect = input.getBoundingClientRect(), canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+    ctx.font = style.font;
+    let index = -1;
+    for (let i = 0; i <= occurrence; i++) index = input.value.indexOf(word, index + 1);
+    return { x: rect.x + input.clientLeft + parseFloat(style.paddingLeft) + ctx.measureText(input.value.slice(0, index)).width + ctx.measureText(word).width / 2 - input.scrollLeft, y: rect.y + rect.height / 2 };
+  }, { word, occurrence });
+}
+
+test('Object pointer actions append to Brand, remove only clicked words, preserve Smart Complete edits and save', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+  for (const [id, title] of [['itemSource', 'Seller'], ['itemBrand', 'Brand'], ['itemName', 'Object']]) assert.equal(await page.locator('#' + id).getAttribute('placeholder'), title);
+  await page.locator('#itemSmartEntry').fill('Acme Acme Lamp');
+  await page.locator('#itemBrand').fill('Existing');
+  await page.locator('#itemName').fill('Acme Acme Lamp');
+  let point = await objectWordPoint(page, ' '); await page.mouse.click(point.x, point.y);
+  assert.equal(await page.locator('#itemName').inputValue(), 'Acme Acme Lamp', 'whitespace only positions the caret');
+  const dragStart = await objectWordPoint(page, 'Acme'), dragEnd = await objectWordPoint(page, 'Lamp');
+  await page.mouse.move(dragStart.x, dragStart.y); await page.mouse.down(); await page.mouse.move(dragEnd.x, dragEnd.y, { steps: 8 }); await page.mouse.up();
+  assert.equal(await page.locator('#itemName').inputValue(), 'Acme Acme Lamp', 'dragging selects text without moving it');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing');
+  point = await objectWordPoint(page, 'Acme'); await page.mouse.click(point.x, point.y);
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing Acme');
+  assert.equal(await page.locator('#itemName').inputValue(), 'Acme Lamp');
+  await page.keyboard.press('Control+z');
+  assert.equal(await page.locator('#itemName').inputValue(), 'Acme Acme Lamp');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing');
+  point = await objectWordPoint(page, 'Acme', 1); await page.mouse.click(point.x, point.y, { button: 'right' });
+  assert.equal(await page.locator('#itemName').inputValue(), 'Acme Lamp');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing');
+  point = await objectWordPoint(page, 'Acme'); await page.mouse.click(point.x, point.y);
+  assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
+  await page.locator('#itemSmartEntry').fill('A completely different purchase line');
+  assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing Acme');
+  await page.locator('#saveItemButton').click(); await page.reload();
+  await page.locator('[data-edit-item]').click();
+  assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing Acme');
+});
+
+test('Object actions target scrolled text on mobile, support keyboard undo and refuse Brand overflow', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t, { viewport: { width: 320, height: 900 } });
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+  const value = 'Long object description with several repeated words and ACME® Lamp';
+  await page.locator('#itemName').fill(value);
+  await page.locator('#itemName').evaluate(input => { input.scrollLeft = input.scrollWidth; });
+  const point = await objectWordPoint(page, 'ACME®'); await page.mouse.click(point.x, point.y, { button: 'right' });
+  assert.equal(await page.locator('#itemName').inputValue(), value.replace('ACME® ', ''));
+  await page.keyboard.press('Meta+z'); assert.equal(await page.locator('#itemName').inputValue(), value);
+  await page.locator('#itemName').fill('Acme Lamp');
+  await page.locator('#itemName').evaluate(input => input.setSelectionRange(1, 1));
+  await page.keyboard.press('Alt+ArrowUp');
+  assert.equal(await page.locator('#itemBrand').inputValue(), 'Acme');
+  assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
+  await page.keyboard.press('Alt+Delete'); assert.equal(await page.locator('#itemName').inputValue(), '');
+  assert.equal(await page.locator('#itemName').evaluate(input => input.validity.valueMissing), true);
+  await page.keyboard.press('Control+z'); assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
+  await page.locator('#itemBrand').fill('x'.repeat(300)); await page.locator('#itemName').focus();
+  await page.locator('#itemName').evaluate(input => input.setSelectionRange(1, 1)); await page.keyboard.press('Alt+ArrowUp');
+  assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
+  assert.equal((await page.locator('#itemBrand').inputValue()).length, 300);
+  assert.match(await page.locator('#objectWordStatus').textContent(), /Brand is full/);
+});

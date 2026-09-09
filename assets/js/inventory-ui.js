@@ -55,9 +55,9 @@
           </section>
           <div class="item-form-grid compact-item-grid">
             <div class="full item-identity-row">
-              ${field("itemSource", "Seller / Source", 'type="text" maxlength="240" placeholder="Amazon"')}
-              ${field("itemBrand", "Brand", 'type="text" maxlength="300" placeholder="Final Touch"')}
-              <label class="field"><span>Object <small>(required)</small></span><input id="itemName" required maxlength="160" placeholder="Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand"></label>
+              ${field("itemSource", "Seller", 'type="text" maxlength="240" placeholder="Seller"')}
+              ${field("itemBrand", "Brand", 'type="text" maxlength="300" placeholder="Brand"')}
+              <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Click a word → Brand · Right-click → Remove <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required maxlength="160" placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
@@ -91,6 +91,7 @@
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
     initSmartControls();
+    initObjectWords();
     $("#itemGoneReason").required = true;
     $("#addItemButton").addEventListener("click", function () { openItem("", this); });
     $("#inventoryWorkspace").addEventListener("click", function (event) {
@@ -126,10 +127,11 @@
     render();
   }
   const smartLabels = { name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained" };
-  let smartApplied = {}, smartManual = new Set();
+  let smartApplied = {}, smartManual = new Set(), objectWordHistory = [];
   function smartField(key) { return $("#item" + key[0].toUpperCase() + key.slice(1)); }
   function resetSmart() {
-    smartApplied = {}; smartManual = new Set();
+    smartApplied = {}; smartManual = new Set(); objectWordHistory = [];
+    $("#objectWordStatus").textContent = "";
     $("#itemSmartEntry").value = ""; $("#smartPreview").hidden = true; $("#smartPreview").textContent = ""; $("#smartDestinations").textContent = "";
     $$("[data-smart-field]").forEach(function (el) { el.removeAttribute("data-smart-field"); });
   }
@@ -163,6 +165,80 @@
       return '<button type="button" data-smart-target="' + key + '" data-smart-kind="' + key + '" title="' + esc(result.fields[key]) + '"><strong>' + smartLabels[key] + '</strong>' + (manual ? ' · Keeping Your Edit' : '') + '</button>';
     }).join("");
     $("#itemMoreCount").textContent = $("#itemDescription").value ? "· Includes Notes" : "";
+  }
+  function objectWords(value) {
+    return Array.from(value.matchAll(/\S+/gu), function (match) { return { text: match[0], start: match.index, end: match.index + match[0].length }; });
+  }
+  function objectWordAtPoint(event) {
+    const input = $("#itemName"), bounds = input.getBoundingClientRect(), style = getComputedStyle(input);
+    // A DOM mirror preserves the input's actual font shaping and horizontal scroll.
+    const mirror = document.createElement("span");
+    Object.assign(mirror.style, { position: "fixed", left: "0", top: "0", visibility: "hidden", whiteSpace: "pre", font: style.font, letterSpacing: style.letterSpacing, wordSpacing: style.wordSpacing, textTransform: style.textTransform });
+    mirror.textContent = input.value; document.body.appendChild(mirror);
+    try {
+      const x = event.clientX - bounds.left - input.clientLeft - parseFloat(style.paddingLeft) + input.scrollLeft;
+      if (event.clientX < bounds.left + input.clientLeft + parseFloat(style.paddingLeft) || event.clientX > bounds.right - parseFloat(style.paddingRight) - input.clientLeft) return null;
+      const range = document.createRange();
+      return objectWords(input.value).find(function (word) {
+        range.setStart(mirror.firstChild, word.start); range.setEnd(mirror.firstChild, word.end);
+        const rect = range.getBoundingClientRect();
+        return x >= rect.left && x < rect.right;
+      }) || null;
+    } finally { mirror.remove(); }
+  }
+  function markObjectWordEdit() {
+    ["name", "brand"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); });
+    if ($("#itemSmartEntry").value) completeSmart();
+  }
+  function changeObjectWord(word, remove) {
+    if (!word) return;
+    const input = $("#itemName"), brand = $("#itemBrand"), before = { name: input.value, brand: brand.value };
+    const nextBrand = [brand.value.trim(), word.text].filter(Boolean).join(" ");
+    if (!remove && nextBrand.length > brand.maxLength) {
+      $("#objectWordStatus").textContent = "Brand is full. Shorten it before moving this word.";
+      return;
+    }
+    // Remove only the clicked occurrence, then close the gap between its neighbors.
+    input.value = [before.name.slice(0, word.start).trimEnd(), before.name.slice(word.end).trimStart()].filter(Boolean).join(" ");
+    if (!remove) brand.value = nextBrand;
+    objectWordHistory.push({ before: before, after: { name: input.value, brand: brand.value } });
+    if (objectWordHistory.length > 50) objectWordHistory.shift();
+    markObjectWordEdit();
+    input.focus(); input.setSelectionRange(Math.min(word.start, input.value.length), Math.min(word.start, input.value.length));
+    $("#objectWordStatus").textContent = word.text + (remove ? " removed from Object." : " moved to Brand.") + " Control+Z or Command+Z to undo.";
+  }
+  function initObjectWords() {
+    const input = $("#itemName"), brand = $("#itemBrand"); let pressed = null;
+    input.addEventListener("pointerdown", function (event) {
+      pressed = { word: objectWordAtPoint(event), value: input.value, button: event.button, x: event.clientX, y: event.clientY };
+    });
+    input.addEventListener("pointermove", function (event) { if (pressed && event.buttons && Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > 5) pressed.dragged = true; });
+    input.addEventListener("pointercancel", function () { pressed = null; });
+    input.addEventListener("click", function (event) {
+      const down = pressed; pressed = null;
+      if (!down || down.dragged || down.button !== 0 || !event.detail || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || input.value !== down.value || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5) return;
+      changeObjectWord(down.word, false);
+    });
+    input.addEventListener("contextmenu", function (event) {
+      const word = pressed && pressed.button === 2 && pressed.value === input.value ? pressed.word : objectWordAtPoint(event);
+      pressed = null;
+      if (!word) return;
+      event.preventDefault(); changeObjectWord(word, true);
+    });
+    [input, brand].forEach(function (el) { el.addEventListener("input", function () { objectWordHistory = []; }); });
+    $("#itemForm").addEventListener("keydown", function (event) {
+      if (event.target !== input && event.target !== brand) return;
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
+        const last = objectWordHistory[objectWordHistory.length - 1];
+        if (!last || input.value !== last.after.name || brand.value !== last.after.brand) return;
+        event.preventDefault(); objectWordHistory.pop(); input.value = last.before.name; brand.value = last.before.brand; markObjectWordEdit();
+        $("#objectWordStatus").textContent = "Word action undone.";
+      } else if (event.target === input && event.altKey && !event.ctrlKey && !event.metaKey && ["ArrowUp", "Delete"].includes(event.key)) {
+        event.preventDefault();
+        const caret = input.selectionStart, word = objectWords(input.value).find(function (part) { return caret >= part.start && caret < part.end; });
+        changeObjectWord(word, event.key === "Delete");
+      }
+    });
   }
   function renderTags() {
     $("#selectedItemTags").innerHTML = m.tags($("#itemCategories").value).map(function (tag) { return '<button type="button" class="tag-chip" data-remove-tag="' + esc(tag) + '" aria-label="Remove ' + esc(tag) + '">' + esc(tag) + ' ' + icon("close") + '</button>'; }).join("");

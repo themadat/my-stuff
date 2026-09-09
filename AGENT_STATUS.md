@@ -1,25 +1,26 @@
 # Goal
-Apply the four supplied section SVGs and rename Previous Stuff to Stuff I Had.
+Match Seller/Brand/Object placeholders to their titles and add Object word move/remove actions.
 # Status
 COMPLETE
 # Checkpoint
-Verified application version 0.0.1.12; no checkpoint commit.
+Verified application version 0.0.1.13; no checkpoint commit.
 # Completed
-- Installed supplied path geometry/viewBoxes in shared inline symbols, with valid SVG namespaces and decorative accessibility attributes.
-- Research uses its own symbol; section headings, archive copy, Help, and docs use Stuff I Had.
-- Aligned version/cache/manifests/workflow, release entry, and handoff.
-- Completed checks and visual review; preview server stopped.
+- Updated matching Seller, Brand, and Object titles/placeholders.
+- Clicking an Object word appends it to Brand; right-click removes only that occurrence.
+- Added caret keyboard actions, undo, Smart Complete protection, scroll-aware hit testing, and Brand length protection.
+- Kept normal typing, whitespace caret clicks, drag-selection, existing save/dirty behavior, and the no-scroll laptop layout.
+- Aligned version/cache/manifests/workflow, release/Help, component docs, and handoff.
 # Remaining
-- None for this icon and naming update.
+- None for this request.
 # Verification
-- Build: PASS (script syntax, manifests, version alignment, and assets; no build step)
-- Tests: PASS (58 parser/model/static checks and 17 browser checks, including offline)
+- Build: PASS (static script, manifest, version, and asset checks; no build step)
+- Tests: PASS (58 parser/model/static checks and 19 browser checks, including offline)
 - Lint: PASS (git diff --check)
-- Review: PASS (supplied path geometry and desktop/light/mobile/dark visuals inspected)
+- Review: PASS (pointer/keyboard behavior, saved data, laptop/light and 320px/dark screenshots)
 # Next
 Ready for user review and optional commit/push of task files only.
 # Decisions
-- Preserve existing internal previous-view identifiers and all inventory data.
-- Reuse symbols for related totals/empty states/archive actions.
-- Preserve already staged unrelated icon changes; do not commit or push.
-- Separate legacy cloud diagnosis still awaits its actual file structure.
+- Words are whitespace-delimited tokens; preserve punctuation and target only the clicked occurrence.
+- Alt+ArrowUp moves and Alt+Delete removes at the caret; Control+Z or Command+Z undoes word actions until manual input.
+- No model/schema change, live cloud write, commit, or push; preview server stopped.
+- Preserve staged unrelated icon edits. Separate cloud diagnosis still awaits actual JSON structure.

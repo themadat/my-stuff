@@ -35,3 +35,5 @@ The native `details` disclosure starts closed. When expanded, `renderSyncPayload
 ## Shared dialogs
 
 Import preview, confirmation, choice, message, toast, and loading components share focus restoration and accessible labelling through `assets/js/core/components.js`.
+
+Seller, Brand, and Object use matching title/placeholder text. Object word actions retain the native input: click moves a whitespace-delimited token to Brand, right-click removes that occurrence, and drag selection or modified clicks retain normal editing. A measured DOM mirror accounts for font shaping and horizontal scroll. Alt+ArrowUp/Alt+Delete act at the caret; Control+Z or Command+Z reverses recent word actions until further manual input. Both affected fields are protected from subsequent Smart Complete suggestions. Brand limits are checked before moving a word, and required Object validation still applies.
