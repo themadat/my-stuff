@@ -289,6 +289,7 @@
   }
 
   function renderSupport() {
+    App.inventoryCatalog.render();
     renderTextSize();
     renderStorageSummary();
     renderSync();
@@ -495,6 +496,7 @@
   function init() {
     storage.load();
     App.inventoryUI.init();
+    App.inventoryCatalog.init();
     App.icons.mount();
     App.components.init();
     App.portability.init();

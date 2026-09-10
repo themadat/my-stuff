@@ -71,18 +71,19 @@
               <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div></div>
             </div>
           </div>
+          <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
           <details id="itemMoreDetails" class="item-more" open><summary>More Details <span id="itemMoreCount"></span></summary>
             <div class="item-more-content">
               <label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
               <fieldset class="item-fieldset"><legend>Custom Properties</legend>
-                <div class="item-property-tools"><div id="categoryPresets" class="category-presets" aria-label="Category Presets">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
+                <div class="item-property-tools"><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><div id="categoryPresets" class="category-presets" aria-label="Category Presets">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
                 <div id="itemProperties"></div>
               </fieldset>
             </div>
           </details>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
-        <footer class="dialog-footer inventory-editor-footer"><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" class="button primary" type="submit">Save Item</button></footer>
+        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="copyItemButton" class="button" type="button" hidden>Add a Copy</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" class="button primary" type="submit">Save Item</button></footer>
       </form></dialog>
       <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
         ${field("itemGoneDate", "Gone Date", 'type="date" required')}
@@ -103,6 +104,18 @@
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
     $("#clearInventoryFilters").addEventListener("click", function () { ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
+    $("#itemCopies").addEventListener("input", renderCopyLocations);
+    $("#addColorButton").addEventListener("click", function () {
+      const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
+      if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
+      else addProperty({ name: "Color", value: "", unit: "" }, true);
+    });
+    $("#copyItemButton").addEventListener("click", function () {
+      try {
+        if (formSignature("#itemForm") !== originalForm) throw new Error("Save your edits before adding a copy.");
+        currentItemUnchanged(editingId, originalItem); openItem(editingId, $("#addItemButton"), true);
+      } catch (error) { formError("#itemFormError", error.message); }
+    });
     $("#archiveForm").addEventListener("submit", saveArchive);
     $("#addPropertyButton").addEventListener("click", function () { addProperty({ name: "", value: "", unit: "" }, true); });
     $("#itemProperties").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-property]"); if (button) { button.closest(".item-property").remove(); $("#addPropertyButton").focus(); } });
@@ -345,7 +358,9 @@
     $("#roomStats").innerHTML = stats.rooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + stats.rooms.map(function (room) { return '<tr><th scope="row">' + esc(room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td><strong>' + total.count + '</strong><small>' + esc(money(total.valueCents / 100)) + '</small>' + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
     refreshOptions("#inventoryRoomFilter", unique(data.items.map(function (item) { return item.room || "Unassigned"; })), "All Rooms");
     refreshOptions("#inventoryCategoryFilter", unique(data.items.flatMap(function (item) { return item.categories; })), "All Categories");
+    $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; }).concat(App.config.inventory.rooms, data.items.map(function (item) { return item.room; }))));
     renderList();
+    App.inventoryCatalog?.render();
   }
   function renderList() {
     const search = $("#inventorySearch").value.trim().toLowerCase(), owner = $("#inventoryOwnerFilter").value, room = $("#inventoryRoomFilter").value, category = $("#inventoryCategoryFilter").value;
@@ -367,7 +382,9 @@
   function addProperty(property, focus) {
     if ($$(".item-property").length >= 40) return formError("#itemFormError", "Use up to 40 properties per item.");
     const row = document.createElement("div"); row.className = "item-property";
-    row.innerHTML = '<label class="field"><span>Property</span><input data-property-name maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit</span><input data-property-unit maxlength="30" placeholder="e.g. g" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
+    row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit</span><input data-property-unit maxlength="30" placeholder="e.g. g" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
+    function propertySuggestions() { const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else value.removeAttribute("list"); }
+    $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions();
     $("#itemProperties").appendChild(row); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
   }
   function suggestProperties() {
@@ -376,12 +393,22 @@
       category.properties.forEach(function (property) { if (!$$('[data-property-name]').some(function (el) { return el.value.trim().toLowerCase() === property.name.toLowerCase(); })) addProperty(property); });
     });
   }
-  function openItem(id, trigger) {
-    const item = inventory().items.find(function (entry) { return entry.id === id; });
+  function renderCopyLocations() {
+    const count = Number($("#itemCopies").value), root = $("#itemCopyLocations"), old = $$('[data-copy-room]').map(function (el) { return el.value; });
+    root.hidden = Boolean(editingId) || !Number.isInteger(count) || count < 2 || count > 100;
+    if (root.hidden) { root.innerHTML = ""; return; }
+    root.innerHTML = '<p>Each copy is saved separately. Leave a room blank to use the location above.</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) { return '<label class="field"><span>Copy ' + (index + 1) + ' Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(old[index] || "") + '"></label>'; }).join("") + '</div>';
+  }
+  function openItem(id, trigger, copy) {
+    let item = inventory().items.find(function (entry) { return entry.id === id; });
     if (id && !item) return;
+    if (copy) { item = Object.assign({}, item, { archive: null }); id = ""; }
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
-    $("#itemDialogTitle").textContent = id ? "Item Details" : "Add an Item";
+    $("#itemDialogTitle").textContent = id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
+    $("#itemCopiesField").hidden = Boolean(id); $("#itemCopies").disabled = Boolean(id);
+    $("#copyItemButton").hidden = !id;
+    $("#itemCopyLocations").innerHTML = ""; renderCopyLocations();
     const values = item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -408,7 +435,9 @@
     event.preventDefault();
     try {
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
-      if (!previous && inventory().items.length >= 5000) throw new Error("This inventory has reached its 5,000-item limit.");
+      const count = previous ? 1 : Number($("#itemCopies").value);
+      if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
+      if (!previous && inventory().items.length + count > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
       const item = { id: editingId || u.uid("item"), archive: previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       commitTags();
@@ -419,9 +448,10 @@
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
       const next = m.normalizeItem(item);
-      App.storage.mutate(function (state) { if (previous) state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); else state.inventory.items.push(next); }, { reason: "inventory-save" });
+      const copies = previous ? [] : m.createCopies(next, count, $$('[data-copy-room]').map(function (el) { return el.value; }));
+      App.storage.mutate(function (state) { if (previous) state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); else state.inventory.items.push.apply(state.inventory.items, copies); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
-      App.components.toast(saved ? next.name + " is in your inventory." : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
+      App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + " is in your inventory.") : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
       $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
     } catch (error) { formError("#itemFormError", error.message); }
   }

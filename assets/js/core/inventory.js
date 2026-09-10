@@ -55,6 +55,21 @@
       properties: properties, archive: archive
     };
   }
+  function createCopies(input, count, rooms) {
+    if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
+    const template = normalizeItem(input);
+    return Array.from({ length: count }, function (_, index) {
+      const item = normalizeItem(Object.assign({}, template, { id: u.uid("item"), archive: null }));
+      const room = u.cleanLine(rooms?.[index], 80);
+      if (room && room.toLowerCase() !== item.room.toLowerCase()) {
+        item.room = room;
+        item.properties = item.properties.filter(function (p) { return !["zone", "space"].includes(p.name.toLowerCase()); });
+        const location = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === room.toLowerCase(); });
+        if (location) item.properties.push({ name: "Zone", value: location.zone, unit: "" });
+      }
+      return normalizeItem(item);
+    });
+  }
   function normalize(input) {
     if (input === undefined) return { currency: App.config.inventory.defaultCurrency, items: [] };
     if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.items) || input.items.length > 5000) throw new Error("Inventory must contain a list of up to 5,000 items.");
@@ -94,5 +109,5 @@
     });
     return normalize({ currency: local.currency, items: Array.from(items.values()) });
   }
-  App.inventoryModel = { normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

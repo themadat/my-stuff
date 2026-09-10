@@ -6,7 +6,7 @@
 for file in assets/js/*.js assets/js/core/*.js sw.js; do node --check "$file" || exit 1; done
 node -e "const fs=require('fs'); for (const file of ['manifest.webmanifest','manifest-dark.webmanifest']) JSON.parse(fs.readFileSync(file,'utf8'));"
 git diff --check
-node --test tests/sync.test.mjs tests/static.test.mjs tests/smart-entry.test.mjs
+node --test tests/sync.test.mjs tests/static.test.mjs tests/smart-entry.test.mjs tests/inventory-copies.test.mjs
 ```
 
 Also verify every local path referenced by HTML, CSS, manifests, configuration, and the service worker exists.

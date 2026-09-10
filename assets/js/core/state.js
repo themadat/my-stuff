@@ -120,7 +120,7 @@
       ui: {
         search: u.cleanLine(ui.search, 200),
         seenReleaseVersion: u.cleanLine(ui.seenReleaseVersion, 32),
-        supportTab: ["settings", "data-sync", "help", "releases", "roadmap", "shortcuts", "developer"].includes(ui.supportTab) ? ui.supportTab : "settings"
+        supportTab: ["settings", "inventory", "data-sync", "help", "releases", "roadmap", "shortcuts", "developer"].includes(ui.supportTab) ? ui.supportTab : "settings"
       },
       modules: {
         roadmap: {

@@ -12,25 +12,26 @@
   <meta name="apple-mobile-web-app-title" content="My Stuff">
   <meta name="mobile-web-app-capable" content="yes">
   <title>My Stuff</title>
-  <link rel="manifest" href="manifest.webmanifest?v=0.0.1.13">
-  <link rel="icon" type="image/svg+xml" sizes="any" href="assets/icons/favicon.svg?v=0.0.1.13">
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=0.0.1.13">
-  <link rel="apple-touch-startup-image" href="assets/icons/splash-light.png?v=0.0.1.13" media="(prefers-color-scheme: light)">
-  <link rel="apple-touch-startup-image" href="assets/icons/splash-dark.png?v=0.0.1.13" media="(prefers-color-scheme: dark)">
-  <link rel="stylesheet" href="assets/css/app.css?v=0.0.1.13">
-  <script defer src="assets/js/config.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/icons.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/utils.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/inventory.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/smart-entry.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/state.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/storage.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/components.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/portability.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/sync.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/core/pwa.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/inventory-ui.js?v=0.0.1.13"></script>
-  <script defer src="assets/js/app.js?v=0.0.1.13"></script>
+  <link rel="manifest" href="manifest.webmanifest?v=0.0.1.14">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="assets/icons/favicon.svg?v=0.0.1.14">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=0.0.1.14">
+  <link rel="apple-touch-startup-image" href="assets/icons/splash-light.png?v=0.0.1.14" media="(prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="assets/icons/splash-dark.png?v=0.0.1.14" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="assets/css/app.css?v=0.0.1.14">
+  <script defer src="assets/js/config.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/icons.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/utils.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/inventory.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/smart-entry.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/state.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/storage.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/components.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/portability.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/sync.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/core/pwa.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/inventory-ui.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/inventory-catalog.js?v=0.0.1.14"></script>
+  <script defer src="assets/js/app.js?v=0.0.1.14"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
@@ -38,12 +39,12 @@
   <header class="app-header">
     <div class="title-cluster">
       <button id="appIconButton" class="app-icon-button" type="button" aria-label="Switch color theme. Press and hold to toggle Developer Mode" title="Switch color theme · Press and hold for Developer Mode" aria-keyshortcuts="T Control+Alt+Shift+T" data-shortcut="T">
-        <img id="appIcon" src="assets/icons/app-icon-light.svg?v=0.0.1.13" alt="">
+        <img id="appIcon" src="assets/icons/app-icon-light.svg?v=0.0.1.14" alt="">
       </button>
       <div class="identity-copy">
         <span id="appName" class="app-name">My Stuff</span>
         <div class="identity-pill-row">
-          <button id="versionButton" class="version-pill" type="button" aria-label="Open release notes" aria-keyshortcuts="V Control+Alt+Shift+V" data-shortcut="V">v0.0.1.13</button>
+          <button id="versionButton" class="version-pill" type="button" aria-label="Open release notes" aria-keyshortcuts="V Control+Alt+Shift+V" data-shortcut="V">v0.0.1.14</button>
           <span id="betaPill" class="environment-pill beta-pill" hidden>BETA</span>
         </div>
       </div>
@@ -87,6 +88,7 @@
       <div class="support-layout">
         <div class="support-tabs" role="tablist" aria-label="Settings sections">
           <button id="settingsTab" type="button" role="tab" aria-selected="true" aria-controls="settingsPanel" data-support-tab="settings"><span aria-hidden="true" data-symbol="support"></span><span>Settings</span></button>
+          <button id="inventorySettingsTab" type="button" role="tab" aria-selected="false" aria-controls="inventorySettingsPanel" data-support-tab="inventory"><span aria-hidden="true" data-symbol="inventoryBox"></span><span>Inventory</span></button>
           <button id="dataSyncTab" type="button" role="tab" aria-selected="false" aria-controls="dataSyncPanel" data-support-tab="data-sync"><span aria-hidden="true" data-symbol="braces"></span><span>Data Sync</span></button>
           <button id="helpTab" type="button" role="tab" aria-selected="false" aria-controls="helpPanel" data-support-tab="help"><span aria-hidden="true" data-symbol="help"></span><span>Help</span></button>
           <button id="releasesTab" type="button" role="tab" aria-selected="false" aria-controls="releasesPanel" data-support-tab="releases"><span aria-hidden="true" data-symbol="releaseNotes"></span><span>What’s New</span></button>
@@ -107,6 +109,11 @@
             <div class="settings-section"><h3>Backup, Restore & Reset</h3><p>JSON backups include notes and preferences. Tokens are excluded.</p><div class="button-row"><button id="exportButton" class="button primary" type="button">Export JSON</button><button id="importButton" class="button" type="button">Import JSON</button><input id="importFileInput" type="file" accept="application/json,.json" hidden></div><div class="danger-zone"><div><strong>Reset Preferences</strong><small>Keep Notes and restore settings.</small></div><button id="resetPreferencesButton" class="button danger-text" type="button">Reset Preferences</button></div><div class="danger-zone"><div><strong>Erase All Application Data</strong><small>Remove Notes, preferences, sync settings, token, and recovery data.</small></div><button id="eraseAllButton" class="button danger" type="button">Erase All Data</button></div></div>
           </section>
 
+          <section id="inventorySettingsPanel" class="support-panel" role="tabpanel" aria-labelledby="inventorySettingsTab" data-support-panel="inventory" hidden>
+            <h3>Inventory Options</h3><p>Locations, tags, and property groups available when adding items, including custom values used in your inventory.</p>
+            <label class="field"><span>Find an Option</span><input id="inventoryCatalogSearch" type="search" placeholder="Zone, room, space, tag, or property…"></label>
+            <div id="inventoryCatalog" class="inventory-catalog"></div>
+          </section>
           <section id="dataSyncPanel" class="support-panel" role="tabpanel" aria-labelledby="dataSyncTab" data-support-panel="data-sync" hidden>
             <div class="support-section-title"><span aria-hidden="true" data-symbol="braces"></span><div><h3>Data Sync</h3><span class="setting-note">Connection settings and the data this device sends to GitHub.</span></div></div>
             <div id="storageSyncSettings" class="settings-section">
@@ -136,7 +143,7 @@
           </section>
 
           <section id="helpPanel" class="support-panel" role="tabpanel" aria-labelledby="helpTab" data-support-panel="help" hidden><div class="support-search"><label class="grow-control"><span class="visually-hidden">Search help</span><input id="helpSearch" type="search" placeholder="Search Help Center"></label><span id="helpResultCount" class="count-pill">0 topics</span></div><div id="helpContent" class="help-content"></div><div id="supportLinks" class="support-links"></div></section>
-          <section id="releasesPanel" class="support-panel" role="tabpanel" aria-labelledby="releasesTab" data-support-panel="releases" hidden><div class="support-section-title"><span aria-hidden="true" data-symbol="releaseNotes"></span><div><span class="eyebrow">Current Version <strong id="releaseCurrentVersion">v0.0.1.13</strong></span><h3>Release Notes</h3></div></div><div id="releaseContent" class="release-list"></div></section>
+          <section id="releasesPanel" class="support-panel" role="tabpanel" aria-labelledby="releasesTab" data-support-panel="releases" hidden><div class="support-section-title"><span aria-hidden="true" data-symbol="releaseNotes"></span><div><span class="eyebrow">Current Version <strong id="releaseCurrentVersion">v0.0.1.14</strong></span><h3>Release Notes</h3></div></div><div id="releaseContent" class="release-list"></div></section>
           <section id="supportRoadmapPanel" class="support-panel" role="tabpanel" aria-labelledby="supportRoadmapTab" data-support-panel="roadmap" hidden><div class="support-section-title"><span aria-hidden="true" data-symbol="roadmap"></span><div><span class="eyebrow">Plans and Ideas</span><h3>Roadmap</h3></div></div><div id="supportRoadmapList" class="roadmap-list"></div></section>
           <section id="shortcutsPanel" class="support-panel" role="tabpanel" aria-labelledby="shortcutsTab" data-support-panel="shortcuts" hidden><div class="support-section-title"><span aria-hidden="true" data-symbol="keyboard"></span><div><span class="eyebrow">Keyboard</span><h3>Shortcut Reference</h3></div></div><div id="shortcutContent" class="shortcut-content"></div></section>
           <section id="developerPanel" class="support-panel" role="tabpanel" aria-labelledby="developerTab" data-support-panel="developer" hidden><div class="support-section-title"><span aria-hidden="true" data-symbol="developer"></span><div><span class="eyebrow">Hidden Tools</span><h3>Developer Mode</h3></div></div><p>Diagnostics are read-only and never expose the GitHub token.</p><dl id="developerDiagnostics" class="diagnostic-grid"></dl><div class="button-row"><button id="restoreRecoveryButton" class="button" type="button">Restore Recovery Copy</button><button id="saveRecoveryButton" class="button" type="button">Save Recovery Copy</button><button id="disableDeveloperButton" class="button" type="button">Hide Developer Mode</button></div><h4>Normalized State</h4><pre id="developerState" class="developer-json" tabindex="0"></pre></section>
