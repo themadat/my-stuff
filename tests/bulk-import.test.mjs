@@ -43,3 +43,11 @@ test('bulk raw annotations retain ownership and acquisition, and vocabulary sugg
  assert.ok(!bulk.prepare([['Nightstand']], false, [], [])[0].draft.categories.includes('Night'));
  assert.throws(() => bulk.parseDelimited(Array(81).fill('x').join(',')), /80 columns/);
 });
+test('bulk inventory row retains its source for Smart Complete and Water includes Volume', () => {
+ const source = 'Floating\tWater\t09/22/24\t$12\t\tAmazon - Vapur Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, 23 Ounce, Fire, Pack of 2 [24], Float';
+ const result = bulk.prepare(bulk.parseDelimited(source),false,[],[]);
+ assert.equal(result.length, 1); const d = result[0].draft;
+ assert.equal(d._smartEntry,source); assert.equal(d.room,'Nook'); assert.deepEqual(plain(d.categories),['Water','Float']);
+ assert.deepEqual(plain(d.properties.find(p=>p.name==='Volume')),{name:'Volume',value:'23',unit:'oz'});
+ assert.ok(app.config.inventory.categories.find(c=>c.name==='Water').properties.some(p=>p.name==='Volume'));
+});

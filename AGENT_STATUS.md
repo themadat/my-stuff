@@ -1,28 +1,28 @@
 # Goal
-Import spreadsheet objects into a resumable, one-object-at-a-time Add review queue with suggested tags, groups, locations and properties.
+Run visible Smart Complete for every bulk row, parse inventory locations/tags/dates/prices, revise word gestures, style autofilled values white, and add Water Volume.
 # Status
 COMPLETE
 # Checkpoint
-Application 0.0.1.15, based on aabf0c8 (0.0.1.14); no checkpoint commit.
+Application 0.0.1.16, based on 927b6de (0.0.1.15); no checkpoint commit.
 # Completed
-- XLSX/CSV/TSV/pasted-cell reader, worksheet and column mapping preview.
-- Offline suggestions, explicit-value precedence, category property fields and individual quantity copies.
-- Compact existing Add form with Save & Next, Skip, Pause, resume and revisit skipped rows.
-- Separate local draft persistence, stable IDs, durable-save checks and concurrent-queue protection.
-- Version/cache/manifest/workflow, release notes, Help, README, tests and handoff aligned.
-- Task files transferred to the source checkout with baseline equality guards and byte verification.
+- Each bulk review displays its original row in expanded Smart Complete with highlights and destinations.
+- Leading locations, tab-separated tags/dates/prices, trailing tags, Vapur brand and bottle Volume parsing.
+- Water Volume preset; Floating resolves to Nook/Main Level with the Floating space.
+- Right-click moves an Object word to Brand; Control-click deletes; plain clicks position the caret; keyboard/undo retained.
+- White autofill text on contrasting fields, with manual edit protection and pause/resume provenance.
+- Version/cache/manifests/workflow, release notes, Help, README, tests and handoff aligned.
 # Remaining
-- None for this request. No source spreadsheet has been supplied yet.
+- None for this request.
 # Verification
-- Build: PASS (script syntax, manifests, asset paths and version/cache consistency; static app, no build step)
-- Tests: PASS (66 parser/model/static checks and 26 isolated Chromium browser checks; final targeted bulk rerun passes)
-- Lint: PASS (task-file whitespace checks)
-- Review: PASS (desktop/light and 320px/dark at 130% text screenshots, no-scroll laptop sample, offline saves, scoped diff)
+- Build: PASS (script syntax, manifests, assets and version/cache consistency; no build step)
+- Tests: PASS (68 parser/model/static and 27 isolated Chromium browser checks)
+- Lint: PASS (task whitespace and source diff checks)
+- Review: PASS (supplied sample, desktop/light and 320px/dark at 130% text, persistent footer, offline review)
 # Next
-Ready for review and optional commit/push of task files only. The user can provide the first spreadsheet for preparation.
+Ready for review and optional commit/push of task files only.
 # Decisions
-- Suggestions are editable local rules; explicit spreadsheet values override guesses. No object saves before review.
-- Pending queues stay on this device, outside inventory backups/cloud. Keep the source spreadsheet until review is complete.
-- Up to 500 objects per batch; prices and values are per object. Saved objects use the existing inventory schema.
-- Preserve unrelated staged icons. No commit/push or live cloud writes.
-- Legacy cloud rejection diagnosis still awaits the actual cloud file structure.
+- Floating is a space within Nook, Main Level; ambiguous spaces such as Closet require review.
+- Pack of 2 remains descriptive text; only an explicit quantity column creates separate records.
+- Manual field edits refresh highlights without reapplying other imported values.
+- New provenance metadata stays only in the device queue; inventory backup/sync schema is unchanged.
+- Preserve staged unrelated icons; no commit, push, or live cloud writes.

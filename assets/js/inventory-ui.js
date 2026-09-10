@@ -50,14 +50,14 @@
         <div class="dialog-body"><p id="itemFormError" class="inventory-error" role="alert" tabindex="-1" hidden></p>
           <section class="smart-entry" aria-label="Smart Complete">
             <div class="smart-heading"><label for="itemSmartEntry">Smart Complete</label><p id="smartHint">Highlights show what goes where. Edit any field below.</p><button type="button" id="smartExample" class="button small">Try Example</button></div>
-            <textarea id="itemSmartEntry" rows="1" maxlength="1800" placeholder="Paste a purchase line, or type an item…" aria-describedby="smartHint"></textarea>
+            <textarea id="itemSmartEntry" rows="1" maxlength="12000" placeholder="Paste a purchase line, or type an item…" aria-describedby="smartHint"></textarea>
             <div id="smartPreview" class="smart-preview" hidden></div><div id="smartDestinations" class="smart-destinations" aria-live="polite"></div>
           </section>
           <div class="item-form-grid compact-item-grid">
             <div class="full item-identity-row">
               ${field("itemSource", "Seller", 'type="text" maxlength="240" placeholder="Seller"')}
               ${field("itemBrand", "Brand", 'type="text" maxlength="300" placeholder="Brand"')}
-              <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Click a word → Brand · Right-click → Remove <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required maxlength="160" placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
+              <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required maxlength="160" placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
@@ -139,9 +139,9 @@
     });
     render();
   }
-  const smartLabels = { name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained" };
+  const smartLabels = { name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained", room: "Room", zone: "Zone", space: "Space", categories: "Tags", volume: "Volume" };
   let smartApplied = {}, smartManual = new Set(), objectWordHistory = [];
-  function smartField(key) { return $("#item" + key[0].toUpperCase() + key.slice(1)); }
+  function smartField(key) { if (key === "volume") { const row = $$('[data-property-name]').find(function (el) { return el.value.toLowerCase() === 'volume'; })?.closest('.item-property'); return row ? $('[data-property-value]', row) : null; } return $("#item" + key[0].toUpperCase() + key.slice(1)); }
   function resetSmart() {
     smartApplied = {}; smartManual = new Set(); objectWordHistory = [];
     $("#objectWordStatus").textContent = "";
@@ -151,12 +151,15 @@
   function syncSegments() {
     ["itemOwner", "itemObtainedHow"].forEach(function (id) { $$('input[name="' + id + 'Choice"]').forEach(function (el) { el.checked = el.value === $("#" + id).value; }); });
   }
-  function completeSmart() {
+  function completeSmart(previewOnly) {
+    previewOnly = previewOnly === true;
     const text = $("#itemSmartEntry").value;
     const brands = App.config.inventory.brands.concat(inventory().items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === "brand"; }).map(function (p) { return p.value; }); }));
     const result = App.smartEntry.parse(text, brands);
+    if (!previewOnly && result.fields.volume && !smartField('volume') && !smartManual.has('volume')) addProperty({ name: 'Volume', value: '', unit: result.fields.volumeUnit || 'oz' });
     Object.keys(smartLabels).forEach(function (key) {
       const el = smartField(key), next = result.fields[key];
+      if (!el || previewOnly) return;
       if (!smartManual.has(key) && (!el.value || Object.hasOwn(smartApplied, key) || (!editingId && (key === "owner" || key === "obtainedHow")))) {
         if (next != null || Object.hasOwn(smartApplied, key)) {
           el.value = next ?? (key === "owner" ? "me" : key === "obtainedHow" ? "Purchased" : "");
@@ -165,7 +168,11 @@
         }
       }
     });
-    syncSegments();
+    if (!previewOnly) {
+      if (result.fields.volume && smartField('volume')?.hasAttribute('data-smart-field')) { const unit = $('[data-property-unit]', smartField('volume').closest('.item-property')); unit.value = result.fields.volumeUnit || 'oz'; unit.setAttribute('data-smart-field','volume'); }
+      suggestProperties();
+    }
+    syncSegments(); renderTags();
     let cursor = 0, html = "";
     result.spans.forEach(function (span) {
       html += esc(text.slice(cursor, span.start));
@@ -173,7 +180,7 @@
       cursor = span.end;
     });
     $("#smartPreview").innerHTML = html + esc(text.slice(cursor)); $("#smartPreview").hidden = !text;
-    $("#smartDestinations").innerHTML = Object.keys(result.fields).map(function (key) {
+    $("#smartDestinations").innerHTML = Object.keys(result.fields).filter(function (key) { return smartLabels[key] && smartField(key); }).map(function (key) {
       const manual = smartManual.has(key) || smartField(key).value !== String(result.fields[key]);
       return '<button type="button" data-smart-target="' + key + '" data-smart-kind="' + key + '" title="' + esc(result.fields[key]) + '"><strong>' + smartLabels[key] + '</strong>' + (manual ? ' · Keeping Your Edit' : '') + '</button>';
     }).join("");
@@ -201,7 +208,7 @@
   }
   function markObjectWordEdit() {
     ["name", "brand"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); });
-    if ($("#itemSmartEntry").value) completeSmart();
+    if ($("#itemSmartEntry").value) completeSmart(true);
   }
   function changeObjectWord(word, remove) {
     if (!word) return;
@@ -229,14 +236,14 @@
     input.addEventListener("pointercancel", function () { pressed = null; });
     input.addEventListener("click", function (event) {
       const down = pressed; pressed = null;
-      if (!down || down.dragged || down.button !== 0 || !event.detail || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || input.value !== down.value || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5) return;
-      changeObjectWord(down.word, false);
+      if (!down || down.dragged || down.button !== 0 || !event.detail || event.altKey || !event.ctrlKey || event.metaKey || event.shiftKey || input.value !== down.value || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5) return;
+      event.preventDefault(); changeObjectWord(down.word, true);
     });
     input.addEventListener("contextmenu", function (event) {
       const word = pressed && pressed.button === 2 && pressed.value === input.value ? pressed.word : objectWordAtPoint(event);
       pressed = null;
       if (!word) return;
-      event.preventDefault(); changeObjectWord(word, true);
+      event.preventDefault(); changeObjectWord(word, event.ctrlKey);
     });
     [input, brand].forEach(function (el) { el.addEventListener("input", function () { objectWordHistory = []; }); });
     $("#itemForm").addEventListener("keydown", function (event) {
@@ -254,11 +261,13 @@
     });
   }
   function renderTags() {
+    $("#selectedItemTags").toggleAttribute('data-smart-field', $("#itemCategories").hasAttribute('data-smart-field'));
     $("#selectedItemTags").innerHTML = m.tags($("#itemCategories").value).map(function (tag) { return '<button type="button" class="tag-chip" data-remove-tag="' + esc(tag) + '" aria-label="Remove ' + esc(tag) + '">' + esc(tag) + ' ' + icon("close") + '</button>'; }).join("");
   }
   function commitTags() {
     const value = $("#itemTagSearch").value.trim();
     if (!value) return;
+    smartManual.add('categories'); $('#itemCategories').removeAttribute('data-smart-field');
     const combined = m.tags($("#itemCategories").value).concat(value.split(",").map(function (tag) { return tag.trim(); }).filter(Boolean));
     if (new Set(combined.map(function (tag) { return tag.toLowerCase(); })).size > 30) throw new Error("Use up to 30 tags per item.");
     if (combined.some(function (tag) { return tag.length > 60; })) throw new Error("Keep each tag within 60 characters.");
@@ -281,7 +290,8 @@
     function choose(index) {
       const option = choices[index]; if (!option) return;
       input.value = option.value;
-      if (id === "itemZone") { $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
+      ['zone','room','space','categories'].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
+      if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
       if (id === "itemRoom") { $("#itemZone").value = option.zone || ""; $("#itemSpace").value = ""; }
       if (id === "itemSpace" && option.room) { $("#itemRoom").value = option.room; $("#itemZone").value = option.zone; }
       if (id === "itemTagSearch") { try { commitTags(); } catch (error) { formError("#itemFormError", error.message); } }
@@ -301,8 +311,8 @@
     }
     input.addEventListener("focus", show);
     input.addEventListener("input", function () {
-      if (id === "itemZone") { $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
-      if (id === "itemRoom") { $("#itemSpace").value = ""; $("#itemZone").value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
+      if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
+      if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
       show();
     });
     input.addEventListener("blur", close);
@@ -328,13 +338,17 @@
     ["itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(initPicker);
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
-    Object.keys(smartLabels).forEach(function (key) { smartField(key).addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(); }); });
+    Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
+    $("#itemForm").addEventListener('input', function (event) {
+      event.target.removeAttribute('data-smart-field');
+      if (event.target.matches('[data-property-value], [data-property-unit]') && $('[data-property-name]', event.target.closest('.item-property')).value.toLowerCase() === 'volume') smartManual.add('volume');
+    });
     $("#itemForm").addEventListener("change", function (event) {
       if (event.target.type !== "radio") return;
       const id = event.target.name.replace(/Choice$/, ""), el = $("#" + id); el.value = event.target.value; el.dispatchEvent(new Event("input"));
     });
-    $("#smartDestinations").addEventListener("click", function (event) { const button = event.target.closest("[data-smart-target]"); if (button) { const el = smartField(button.dataset.smartTarget); if (el.closest("details")) el.closest("details").open = true; if (el.type === "hidden") $('input[name="' + el.id + 'Choice"]:checked').focus(); else el.focus(); } });
-    $("#selectedItemTags").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-tag]"); if (button) { $("#itemCategories").value = m.tags($("#itemCategories").value).filter(function (tag) { return tag !== button.dataset.removeTag; }).join(", "); renderTags(); ($("#selectedItemTags button") || $("#itemTagSearch")).focus(); } });
+    $("#smartDestinations").addEventListener("click", function (event) { const button = event.target.closest("[data-smart-target]"); if (button) { const el = smartField(button.dataset.smartTarget); if (el.closest("details")) el.closest("details").open = true; if (button.dataset.smartTarget === "categories") $("#itemTagSearch").focus(); else if (el.type === "hidden") $('input[name="' + el.id + 'Choice"]:checked').focus(); else el.focus(); } });
+    $("#selectedItemTags").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-tag]"); if (button) { smartManual.add("categories"); $("#itemCategories").removeAttribute("data-smart-field"); $("#itemCategories").value = m.tags($("#itemCategories").value).filter(function (tag) { return tag !== button.dataset.removeTag; }).join(", "); renderTags(); ($("#selectedItemTags button") || $("#itemTagSearch")).focus(); } });
   }
   function refreshOptions(selector, values, label) { const el = $(selector), value = el.value; el.innerHTML = options(values, label); el.value = values.includes(value) ? value : ""; }
   function render() {
@@ -409,7 +423,7 @@
     $("#itemDialogTitle").textContent = id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
     $("#itemCopiesField").hidden = Boolean(id || draft); $("#itemCopies").disabled = Boolean(id || draft);
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
-    if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = !draft || Boolean(draft._smartEntry); $("#bulkSmartTools summary").hidden = !draft; }
+    if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
     $("#saveItemButton").textContent = draft ? "Save & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
@@ -430,6 +444,12 @@
       $("#itemSmartEntry").value = draft._smartEntry || "";
       smartManual = new Set((draft._smartManual || []).filter(function (key) { return Object.hasOwn(smartLabels, key); }));
       smartApplied = draft._smartApplied || {};
+      Object.keys(smartLabels).forEach(function (key) {
+        const el = smartField(key);
+        if (el && el.value && !smartManual.has(key) && (!draft._reviewed || Object.hasOwn(smartApplied,key))) { smartApplied[key] = el.value; el.setAttribute('data-smart-field',key); }
+      });
+      $$('.item-property').forEach(function (row, index) { $$('input', row).forEach(function (el, column) { if (el.value && (!draft._reviewed || draft._autoProperties?.[index]?.[column])) el.setAttribute('data-smart-field','property'); }); });
+      completeSmart(true);
     }
     $$(".picker-options").forEach(function (el) { el.hidden = true; });
     $$('[role="combobox"]').forEach(function (el) { el.setAttribute("aria-expanded", "false"); el.removeAttribute("aria-activedescendant"); });
@@ -520,6 +540,8 @@
     ["Brand", "Zone", "Space"].forEach(function (key) { if ($("#item" + key).value) draft.properties.push({ name: key, value: $("#item" + key).value, unit: "" }); });
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
+    draft._reviewed = true;
+    draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;
   }
   App.inventoryUI = { init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };

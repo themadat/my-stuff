@@ -57,6 +57,7 @@
     reviewing = true;
     if (!row()) { reviewing = false; App.components.closeDialog('#itemDialog', 'saved'); show(); return; }
     App.components.closeDialog('#bulkDialog');
+    if (!row().draft._smartEntry && !row().draft._reviewed) row().draft._smartEntry = row().source;
     App.inventoryUI.openDraft(row().draft, $('#bulkEntryButton'));
     renderReview(); renderStatus();
   }

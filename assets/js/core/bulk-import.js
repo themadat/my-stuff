@@ -92,7 +92,12 @@
         else { mapped[key] = mapped[key] ? mapped[key] + ' ' + value : value; locked.add(key); }
       });
       const parsed = App.smartEntry.parse(headers ? mapped.raw || mapped.name || '' : source, brands.concat(mapped.brand || [])).fields;
-      const draft = { name: parsed.name || '', brand: parsed.brand || '', source: parsed.source || '', owner: parsed.owner || 'me', obtainedHow: parsed.obtainedHow || 'Purchased', obtainedDate: parsed.obtainedDate || '', price: parsed.price ?? '', value: parsed.value ?? '', room: '', categories: [], properties: properties, description: [parsed.description, ...notes].filter(Boolean).join('\n') };
+      const draft = { name: parsed.name || '', brand: parsed.brand || '', source: parsed.source || '', owner: parsed.owner || 'me', obtainedHow: parsed.obtainedHow || 'Purchased', obtainedDate: parsed.obtainedDate || '', price: parsed.price ?? '', value: parsed.value ?? '', room: parsed.room || '', categories: m.tags(parsed.categories || ''), properties: properties, description: [parsed.description, ...notes].filter(Boolean).join('\n') };
+      if (parsed.categories) locked.add('categories');
+      if (parsed.room) locked.add('room');
+      ['zone','space'].forEach(function (key) { if (parsed[key] && !mapped[key]) properties.push({ name: key[0].toUpperCase() + key.slice(1), value: parsed[key], unit: '' }); });
+      if (parsed.volume) properties.push({ name: 'Volume', value: parsed.volume, unit: parsed.volumeUnit || 'oz' });
+      draft._smartEntry = source;
       Object.keys(mapped).forEach(function (key) {
         const value = mapped[key];
         try {

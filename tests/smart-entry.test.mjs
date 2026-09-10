@@ -47,3 +47,17 @@ test('dates validate calendar days and retain invalid dates as notes without swa
     assert.equal(result.name, 'Glass');
   }
 });
+
+test('inventory spreadsheet columns extract leading space, tags, date, price, brand, value and volume', () => {
+  const text = 'Floating\tWater\t09/22/24\t$12\t\tAmazon - Vapur Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, 23 Ounce, Fire, Pack of 2 [24], Float';
+  const result = parse(text);
+  assert.equal(result.fields.room, 'Nook'); assert.equal(result.fields.zone, 'Main Level'); assert.equal(result.fields.space, 'Floating');
+  assert.equal(result.fields.categories, 'Water, Float'); assert.equal(result.fields.obtainedDate, '2024-09-22');
+  assert.equal(result.fields.price, '12'); assert.equal(result.fields.value, '24'); assert.equal(result.fields.brand, 'Vapur'); assert.equal(result.fields.source, 'Amazon');
+  assert.equal(result.fields.volume, '23'); assert.equal(result.fields.volumeUnit, 'oz');
+  assert.equal(result.fields.name, 'Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, Fire, Pack of 2');
+  for (let i = 1; i < result.spans.length; i++) assert.ok(result.spans[i].start >= result.spans[i - 1].end);
+  assert.ok(result.spans.some(span => span.field === 'categories')); assert.ok(result.spans.some(span => span.field === 'volume'));
+  assert.equal(parse('Office\tCable\t09/22/24\t$10\tUSB extension').fields.room, 'Office');
+  assert.equal(parse('Closet\tWater\tBottle').fields.room, undefined, 'ambiguous spaces are not assigned an arbitrary parent');
+});

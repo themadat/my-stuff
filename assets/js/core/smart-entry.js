@@ -10,8 +10,44 @@
       spans.push({ start: start, end: start + length, field: field });
       rest.fill(" ", start, start + length); if (field) fields[field] = value;
     }
+    // Spreadsheet cells retain offsets so extracted values stay highlighted in their original columns.
+    const cells = Array.from(text.matchAll(/[^\t\n]+/g));
+    const vocabulary = App.config.inventory.tagGroups.flatMap(function (group) { return group.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; }));
+    const locations = App.config.inventory.locations;
+    const first = cells[0];
+    if (first) {
+      const raw = first[0].trim();
+      const candidates = locations.flatMap(function (l) { return [{ value: l.room, room: l.room, zone: l.zone }].concat(l.spaces.map(function (space) { return { value: space, room: l.room, zone: l.zone, space: space }; })); });
+      const matches = candidates.filter(function (l) { return l.value.toLowerCase() === raw.toLowerCase(); });
+      if (matches.length === 1 && cells.length > 1) {
+        const place = matches[0]; fields.room = place.room; fields.zone = place.zone;
+        take(first.index + first[0].indexOf(raw), raw.length, place.space ? 'space' : 'room', place.space || place.room);
+      } else if (!text.includes('\t')) {
+        const prefix = candidates.filter(function (l) { return !l.space && text.toLowerCase().startsWith(l.value.toLowerCase() + ' '); }).sort(function (a,b) { return b.value.length - a.value.length; });
+        if (prefix.length && candidates.filter(function (l) { return l.value === prefix[0].value; }).length === 1) {
+          const place = prefix[0]; fields.room = place.room; fields.zone = place.zone; take(0, place.value.length, place.space ? 'space' : 'room', place.space || place.room);
+        }
+      }
+    }
+    if (text.includes('\t')) cells.forEach(function (cell) {
+      const raw = cell[0].trim(), start = cell.index + cell[0].indexOf(raw);
+      if (/^(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})$/.test(raw)) {
+        const parts = raw.split('/'), date = parts.length === 3 ? (parts[2].length === 2 ? '20' + parts[2] : parts[2]) + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0') : raw;
+        try { App.inventoryModel.dateOnly(date); take(start,raw.length,'obtainedDate',date); } catch (_) { take(start,raw.length,null); }
+      } else if (/^\(?\$[\d,]+(?:\.\d{1,2})?\)?$/.test(raw) && !fields.price) take(start,raw.length,'price',raw.replace(/[$(),]/g,''));
+      else {
+        const tags = raw.split(/[,;]/).map(function (tag) { return vocabulary.find(function (v) { return v.toLowerCase() === tag.trim().toLowerCase(); }); });
+        if (tags.length && tags.every(Boolean) && cells.length > 1) take(start,raw.length,'categories',App.inventoryModel.tags((fields.categories || '') + ',' + tags.join(',')).join(', '));
+      }
+    });
+    const tail = /\[\$?[\d,.]+\]\s*,\s*([^\t\n]+)$/.exec(text);
+    if (tail) take(tail.index + tail[0].indexOf(','), tail[0].length - tail[0].indexOf(','), 'categories', App.inventoryModel.tags((fields.categories || '') + ',' + tail[1]).join(', '));
+    if (/\bwater\b/i.test(fields.categories || '') || /\b(?:bottle|anti-bottle)\b/i.test(text)) {
+      const volume = /\b(\d+(?:\.\d+)?)\s*(fl\.?\s*oz|fluid ounces?|ounces?|oz|ml|milliliters?|liters?|litres?|l)\b/i.exec(text);
+      if (volume) { take(volume.index,volume[0].length,'volume',volume[1]); fields.volumeUnit = /^(?:ml|milliliter)/i.test(volume[2]) ? 'mL' : /^(?:l|liters?|litres?)$/i.test(volume[2]) ? 'L' : 'oz'; }
+    }
     // Purchase exports use US month/day/year dates; two-digit years mean 20xx.
-    let match = /^\s*(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})(?=\s|$)/.exec(text);
+    let match = /^\s*(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})(?=\s|$)/.exec(rest.join(""));
     if (match) {
       const raw = match[1], parts = raw.split("/");
       const date = parts.length === 3 ? (parts[2].length === 2 ? "20" + parts[2] : parts[2]) + "-" + parts[0].padStart(2, "0") + "-" + parts[1].padStart(2, "0") : raw;
@@ -47,7 +83,7 @@
       if (brand) take(start, brand.length, "brand", brand);
     }
     remaining = rest.join("");
-    const name = remaining.replace(/\s+/g, " ").trim();
+    const name = remaining.replace(/\s+/g, " ").replace(/,\s*,/g, ",").replace(/^[,;\s]+|[,;\s]+$/g, "").trim();
     if (name) {
       let cursor = 0;
       const boundaries = spans.slice().sort(function (a, b) { return a.start - b.start; }).concat([{ start: text.length, end: text.length }]);

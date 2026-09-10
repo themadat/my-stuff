@@ -593,3 +593,7 @@ main { min-width: 0; padding: .75rem max(.9rem, var(--safe-right)) calc(5.5rem +
   #bulkDialog .dialog-shell { height: 100%; }
   #bulkDialog .dialog-footer { padding-bottom: max(.8rem, var(--safe-bottom)); }
 }
+
+#itemDialog input[data-smart-field]:not([type="hidden"]), #itemDialog textarea[data-smart-field],
+#selectedItemTags[data-smart-field] .tag-chip { color: #fff; -webkit-text-fill-color: #fff; background: #34494a; }
+#itemDialog input[data-smart-field]::placeholder, #itemDialog textarea[data-smart-field]::placeholder { color: #ddd; }
