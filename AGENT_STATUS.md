@@ -1,27 +1,28 @@
 # Goal
-Support matching objects in separate rooms, a Settings catalog of inventory options, and reusable Color properties.
+Import spreadsheet objects into a resumable, one-object-at-a-time Add review queue with suggested tags, groups, locations and properties.
 # Status
 COMPLETE
 # Checkpoint
-Application 0.0.1.14, based on 792832c (0.0.1.13); no checkpoint commit.
+Application 0.0.1.15, based on aabf0c8 (0.0.1.14); no checkpoint commit.
 # Completed
-- Multiple copies with optional per-copy rooms and independent existing-format item records.
-- Add a Copy from saved items with unsaved-edit protection and no inherited archive status.
-- Searchable Inventory Settings catalog: configured/custom locations, tag groups, property groups and values.
-- Common Color action, reusable Color suggestions, and property-name autocomplete.
-- Version/cache/manifest/workflow, Help, README, tests and handoff updated.
+- XLSX/CSV/TSV/pasted-cell reader, worksheet and column mapping preview.
+- Offline suggestions, explicit-value precedence, category property fields and individual quantity copies.
+- Compact existing Add form with Save & Next, Skip, Pause, resume and revisit skipped rows.
+- Separate local draft persistence, stable IDs, durable-save checks and concurrent-queue protection.
+- Version/cache/manifest/workflow, release notes, Help, README, tests and handoff aligned.
+- Task files transferred to the source checkout with baseline equality guards and byte verification.
 # Remaining
-- None for this request.
+- None for this request. No source spreadsheet has been supplied yet.
 # Verification
-- Build: PASS (static syntax, manifests, assets, version/cache consistency; no build step)
-- Tests: PASS (61 parser/model/static checks and 21 isolated Chromium browser checks, including offline)
-- Lint: PASS (diff whitespace checks)
-- Review: PASS (desktop/light and 320px/dark at 130% text catalog and copies form screenshots; independent copies and scoped changes verified)
+- Build: PASS (script syntax, manifests, asset paths and version/cache consistency; static app, no build step)
+- Tests: PASS (66 parser/model/static checks and 26 isolated Chromium browser checks; final targeted bulk rerun passes)
+- Lint: PASS (task-file whitespace checks)
+- Review: PASS (desktop/light and 320px/dark at 130% text screenshots, no-scroll laptop sample, offline saves, scoped diff)
 # Next
-Ready for review and optional commit/push of task files only; unrelated staged icons must remain excluded.
+Ready for review and optional commit/push of task files only. The user can provide the first spreadsheet for preparation.
 # Decisions
-- Each copy is an independent physical item, preserving existing backup/sync/archive semantics and per-item amounts.
-- Settings is a catalog; custom choices are entered in item forms and reflected automatically.
-- Color is optional and available across all categories.
-- Preserve staged unrelated icon edits and existing Object word actions; no commit/push or live cloud write.
-- Separate legacy cloud rejection diagnosis remains pending actual file structure.
+- Suggestions are editable local rules; explicit spreadsheet values override guesses. No object saves before review.
+- Pending queues stay on this device, outside inventory backups/cloud. Keep the source spreadsheet until review is complete.
+- Up to 500 objects per batch; prices and values are per object. Saved objects use the existing inventory schema.
+- Preserve unrelated staged icons. No commit/push or live cloud writes.
+- Legacy cloud rejection diagnosis still awaits the actual cloud file structure.

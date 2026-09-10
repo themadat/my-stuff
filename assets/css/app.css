@@ -568,3 +568,28 @@ main { min-width: 0; padding: .75rem max(.9rem, var(--safe-right)) calc(5.5rem +
   .copies-control { flex: 1 1 100%; }
   .copies-control small { flex: 1; }
 }
+
+.inventory-heading > div:first-child { margin-right: auto; }
+#bulkEntryButton { flex-shrink: 0; }
+#bulkDialog .field { margin: .6rem 0; font-size: .875rem; }
+#bulkDialog input:not([type="checkbox"]), #bulkDialog textarea, #bulkDialog select { width: 100%; min-width: 0; font-size: 1rem; }
+#bulkDialog select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-small); padding: .45rem; }
+#bulkDialog textarea { resize: vertical; padding: .6rem; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-small); }
+#bulkDialog small, #bulkQueueStatus { font-size: .875rem; color: var(--muted); }
+#bulkColumns { margin-top: .7rem; }
+#bulkColumns summary, .bulk-review-info summary { cursor: pointer; }
+.bulk-column-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.bulk-header-choice { display: flex; align-items: center; gap: .5rem; margin: .6rem 0; }
+#bulkPreview li { margin: .4rem 0; overflow-wrap: anywhere; }
+#bulkPreview small { display: block; }
+.bulk-review-info { margin-bottom: .6rem; padding: .6rem .8rem; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; font-size: .875rem; }
+.bulk-review-info p { margin: .3rem 0; }
+.bulk-review-info pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+@media (max-width: 620px) { .bulk-column-grid { grid-template-columns: 1fr; } }
+
+#bulkSmartTools > summary { cursor: pointer; font-size: .875rem; margin-bottom: .7rem; color: var(--muted); }
+@media (max-width: 620px) {
+  #bulkDialog { width: 100vw; max-width: none; height: 100svh; max-height: 100svh; margin: 0; border: 0; border-radius: 0; }
+  #bulkDialog .dialog-shell { height: 100%; }
+  #bulkDialog .dialog-footer { padding-bottom: max(.8rem, var(--safe-bottom)); }
+}

@@ -348,6 +348,7 @@
     $("#inventorySubtitle").textContent = view === "have" ? "Know what you own, where it lives, and what it’s worth." : view === "previous" ? "Gone, but not forgotten. The things that were part of your life." : "A little space for what comes next.";
     const active = view === "have" || view === "previous";
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
+    if ($("#bulkEntryButton")) $("#bulkEntryButton").hidden = view !== "have";
     $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = view !== "have";
     $("#roomOverview").hidden = view !== "have"; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
@@ -399,17 +400,22 @@
     if (root.hidden) { root.innerHTML = ""; return; }
     root.innerHTML = '<p>Each copy is saved separately. Leave a room blank to use the location above.</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) { return '<label class="field"><span>Copy ' + (index + 1) + ' Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(old[index] || "") + '"></label>'; }).join("") + '</div>';
   }
-  function openItem(id, trigger, copy) {
+  function openItem(id, trigger, copy, draft) {
     let item = inventory().items.find(function (entry) { return entry.id === id; });
     if (id && !item) return;
     if (copy) { item = Object.assign({}, item, { archive: null }); id = ""; }
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
     $("#itemDialogTitle").textContent = id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
-    $("#itemCopiesField").hidden = Boolean(id); $("#itemCopies").disabled = Boolean(id);
+    $("#itemCopiesField").hidden = Boolean(id || draft); $("#itemCopies").disabled = Boolean(id || draft);
+    if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
+    if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = !draft || Boolean(draft._smartEntry); $("#bulkSmartTools summary").hidden = !draft; }
+    if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
+    $("#saveItemButton").textContent = draft ? "Save & Next" : "Save Item";
+    $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#copyItemButton").hidden = !id;
     $("#itemCopyLocations").innerHTML = ""; renderCopyLocations();
-    const values = item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
+    const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
     $("#itemCategories").value = values.categories.join(", ");
@@ -417,8 +423,14 @@
     ["Brand", "Zone", "Space"].forEach(function (key) { $("#item" + key).value = values.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); })?.value || ""; });
     values.properties.filter(function (property) { return !["brand", "zone", "space"].includes(property.name.toLowerCase()); }).forEach(function (property) { addProperty(property); });
     $("#itemMoreDetails").open = true;
-    $("#itemMoreCount").textContent = values.properties.length || values.description || values.obtainedDate ? "· Saved Details" : "";
+    $("#itemMoreCount").textContent = values.properties.length || values.description || values.obtainedDate ? (draft ? "· Review Details" : "· Saved Details") : "";
     resetSmart(); renderTags(); syncSegments();
+    if (draft) {
+      $("#itemTagSearch").value = draft._tagSearch || "";
+      $("#itemSmartEntry").value = draft._smartEntry || "";
+      smartManual = new Set((draft._smartManual || []).filter(function (key) { return Object.hasOwn(smartLabels, key); }));
+      smartApplied = draft._smartApplied || {};
+    }
     $$(".picker-options").forEach(function (el) { el.hidden = true; });
     $$('[role="combobox"]').forEach(function (el) { el.setAttribute("aria-expanded", "false"); el.removeAttribute("aria-activedescendant"); });
     $$('[data-currency-label]').forEach(function (el) { el.textContent = "(" + inventory().currency + ")"; });
@@ -428,7 +440,7 @@
     $("#itemArchiveSummary").hidden = !item?.archive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
     originalForm = formSignature("#itemForm");
-    App.components.openDialog("#itemDialog", { trigger: trigger, focus: id ? "#itemName" : "#itemSmartEntry" });
+    App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
   }
   function currentItemUnchanged(id, snapshot) { const item = inventory().items.find(function (entry) { return entry.id === id; }); if (!item || JSON.stringify(item) !== snapshot) throw new Error("This item changed while you were editing. Close and reopen it to use the latest copy."); return item; }
   function saveItem(event) {
@@ -437,7 +449,7 @@
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
       const count = previous ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
-      if (!previous && inventory().items.length + count > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
+      if (!previous && !App.bulkEntry?.current() && inventory().items.length + count > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
       const item = { id: editingId || u.uid("item"), archive: previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       commitTags();
@@ -448,6 +460,7 @@
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
       const next = m.normalizeItem(item);
+      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next); return; }
       const copies = previous ? [] : m.createCopies(next, count, $$('[data-copy-room]').map(function (el) { return el.value; }));
       App.storage.mutate(function (state) { if (previous) state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); else state.inventory.items.push.apply(state.inventory.items, copies); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
@@ -492,11 +505,22 @@
     if (closing) return;
     closing = true;
     try {
+      if (id === "itemDialog" && App.bulkEntry?.current()) { try { App.bulkEntry.pause(); } catch (error) { formError("#itemFormError", error.message); } return; }
       const dirty = id === "itemDialog" ? formSignature("#itemForm") !== originalForm : formSignature("#archiveForm") !== archiveForm;
       if (dirty && !await App.components.confirm({ title: "Discard Unsaved Edits?", message: "These form changes have not been saved. Your existing item will stay unchanged.", confirmLabel: "Discard Edits", danger: true, trigger: document.activeElement })) return;
       App.components.closeDialog("#" + id);
       if (id === "archiveDialog") $("#archiveItemButton").focus();
     } finally { closing = false; }
   }
-  App.inventoryUI = { init: init, render: render, openItem: openItem };
+  function captureDraft() {
+    const draft = {};
+    ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { draft[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
+    draft.categories = m.tags($("#itemCategories").value);
+    draft.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
+    ["Brand", "Zone", "Space"].forEach(function (key) { if ($("#item" + key).value) draft.properties.push({ name: key, value: $("#item" + key).value, unit: "" }); });
+    draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
+    draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
+    return draft;
+  }
+  App.inventoryUI = { init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
 })();

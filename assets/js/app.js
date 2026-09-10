@@ -497,6 +497,7 @@
     storage.load();
     App.inventoryUI.init();
     App.inventoryCatalog.init();
+    App.bulkEntry.init();
     App.icons.mount();
     App.components.init();
     App.portability.init();

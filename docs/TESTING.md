@@ -6,7 +6,7 @@
 for file in assets/js/*.js assets/js/core/*.js sw.js; do node --check "$file" || exit 1; done
 node -e "const fs=require('fs'); for (const file of ['manifest.webmanifest','manifest-dark.webmanifest']) JSON.parse(fs.readFileSync(file,'utf8'));"
 git diff --check
-node --test tests/sync.test.mjs tests/static.test.mjs tests/smart-entry.test.mjs tests/inventory-copies.test.mjs
+node --test tests/sync.test.mjs tests/static.test.mjs tests/smart-entry.test.mjs tests/inventory-copies.test.mjs tests/bulk-import.test.mjs
 ```
 
 Also verify every local path referenced by HTML, CSS, manifests, configuration, and the service worker exists.
@@ -15,11 +15,14 @@ The dependency-free sync suite uses simulated GitHub responses and storage. It c
 
 Optional browser regression tests require a development-only Playwright installation with Chromium, not an application dependency. Start `python3 -m http.server 8765 --bind 127.0.0.1`, then run `node --test tests/browser.test.mjs`. Set `PLAYWRIGHT_MODULE` to an absolute Playwright `index.mjs` if it is installed outside this repository, and optionally `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to an installed Chromium executable. Set `TEST_BASE_URL` if using another local port. Tests use isolated browser contexts and mocked GitHub responses; they never touch a real token or cloud file. Coverage includes desktop/mobile Settings at 320px–130% text, credentials and draft retention, real sync/restore controls, export privacy, reduced motion, and service-worker offline reload.
 
+Bulk parser coverage includes quoted/multiline CSV and TSV, purchase dates and amounts, explicit-field precedence, independent quantities, raw ownership/acquisition annotations, vocabulary matching and limits. Browser coverage includes the checked-in XLSX fixture (multiple worksheets, rich shared strings, sparse cells, Excel/ISO dates, cached and uncached formulas), local review/resume/skip, escaping, interrupted-save reconciliation, storage failure, concurrent queue replacement, enlarged mobile layout and offline saves. `tests/fixtures/bulk-import.xlsx` is synthetic test data only; no private purchase data is included.
+
 ## Browser baseline
 
 Serve the repository locally and check desktop and mobile widths:
 
 - startup has no console errors and opens an empty current inventory without fabricated items;
+- bulk file/paste preview never writes inventory; review can save, skip, pause/reload, and revisit skipped rows; quantities are independently editable;
 - add/edit items, multi-tag category presets, custom properties, ownership/room filters, and known/unknown-value totals work;
 - archive records date/reason/notes and correct calendar-day duration, excludes items from current totals, and supports returning an item;
 - unsaved forms ask before discarding, invalid amounts/dates cannot save, and stale edits cannot overwrite changed items;

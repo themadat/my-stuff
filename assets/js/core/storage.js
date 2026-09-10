@@ -163,7 +163,7 @@
 
   function clearAll() {
     scheduleSave.cancel();
-    [config.storage.stateKey, config.storage.recoveryKey, config.storage.secretKey, config.storage.sessionSecretKey].concat(config.storage.legacyKeys).forEach(removeLocal);
+    [config.storage.stateKey, config.storage.bulkDraftKey, config.storage.recoveryKey, config.storage.secretKey, config.storage.sessionSecretKey].concat(config.storage.legacyKeys).forEach(removeLocal);
     try { sessionStorage.removeItem(config.storage.sessionSecretKey); } catch (error) { /* unavailable */ }
     lastSavedJson = "";
     currentState = model.createDefaultState({ demo: false });

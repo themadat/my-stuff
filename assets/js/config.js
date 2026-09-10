@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.14",
-      buildId: "0.0.1.14",
+      version: "0.0.1.15",
+      buildId: "0.0.1.15",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -32,6 +32,20 @@
       tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footware", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Cable", "Powerbank", "Coax", "Ethernet", "Extension"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Water", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Barware", "Glassware", "Dishware", "Appliances", "Tools"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
       brands: ["Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
       rooms: ["Living room", "Kitchen", "Bedroom", "Bathroom", "Office", "Garage", "Closet", "Storage"],
+      bulkSuggestions: [
+        { match: "whiskey|whisky|cocktail|decanter|barware", tags: ["Barware", "Glassware"], room: "Den", space: "Bar" },
+        { match: "tasting glass|wine glass|tumbler|glassware", tags: ["Glassware"], room: "Kitchen" },
+        { match: "frying pan|saucepan|skillet|plate|dinnerware|bowl|dishware|mug", tags: ["Dishware"], room: "Kitchen" },
+        { match: "nespresso|coffee maker|toaster|blender|air fryer", tags: ["Appliances"], room: "Kitchen" },
+        { match: "shoe|sneaker|boot|sandal", tags: ["Shoes", "Footware"], room: "Primary Bedroom", space: "Closet" },
+        { match: "backpack|sleeping bag|tent|trekking", tags: ["Backpacking gear", "Backpacking", "Bags"] },
+        { match: "pickleball|pickle ball", tags: ["Pickleball", "Paddles"], room: "Patio", space: "Pickle Bag" },
+        { match: "usb|cable|extension cord|ethernet", tags: ["Cables", "Cable"] },
+        { match: "power ?bank|portable charger", tags: ["Powerbank"] },
+        { match: "light bulb|led bulb|night light", tags: ["Bulb", "LED"] },
+        { match: "hammer|drill|screwdriver|wrench|ryobi", tags: ["Tools"], room: "Garage" },
+        { match: "board game|card game|puzzle", tags: ["Games"], room: "Game Room" }
+      ],
       commonProperties: [{ name: "Color", unit: "", values: ["Black", "White", "Gray", "Silver", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Brown", "Beige", "Clear", "Multicolor"] }],
       categories: [
         { name: "Shoes", properties: [{ name: "Size", unit: "" }, { name: "Color", unit: "" }, { name: "Weight", unit: "g" }] },
@@ -41,6 +55,7 @@
     },
     storage: {
       stateKey: "myStuff.state.v1",
+      bulkDraftKey: "myStuff.bulkDraft.v1",
       legacyKeys: [],
       recoveryKey: "myStuff.recovery.v1",
       secretKey: "myStuff.githubToken.v1",
@@ -58,6 +73,15 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.15",
+      date: "2026-09-10T04:40:13.000Z",
+      title: "Spreadsheet Bulk Review",
+      summary: "Import a spreadsheet, then review each object in the familiar Add form before saving.",
+      features: ["Read XLSX, CSV, TSV, or pasted spreadsheet cells with worksheet selection and editable column mapping", "Suggest tags from existing groups, likely rooms and spaces, colors, sizes, and measurements", "Save & Next, Skip, Pause, and resume an individual review queue on this device", "Quantities expand into independently reviewed copies; revisit skipped rows whenever ready"],
+      improvements: ["Explicit spreadsheet values override guesses; unfamiliar columns are retained as notes by default", "Stable review IDs prevent duplicate saves after interruption", "Approved objects use the existing backup, sync, totals and archive format"],
+      fixes: [],
+      knownIssues: ["Suggestions use local matching rules and need review; prices and dates are never invented", "Pending review queues stay on this device and are excluded from backups and cloud sync", "Up to 500 objects per batch; older XLS files must be exported to XLSX or CSV; formula cells need cached values", "Reported legacy cloud-copy rejection still awaits the actual cloud file structure"]
+    }, {
       version: "0.0.1.14",
       date: "2026-09-10T04:15:03.033Z",
       title: "Multiple Copies and Inventory Options",
@@ -186,6 +210,7 @@
     }],
     roadmap: [],
     helpTopics: [
+      {"id": "bulk-entry", "title": "Bulk Spreadsheet Entry", "section": "Inventory", "keywords": "bulk spreadsheet import excel xlsx csv tsv paste queue review skip pause resume tags groups", "html": "<p>Choose Bulk Entry in Stuff I Have. Select an XLSX, CSV, or TSV file, or paste cells copied from a spreadsheet. Select a worksheet and check First Row Contains Headings. Expand Column Mapping to correct field assignments; unknown columns become Notes by default or can be mapped to a custom property. Rows without headings use Smart Complete.</p><p>Start Review opens each object in the Add form. Suggestions to check lists inferred tags with their groups, rooms, spaces and properties. Imported values take precedence. Me and Purchased remain the defaults unless the row specifies otherwise. Colors and explicit measurements can fill properties; category presets add relevant blank fields. Expand Original Row to compare with the source. Edit any field, then Save &amp; Next to add that object. Skip leaves it unsaved for later; Review Skipped returns to those rows. Pause keeps your current form edits for Resume Review after a reload.</p><p>Each quantity becomes a separately reviewed copy, so you can change its room or properties. Prices and values are per object. Use up to 500 objects per batch and files under 8 MB (CSV/pasted text under 4 MB). XLSX imports read cached formula values without evaluating formulas; export older XLS files first. Suggestions use offline matching rules and do not invent missing prices or dates.</p><p>Pending queues stay in this browser on this device and are excluded from backups and cloud sync. Keep the source spreadsheet until review is complete. Saved objects participate in normal inventory backup and sync. Starting another batch asks before replacing pending or skipped rows.</p>"},
       { id: "data-sync", title: "Data Sync", section: "Settings", keywords: "data connection sync json payload preview github braces", html: "<p>Open Settings → Data Sync for local storage status, GitHub connection details, and sync actions. Expand JSON sent to GitHub to inspect the exact outgoing data file generated from this device. It updates when inventory or Notes change, excludes the token and device settings, and does not fetch the current cloud copy. Backup, restore, and reset controls remain in general Settings.</p>" },
       { id: "start", title: "Getting Started", section: "Basics", keywords: "start inventory add item stuff have house me", html: "<p>Start in Stuff I Have and choose Add an Item. Each entry represents one object. Paste a purchase line into Smart Complete to see highlighted fields, or enter the object directly. New items default to Me and Purchased; change either with one click. Leading dates use MM/DD/YY or MM/DD/YYYY (two-digit years mean 20xx); ISO dates also work. Invalid calendar dates remain in Notes for review. Prices in parentheses and bracketed values stay separate from payment amounts. Recognized brands and sellers fill their own fields. In Object, click a word to append it to Brand or right-click to remove that occurrence. Click whitespace or drag to select text for ordinary editing. Keyboard users can place the caret in a word and use Alt+ArrowUp to move it or Alt+Delete to remove it; Control+Z or Command+Z undoes a word action. Use brand: Acme; or owner: house; for explicit annotations. Unrecognized markers and payment columns go to Notes; manual field edits are preserved as you type. Search for a room, space, and tags. Date Obtained appears beside the price and value. More Details starts expanded with notes and custom properties. The wide desktop form places Seller, Brand, and Object on one row. Everything else can be filled in later. Save Item stores your changes on this device.</p><p>Stuff I Want and Research are reserved for future updates. Stuff I Had keeps the items you have archived.</p>" },
       { id: "inventory-options", title: "Inventory Options and Copies", section: "Inventory", keywords: "copies duplicate quantity multiple color colours zones spaces groups property presets settings", html: "<p>For matching objects, set Copies before saving. Each copy becomes a separate item with its own room, color, properties, value, and archive status. For two or more copies, assign optional rooms per copy; blank rooms use the location above. A different room clears the inherited space and uses the known parent zone. All prices and values are per copy. You can add up to 100 copies at once, within the 5,000-item inventory limit.</p><p>Open a saved item and select Add a Copy to reuse its details. Save edits first; copying never changes the original, and a copy of an archived item starts as current.</p><p>Color is available for every object under More Details. Choose Color to add or focus its property row; saved color values become suggestions. Settings → Inventory shows the full location hierarchy, tag groups, common properties, category property groups, and custom values from current and archived items. Search to find any option. This catalog shows available and used options; enter custom values in the item form.</p>" },

@@ -1,7 +1,7 @@
 "use strict";
 
-const CACHE_NAME = "my-stuff-shell-0.0.1.14";
-const ASSET_VERSION = "0.0.1.14";
+const CACHE_NAME = "my-stuff-shell-0.0.1.15";
+const ASSET_VERSION = "0.0.1.15";
 const versioned = function (path) { return path + "?v=" + ASSET_VERSION; };
 const SHELL = [
   "./",
@@ -14,6 +14,8 @@ const SHELL = [
   versioned("./assets/js/core/utils.js"),
   versioned("./assets/js/core/inventory.js"),
   versioned("./assets/js/core/smart-entry.js"),
+  versioned("./assets/js/core/bulk-import.js"),
+  versioned("./assets/js/core/spreadsheet-read.js"),
   versioned("./assets/js/core/state.js"),
   versioned("./assets/js/core/storage.js"),
   versioned("./assets/js/core/components.js"),
@@ -23,6 +25,7 @@ const SHELL = [
   versioned("./assets/js/app.js"),
   versioned("./assets/js/inventory-ui.js"),
   versioned("./assets/js/inventory-catalog.js"),
+  versioned("./assets/js/bulk-entry.js"),
   versioned("./assets/icons/favicon.svg"),
   versioned("./assets/icons/app-icon-light.svg"),
   versioned("./assets/icons/app-icon-dark.svg"),
