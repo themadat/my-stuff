@@ -41,3 +41,7 @@ Serve the repository locally and check desktop and mobile widths:
 Stop the local server when finished.
 
 Copy-location checks cover independent rooms/spaces, Sling Bag hierarchy, invalid room/space pairs, regular and bulk copies, and shared-property preservation when toggling sets.
+
+Inventory filter checks cover the full-width workspace, ownership chips, category dropdown/card synchronization, selectable zones and room-scoped spaces, Cables normalization and endpoint fields, amount fallback including zero and distinct values, and bulk completion returning home.
+
+- Total Copies: increase and reopen, edit each room/space, preserve other copies’ details, confirm/cancel reductions, delete/cancel one current or archived item, and reject stale edits. Verify copy-group links survive normalization, bulk pause/resume, backup and sync.

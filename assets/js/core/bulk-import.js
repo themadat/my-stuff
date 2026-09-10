@@ -114,6 +114,8 @@
       if (draft.brand) properties.push({ name: 'Brand', value: draft.brand, unit: '' });
       const location = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === draft.room.toLowerCase(); });
       if (location && !properties.some(function (p) { return p.name === 'Zone'; })) properties.push({ name: 'Zone', value: location.zone, unit: '' });
+      if (draft.price === '' && draft.value !== '') draft.price = draft.value;
+      if (draft.value === '' && draft.price !== '') draft.value = draft.price;
       const suggestions = infer(draft, locked);
       App.config.inventory.categories.filter(function (category) { return draft.categories.some(function (tag) { return tag.toLowerCase() === category.name.toLowerCase(); }); }).forEach(function (category) {
         category.properties.forEach(function (property) { if (!properties.some(function (p) { return p.name.toLowerCase() === property.name.toLowerCase(); })) properties.push({ name: property.name, value: '', unit: property.unit || '' }); });
@@ -123,6 +125,7 @@
       let quantity = mapped.quantity ? Number(mapped.quantity) : 1;
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error('Row ' + (index + 1) + ': Copies must be an integer from 1 to 100.');
       if (output.length + quantity > 500) throw new Error('Review up to 500 objects per batch, including copies. Split this spreadsheet into smaller batches.');
+      if (quantity > 1) draft.copyGroup = u.uid('copies');
       for (let copy = 0; copy < quantity; copy++) output.push({ id: u.uid('bulk'), row: index + (headers ? 2 : 1), source: source, copy: quantity > 1 ? (copy + 1) + ' of ' + quantity : '', draft: u.clone(draft), suggestions: suggestions.slice(), warnings: warnings.slice(), status: 'pending' });
     });
     if (!output.length) throw new Error('No object rows were found.'); return output;

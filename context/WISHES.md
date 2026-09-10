@@ -51,7 +51,7 @@ Zones: Upstairs, Main Level, Outside.
 | --- | --- |
 | Activity | Pickleball, Backpacking, Biking, Golfing, Hiking |
 | Apparel | Headware, Eyewear, Handware, Footware, Clothing, Scarf |
-| Power | Cable, Powerbank, Coax, Ethernet, Extension |
+| Power | Cables, Powerbank, Coax, Ethernet, Extension |
 | Systems | Fan, Fire, Fixture, HVAC, Temperature, Water, Switch |
 | Lighting | Bulb, Decor, LED, Night, String |
 | Tech | Curtain, Hub, Lock, Remote, Sensor, Shades, TV, Tracker |

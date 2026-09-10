@@ -5,6 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", closing = false;
+  let editingCopies = [];
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, maximumFractionDigits: 2 }).format(value); }
@@ -28,17 +29,17 @@
         <button class="inventory-tab" type="button" data-inventory-view="research">${icon("inventoryResearch")}<span>Research</span><small>Later</small></button>
         <button class="inventory-tab" type="button" data-inventory-view="previous">${icon("inventoryArchive")}<span>Stuff I Had</span><small id="previousCount">0</small></button>
       </nav>
-      <header class="inventory-heading"><div><span class="eyebrow">A Place for Everything</span><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle">Know what you own, where it lives, and what it’s worth.</p></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryPlus")} Add an Item</button></header>
-      <div id="inventoryStats" class="inventory-stats" aria-label="All current inventory totals"></div>
+      <header class="inventory-heading"><div><span class="eyebrow">A Place for Everything</span><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle">Know what you own, where it lives, and what it’s worth.</p></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryPlus")} Add an Item</button></header>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body">
         <section class="inventory-collection" aria-label="Your items">
           <div class="inventory-filterbar">
             ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Name, tag, source, or property…" maxlength="200"')}
-            ${select("inventoryOwnerFilter", "Belongs to", '<option value="">Everyone</option><option value="house">The house</option><option value="me">Me</option>')}
+            <input type="hidden" id="inventoryOwnerFilter" value="">
             ${select("inventoryRoomFilter", "Room", '<option value="">All Rooms</option>')}
             ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
           </div>
+          <div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div>
           <div class="inventory-list-heading"><span id="inventoryResultCount" role="status" aria-live="polite"></span><button id="clearInventoryFilters" class="button small" type="button" hidden>Clear Filters</button></div>
           <div id="inventoryList"></div>
         </section>
@@ -83,7 +84,7 @@
           </details>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
-        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="copyItemButton" class="button" type="button" hidden>Add a Copy</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" class="button primary" type="submit">Save Item</button></footer>
+        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" class="button primary" type="submit">Save Item</button></footer>
       </form></dialog>
       <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
         ${field("itemGoneDate", "Gone Date", 'type="date" required')}
@@ -92,6 +93,7 @@
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
     initSmartControls();
+    ["#itemPrice","#itemValue"].forEach(function (id) { $(id).addEventListener("blur", function () { setTimeout(fillMissingAmount,0); }); });
     initObjectWords();
     $("#itemGoneReason").required = true;
     $("#addItemButton").addEventListener("click", function () { openItem("", this); });
@@ -102,24 +104,38 @@
       if (add) openItem("", add);
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
+    $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
+    $('#categoryCards').addEventListener('click', function (event) { const button = event.target.closest('[data-category-filter]'); if (button) { const el = $('#inventoryCategoryFilter'); const selected = button.dataset.categoryFilter; el.value = el.value === selected ? '' : selected; renderList(); $$('#categoryCards [data-category-filter]').find(function (entry) { return entry.dataset.categoryFilter === selected; })?.focus({preventScroll:true}); } });
     $("#clearInventoryFilters").addEventListener("click", function () { ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
     $('#itemCopyLocations').addEventListener('input', function (event) {
-      if (!event.target.matches('[data-copy-room]')) return;
-      const row = event.target.closest('[data-copy-location]'), space = $('[data-copy-space]',row), room = event.target.value.trim().toLowerCase();
-      space.value = '';
-      $('#' + space.getAttribute('list')).innerHTML = options(unique(App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room; }).flatMap(function (l) { return l.spaces; })));
+      const row = event.target.closest('[data-copy-location]'); if (!row) return;
+      const space = $('[data-copy-space]',row), room = $('[data-copy-room]',row).value.trim();
+      if (event.target.matches('[data-copy-room]')) {
+        space.value = '';
+        $('#' + space.getAttribute('list')).innerHTML = options(unique(App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room.toLowerCase(); }).flatMap(function (l) { return l.spaces; })));
+      }
+      if (editingId && row === $('[data-copy-location]')) {
+        ['room','space','zone'].forEach(function (key) { smartManual.add(key); });
+        $('#itemRoom').value = room; $('#itemSpace').value = space.value;
+        $('#itemZone').value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === room.toLowerCase(); })?.zone || '';
+      }
     });
     $("#addColorButton").addEventListener("click", function () {
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
       if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
       else addProperty({ name: "Color", value: "", unit: "" }, true);
     });
-    $("#copyItemButton").addEventListener("click", function () {
+    $("#deleteItemButton").addEventListener("click", async function () {
       try {
-        if (formSignature("#itemForm") !== originalForm) throw new Error("Save your edits before adding a copy.");
-        currentItemUnchanged(editingId, originalItem); openItem(editingId, $("#addItemButton"), true);
+        const item = currentItemUnchanged(editingId, originalItem);
+        if (!await App.components.confirm({ title: "Delete This Item?", message: 'Permanently delete “' + item.name + '” from this inventory? Other copies will stay. This cannot be undone.', confirmLabel: "Delete Item", danger: true, trigger: this })) return;
+        currentItemUnchanged(editingId, originalItem);
+        App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return entry.id !== item.id; }); }, { reason: "inventory-delete" });
+        const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "deleted");
+        App.components.toast(saved ? "Item deleted." : "Deleted for this session only. Browser storage is unavailable.", { kind: saved ? "success" : "warning" });
+        $('#inventoryTitle').focus();
       } catch (error) { formError("#itemFormError", error.message); }
     });
     $("#archiveForm").addEventListener("submit", saveArchive);
@@ -187,7 +203,7 @@
       if (result.fields.volume && smartField('volume')?.hasAttribute('data-smart-field')) { const unit = $('[data-property-unit]', smartField('volume').closest('.item-property')); unit.value = result.fields.volumeUnit || 'oz'; unit.setAttribute('data-smart-field','volume'); }
       suggestProperties();
     }
-    syncSegments(); renderTags();
+    if (!previewOnly) fillMissingAmount(); syncSegments(); renderTags();
     let cursor = 0, html = "";
     result.spans.forEach(function (span) {
       html += esc(text.slice(cursor, span.start));
@@ -297,7 +313,7 @@
       return config.tagGroups.flatMap(function (group) { return group.tags.map(function (tag) { return { value: tag, detail: group.name }; }); }).concat(config.categories.map(function (category) { return { value: category.name, detail: "Preset" }; }), items.flatMap(function (item) { return item.categories.map(function (tag) { return { value: tag, detail: "Your Tags" }; }); })).filter(function (option) { return !selected.includes(option.value.toLowerCase()); });
     }
     if (id === "itemZone") return unique(config.locations.map(function (l) { return l.zone; })).map(function (zone) { return { value: zone, detail: "Zone" }; }).concat(propertyValues("zone"));
-    if (id === "itemRoom") return config.locations.map(function (l) { return { value: l.room, detail: l.zone, zone: l.zone }; }).concat(unique(config.rooms.concat(items.map(function (item) { return item.room; }))).map(function (room) { return { value: room, detail: "Room" }; }));
+    if (id === "itemRoom") return App.inventoryCatalog.data(items).locations.flatMap(function (zone) { return [{value:zone.name,kind:'zone',detail:'Zone',zone:zone.name}].concat(zone.rooms.flatMap(function (room) { return [{value:room.name,kind:'room',level:1,detail:zone.name,zone:zone.name}].concat(room.spaces.map(function (space) { return {value:space,kind:'space',level:2,detail:zone.name+' / '+room.name,room:room.name,zone:zone.name}; })); })); });
     return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); }).concat(propertyValues("space"));
   }
   function initPicker(id) {
@@ -308,27 +324,29 @@
       input.value = option.value;
       ['zone','room','space','categories'].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
-      if (id === "itemRoom") { $("#itemZone").value = option.zone || ""; $("#itemSpace").value = ""; }
+      if (id === "itemRoom") { $('#itemZone').value = option.zone || ''; $('#itemSpace').value = option.kind === 'space' ? option.value : ''; input.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; }
       if (id === "itemSpace" && option.room) { $("#itemRoom").value = option.room; $("#itemZone").value = option.zone; }
       if (id === "itemTagSearch") { try { commitTags(); } catch (error) { formError("#itemFormError", error.message); } }
+      if (['itemRoom','itemZone','itemSpace'].includes(id)) syncPrimaryCopy();
       close(); input.focus(); close();
     }
     function show() {
       const query = input.value.trim().toLowerCase(), seen = new Set();
       choices = pickerValues(id).filter(function (option) {
-        const key = option.value.toLowerCase() + (id === "itemSpace" ? "|" + option.detail : "");
+        const key = option.value.toLowerCase() + (["itemRoom","itemSpace"].includes(id) ? "|" + option.detail + "|" + (option.kind || "") : "");
         if (!option.value || seen.has(key)) return false; seen.add(key);
         return (option.value + " " + option.detail).toLowerCase().includes(query);
       });
       if (id === "itemSpace") choices.sort(function (a, b) { return Number(b.room === $("#itemRoom").value) - Number(a.room === $("#itemRoom").value); });
       if (query && !choices.some(function (option) { return option.value.toLowerCase() === query; })) choices.push({ value: input.value.trim(), detail: "Use Custom " + (id === "itemTagSearch" ? "Tag" : "Location") });
-      list.innerHTML = choices.map(function (option, index) { return '<div role="option" aria-selected="false" id="' + id + 'Option' + index + '" data-option="' + index + '"><span>' + esc(option.value) + '</span><small>' + esc(option.detail) + '</small></div>'; }).join("") || '<p>No More Suggestions</p>';
+      list.innerHTML = choices.map(function (option, index) { return '<div role="option" aria-selected="false" id="' + id + 'Option' + index + '" data-option="' + index + '" style="padding-left:' + (.65 + (option.level || 0) * .9) + 'rem"><span>' + esc(option.value) + '</span><small>' + esc(option.detail) + '</small></div>'; }).join("") || '<p>No More Suggestions</p>';
       active = -1; input.removeAttribute("aria-activedescendant"); list.hidden = false; input.setAttribute("aria-expanded", "true");
     }
     input.addEventListener("focus", show);
     input.addEventListener("input", function () {
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
       if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
+      if (['itemRoom','itemZone','itemSpace'].includes(id)) syncPrimaryCopy();
       show();
     });
     input.addEventListener("blur", close);
@@ -383,22 +401,52 @@
     $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = view !== "have";
     $("#roomOverview").hidden = view !== "have"; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
-    $("#inventoryStats").innerHTML = [["all", "Everything I Have", "inventoryBox"], ["house", "Belongs to the House", "inventoryHome"], ["me", "Belongs to Me", "inventoryPerson"]].map(function (entry) {
+    $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = stats[entry[0]];
-      return '<section class="inventory-stat" data-inventory-total="' + entry[0] + '"><div class="inventory-stat-label">' + icon(entry[2]) + '<h2>' + entry[1] + '</h2></div><div class="inventory-stat-count">' + total.count.toLocaleString() + '<span>objects</span></div><div class="inventory-stat-value">' + esc(money(total.valueCents / 100)) + '<small>known value' + (total.unknown ? ' · ' + total.unknown + ' not valued' : '') + '</small></div></section>';
+      return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="inventory-stat-count">' + total.count.toLocaleString() + '<span>objects</span></span><span class="inventory-stat-value">' + esc(money(total.valueCents / 100)) + '<small>known value' + (total.unknown ? ' · ' + total.unknown + ' not valued' : '') + '</small></span></button>';
     }).join("");
     $("#roomStats").innerHTML = stats.rooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + stats.rooms.map(function (room) { return '<tr><th scope="row">' + esc(room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td><strong>' + total.count + '</strong><small>' + esc(money(total.valueCents / 100)) + '</small>' + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
-    refreshOptions("#inventoryRoomFilter", unique(data.items.map(function (item) { return item.room || "Unassigned"; })), "All Rooms");
-    refreshOptions("#inventoryCategoryFilter", unique(data.items.flatMap(function (item) { return item.categories; })), "All Categories");
+    renderLocationFilter();
+    refreshOptions("#inventoryCategoryFilter", unique(App.config.inventory.tagGroups.flatMap(function (g) { return g.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; }), data.items.flatMap(function (item) { return item.categories; })).map(function (tag) { return m.tags([tag])[0]; })), "All Categories");
     $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; }).concat(App.config.inventory.rooms, data.items.map(function (item) { return item.room; }))));
     renderList();
     App.inventoryCatalog?.render();
   }
+  function renderLocationFilter() {
+    const el = $('#inventoryRoomFilter'), old = el.value;
+    el.innerHTML = '<option value="">All Locations</option>' + App.inventoryCatalog.data(inventory().items).locations.map(function (zone) {
+      return '<optgroup label="' + esc(zone.name) + '"><option value="' + esc('zone:' + zone.name) + '">' + esc(zone.name + ' — All') + '</option>' + zone.rooms.map(function (room) {
+        return '<option value="' + esc(room.name === 'Unassigned Room' ? 'Unassigned' : room.name) + '">　' + esc(room.name) + '</option>' + room.spaces.map(function (space) { return '<option value="' + esc('space:' + JSON.stringify([room.name,space])) + '">　　' + esc(space) + '</option>'; }).join('');
+      }).join('') + '</optgroup>';
+    }).join('') + '<option value="Unassigned">Unassigned Room</option>';
+    el.value = Array.from(el.options).some(function (o) { return o.value === old; }) ? old : '';
+  }
+  function matchesLocation(item, filter) {
+    if (!filter) return true;
+    const property = function (name) { return item.properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
+    if (filter.startsWith('zone:')) return (property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || 'Unassigned Zone') === filter.slice(5);
+    if (filter.startsWith('space:')) { const path = JSON.parse(filter.slice(6)); return (item.room || 'Unassigned Room') === path[0] && property('space') === path[1]; }
+    return (item.room || 'Unassigned') === filter;
+  }
+  function renderCategoryCards(items) {
+    const selected = $('#inventoryCategoryFilter').value, old = $('#categoryCards').scrollLeft;
+    $('#categoryCards').innerHTML = Array.from($('#inventoryCategoryFilter').options).map(function (option) {
+      const name = option.value, count = items.filter(function (item) { return !name || item.categories.includes(name); }).length;
+      return '<button type="button" class="category-card" data-category-filter="' + esc(name) + '" aria-pressed="' + (selected === name) + '">' + icon(name === 'Water' ? 'categoryWater' : name === 'Cables' ? 'categoryCables' : 'inventoryBox') + '<span>' + esc(name || 'All Categories') + '</span><small>' + count + '</small></button>';
+    }).join(''); $('#categoryCards').scrollLeft = old;
+  }
+  function fillMissingAmount() {
+    const price = $('#itemPrice'), value = $('#itemValue');
+    if (document.activeElement !== price && !price.value && value.value && value.validity.valid) price.value = value.value;
+    if (document.activeElement !== value && !value.value && price.value && price.validity.valid) value.value = price.value;
+  }
   function renderList() {
     const search = $("#inventorySearch").value.trim().toLowerCase(), owner = $("#inventoryOwnerFilter").value, room = $("#inventoryRoomFilter").value, category = $("#inventoryCategoryFilter").value;
     const all = inventory().items.filter(function (item) { return Boolean(item.archive) === (view === "previous"); });
+    $$('[data-owner-filter]').forEach(function (button) { button.setAttribute('aria-pressed',String(button.dataset.ownerFilter === owner)); });
+    renderCategoryCards(all);
     const items = all.filter(function (item) {
-      return (!owner || item.owner === owner) && (!room || (item.room || "Unassigned") === room) && (!category || item.categories.includes(category)) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
+      return (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || item.categories.includes(category)) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return view === "previous" ? b.archive.date.localeCompare(a.archive.date) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name); });
     $("#inventoryResultCount").textContent = items.length + " of " + all.length + " " + (view === "previous" ? "previous" : "current") + " objects";
     $("#clearInventoryFilters").hidden = !(search || owner || room || category);
@@ -434,31 +482,44 @@
       category.properties.forEach(function (property) { if (!$$('[data-property-name]').some(function (el) { return el.value.trim().toLowerCase() === property.name.toLowerCase(); })) addProperty(property); });
     });
   }
+  function syncPrimaryCopy() {
+    const row = $('[data-copy-location]'); if (!editingId || !row) return;
+    $('[data-copy-room]',row).value = $('#itemRoom').value;
+    $('[data-copy-space]',row).value = $('#itemSpace').value;
+  }
   function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value }; }); }
   function renderCopyLocations(saved) {
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
-    root.hidden = Boolean(editingId) || !Number.isInteger(count) || count < 2 || count > 100;
+    root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
-    root.innerHTML = '<p>Each copy has its own location. Blank fields use the location above; a different room clears the inherited space.</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      const room = old[index]?.room || '', spaces = App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room.toLowerCase(); }).flatMap(function (l) { return l.spaces; });
-      return '<div data-copy-location><strong>Copy ' + (index + 1) + '</strong><label class="field"><span>Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(room) + '"></label><label class="field"><span>Space</span><input data-copy-space list="copySpaceOptions' + index + '" maxlength="80" placeholder="Use room default" value="' + esc(old[index]?.space || '') + '"></label><datalist id="copySpaceOptions' + index + '">' + options(unique(spaces)) + '</datalist></div>';
+    root.innerHTML = '<p>' + (editingId ? 'Edit each copy’s room and space. Blank fields clear an existing location; new copies use the location above.' : 'Each copy has its own location. Blank fields use the location above; a different room clears the inherited space.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
+      const room = old[index]?.room ?? '', spaces = App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room.toLowerCase(); }).flatMap(function (l) { return l.spaces; });
+      return '<div data-copy-location><strong>Copy ' + (index + 1) + (editingCopies[index]?.id === editingId ? ' · This Item' : '') + '</strong><label class="field"><span>Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(room) + '"></label><label class="field"><span>Space</span><input data-copy-space list="copySpaceOptions' + index + '" maxlength="80" placeholder="Use room default" value="' + esc(old[index]?.space || '') + '"></label><datalist id="copySpaceOptions' + index + '">' + options(unique(spaces)) + '</datalist></div>';
     }).join('') + '</div>';
   }
   function openItem(id, trigger, copy, draft) {
     let item = inventory().items.find(function (entry) { return entry.id === id; });
     if (id && !item) return;
     if (copy) { item = Object.assign({}, item, { archive: null }); id = ""; }
+    editingCopies = id && !item.archive ? inventory().items.filter(function (entry) {
+      if (entry.archive) return false;
+      if (item.copyGroup) return entry.copyGroup === item.copyGroup;
+      if (entry.copyGroup) return false;
+      const signature = function (value) { const record = Object.assign({}, value); delete record.id; delete record.room; record.properties = record.properties.filter(function (p) { return !['zone', 'space'].includes(p.name.toLowerCase()); }); return JSON.stringify(record); };
+      return signature(entry) === signature(item);
+    }).map(function (entry) { return JSON.parse(JSON.stringify(entry)); }) : [];
+    editingCopies.sort(function (a, b) { return a.id === id ? -1 : b.id === id ? 1 : 0; });
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
     $("#itemDialogTitle").textContent = id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
-    $("#itemCopiesField").hidden = Boolean(id); $("#itemCopies").disabled = Boolean(id);
+    $("#itemCopiesField").hidden = Boolean(item?.archive); $("#itemCopies").disabled = Boolean(item?.archive);
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
     $("#saveItemButton").textContent = draft ? "Save & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
-    $("#copyItemButton").hidden = !id;
-    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || 1; renderCopyLocations(draft?._copyLocations);
+    $("#deleteItemButton").hidden = !id;
+    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || ""}; }));
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -489,17 +550,18 @@
     $("#restoreItemButton").hidden = !item?.archive;
     $("#itemArchiveSummary").hidden = !item?.archive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
+    suggestProperties(); fillMissingAmount();
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
   }
   function currentItemUnchanged(id, snapshot) { const item = inventory().items.find(function (entry) { return entry.id === id; }); if (!item || JSON.stringify(item) !== snapshot) throw new Error("This item changed while you were editing. Close and reopen it to use the latest copy."); return item; }
-  function saveItem(event) {
+  async function saveItem(event) {
     event.preventDefault();
     try {
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
-      const count = previous ? 1 : Number($("#itemCopies").value);
+      const count = previous?.archive ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
-      if (!previous && !App.bulkEntry?.current() && inventory().items.length + count > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
+      if (!App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
       const item = { id: editingId || u.uid("item"), archive: previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       commitTags();
@@ -511,8 +573,35 @@
       });
       const next = m.normalizeItem(item);
       if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, copyLocations()); return; }
-      const copies = previous ? [] : m.createCopies(next, count, copyLocations());
-      App.storage.mutate(function (state) { if (previous) state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); else state.inventory.items.push.apply(state.inventory.items, copies); }, { reason: "inventory-save" });
+      let copies;
+      if (previous && !previous.archive) {
+        const verifyCopies = function () {
+          editingCopies.forEach(function (entry) { currentItemUnchanged(entry.id, JSON.stringify(entry)); });
+          if (previous.copyGroup && inventory().items.filter(function (entry) { return !entry.archive && entry.copyGroup === previous.copyGroup; }).length !== editingCopies.length) throw new Error("Copies changed while editing. Close and reopen this item.");
+        };
+        verifyCopies();
+        const locations = copyLocations(), group = previous.copyGroup || u.uid('copies');
+        const locationSignature = function (entry) { return JSON.stringify([entry.room, entry.properties.filter(function (p) { return ['zone','space'].includes(p.name.toLowerCase()); })]); };
+        if (locationSignature(next) !== locationSignature(previous)) locations[0] = {room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''};
+        copies = Array.from({length:count}, function (_, index) {
+          const existing = editingCopies[index], base = index === 0 || !existing ? next : existing;
+          const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
+          // Explicitly clearing an existing location must not inherit the old one.
+          if (index < editingCopies.length) { clean.room = location.room || ''; clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'space' && (p.name.toLowerCase() !== 'zone' || clean.room === base.room); }); }
+          const result = m.createCopies(clean, 1, [location])[0];
+          if (existing) result.id = existing.id;
+          const parent = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === result.room.toLowerCase(); });
+          if (parent && !result.properties.some(function (p) { return p.name.toLowerCase() === 'zone'; })) result.properties.push({name:'Zone',value:parent.zone,unit:''});
+          return m.normalizeItem(result);
+        });
+        if (count < editingCopies.length) {
+          const removed = editingCopies.slice(count).map(function (entry) { return entry.name + ' (' + (entry.room || 'Unassigned') + ')'; }).join(', ');
+          if (!await App.components.confirm({title:'Delete Removed Copies?',message:'Permanently delete ' + (editingCopies.length-count) + ' copies: ' + removed + '. This cannot be undone.',confirmLabel:'Delete Copies',danger:true,trigger:$('#saveItemButton')})) return;
+          verifyCopies();
+        }
+      } else copies = previous ? [next] : m.createCopies(next, count, copyLocations());
+      const replaced = new Set(previous ? (editingCopies.length ? editingCopies : [previous]).map(function (entry) { return entry.id; }) : []);
+      App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(copies); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
       App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + " is in your inventory.") : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
       $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
@@ -571,9 +660,10 @@
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
     draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();
+    if (App.bulkEntry?.current()?.draft.copyGroup) draft.copyGroup = App.bulkEntry.current().draft.copyGroup;
     draft._reviewed = true;
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;
   }
-  App.inventoryUI = { init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
+  App.inventoryUI = { home: function () { view = "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
 })();

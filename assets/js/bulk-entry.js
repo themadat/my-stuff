@@ -55,7 +55,7 @@
   function advance() {
     clearTimeout(draftTimer); reconcile();
     reviewing = true;
-    if (!row()) { reviewing = false; App.components.closeDialog('#itemDialog', 'saved'); show(); return; }
+    if (!row()) { reviewing = false; App.components.closeDialog('#itemDialog', 'saved'); App.components.closeDialog('#bulkDialog'); renderStatus(); App.inventoryUI.home(); return; }
     App.components.closeDialog('#bulkDialog');
     if (!row().draft._smartEntry && !row().draft._reviewed) row().draft._smartEntry = row().source;
     App.inventoryUI.openDraft(row().draft, $('#bulkEntryButton'));
@@ -79,7 +79,7 @@
       next.rows.splice(index,1,...rows); persist(next);
       item = copies[0]; App.inventoryUI.openDraft(rows[0].draft,$('#bulkEntryButton')); renderReview(); renderStatus();
     }
-    const nextItem = App.inventoryModel.normalizeItem(Object.assign({}, item, { id: current.id, archive: null }));
+    const nextItem = App.inventoryModel.normalizeItem(Object.assign({}, item, { id: current.id, archive: null, copyGroup: item.copyGroup || current.draft.copyGroup }));
     const existing = App.storage.getState().inventory.items.find(function (i) { return i.id === current.id; });
     if (existing && JSON.stringify(existing) !== JSON.stringify(nextItem)) throw new Error('This queued object has already been saved. Pause and resume to continue, then edit it from your inventory if needed.');
     if (!existing) {

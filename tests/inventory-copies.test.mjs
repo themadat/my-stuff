@@ -46,3 +46,10 @@ test('copies have independent spaces, resolve unique spaces and reject conflicti
  assert.throws(()=>app.inventoryModel.createCopies(item,1,[{room:'Office',space:'Sling Bag'}]),/matching room/);
  assert.equal(item.properties.find(p=>p.name==='Space').value,'Bar');
 });
+
+test('copy groups persist through normalization while older records remain compatible', () => {
+ const copies = app.inventoryModel.createCopies(item,2);
+ assert.ok(copies[0].copyGroup); assert.equal(copies[0].copyGroup,copies[1].copyGroup);
+ assert.equal(app.inventoryModel.normalize({currency:'USD',items:copies}).items[1].copyGroup,copies[0].copyGroup);
+ assert.equal(Object.hasOwn(app.inventoryModel.normalizeItem(item),'copyGroup'),false);
+});

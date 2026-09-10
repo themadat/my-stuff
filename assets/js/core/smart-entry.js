@@ -36,7 +36,7 @@
         try { App.inventoryModel.dateOnly(date); take(start,raw.length,'obtainedDate',date); } catch (_) { take(start,raw.length,null); }
       } else if (/^\(?\$[\d,]+(?:\.\d{1,2})?\)?$/.test(raw) && !fields.price) take(start,raw.length,'price',raw.replace(/[$(),]/g,''));
       else {
-        const tags = raw.split(/[,;]/).map(function (tag) { return vocabulary.find(function (v) { return v.toLowerCase() === tag.trim().toLowerCase(); }); });
+        const tags = raw.split(/[,;]/).map(function (tag) { return vocabulary.find(function (v) { return v.toLowerCase() === App.inventoryModel.tags(tag.trim())[0]?.toLowerCase(); }); });
         if (tags.length && tags.every(Boolean) && cells.length > 1) take(start,raw.length,'categories',App.inventoryModel.tags((fields.categories || '') + ',' + tags.join(',')).join(', '));
       }
     });

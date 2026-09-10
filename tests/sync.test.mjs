@@ -68,7 +68,7 @@ test('schema 1 backups migrate to inventory without losing Notes, preferences, o
 });
 
 test('inventory totals distinguish ownership, rooms, unknown values, zero values, and archives', () => {
-  const h = harness(), items = [inventoryItem(h, { value: 0.1 }), inventoryItem(h, { id: '2', owner: 'house', room: 'office', value: 0.2 }), inventoryItem(h, { id: '3', owner: 'house', value: null }), inventoryItem(h, { id: '4', room: '', value: 0 }), inventoryItem(h, { id: '5', value: 500, archive: { date: '2024-03-01', reason: 'Broken' } })];
+  const h = harness(), items = [inventoryItem(h, { value: 0.1 }), inventoryItem(h, { id: '2', owner: 'house', room: 'office', value: 0.2 }), inventoryItem(h, { id: '3', owner: 'house', value: null, price: null }), inventoryItem(h, { id: '4', room: '', value: 0 }), inventoryItem(h, { id: '5', value: 500, archive: { date: '2024-03-01', reason: 'Broken' } })];
   const totals = h.App.inventoryModel.stats(items);
   assert.equal(totals.all.count, 4); assert.equal(totals.all.valueCents, 30); assert.equal(totals.all.unknown, 1);
   assert.equal(totals.me.count, 2); assert.equal(totals.house.count, 2);
@@ -81,7 +81,7 @@ test('item normalization preserves custom categories and properties and rejects 
   const h = harness(), m = h.App.inventoryModel;
   const item = inventoryItem(h, { categories: ['Shoes', 'shoes', ' My custom tag '], value: '', price: '0', properties: [{ name: 'Color', value: '<script>literal</script>', unit: '' }] });
   assert.equal(item.categories.join(','), 'Shoes,My custom tag');
-  assert.equal(item.value, null); assert.equal(item.price, 0);
+  assert.equal(item.value, 0); assert.equal(item.price, 0);
   assert.equal(item.properties[0].value, '<script>literal</script>');
   for (const overrides of [{ value: -1 }, { price: Infinity }, { value: {} }, { obtainedDate: '2025-02-29' }, { owner: 'unknown' }, { name: ' ' }, { properties: [{ name: 'Weight' }, { name: 'weight' }] }, { archive: { date: '2023-01-01', reason: 'Lost' } }, { archive: { date: '2026-01-01', reason: '' } }]) assert.throws(() => inventoryItem(h, overrides));
   assert.throws(() => m.normalize({ currency: 'USD', items: [item, item] }), /duplicate/);
@@ -629,4 +629,14 @@ test('legacy rejection identifies the incompatible structure and never replaces 
     assert.equal(JSON.stringify(h.state), original);
     assert.ok(h.requests.every(request => request.options.method !== 'PUT'));
   }
+});
+
+test('Cable aliases merge and missing prices/values mirror without replacing distinct or zero amounts', () => {
+ const h=harness();
+ const item=inventoryItem(h,{categories:['Cable','Cables','cable'],price:12,value:null});
+ assert.equal(item.categories.join(','),'Cables'); assert.equal(item.value,12);
+ assert.equal(inventoryItem(h,{value:15,price:null}).price,15);
+ assert.equal(inventoryItem(h,{value:0,price:12}).value,0);
+ const different=inventoryItem(h,{price:10,value:20}); assert.equal(different.price,10); assert.equal(different.value,20);
+ const unknown=inventoryItem(h,{price:null,value:null}); assert.equal(unknown.price,null); assert.equal(unknown.value,null);
 });

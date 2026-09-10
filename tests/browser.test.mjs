@@ -31,10 +31,11 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('[data-property-value]').nth(1).fill('Green');
   await page.locator('[data-property-value]').nth(2).fill('300');
   await page.locator('[data-category-preset="1"]').click(); await page.locator('[data-category-preset="2"]').click();
-  assert.equal(await page.locator('.item-property').count(), 4);
+  assert.equal(await page.locator('.item-property').count(), 6);
   await page.getByRole('button', { name: 'Remove Backpacking gear', exact: true }).click(); await page.getByRole('button', { name: 'Remove Cables', exact: true }).click(); await page.locator('#itemTagSearch').fill('Everyday'); await page.locator('#itemTagSearch').press('Enter');
-  assert.equal(await page.locator('.item-property').count(), 4, 'removing a category must not erase properties');
+  assert.equal(await page.locator('.item-property').count(), 6, 'removing a category must not erase properties');
   await page.locator('#saveItemButton').click();
+  assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),false,await page.locator('#itemForm').evaluate(el=>JSON.stringify({error:el.querySelector('#itemFormError').textContent,invalid:Array.from(el.querySelectorAll(':invalid')).map(x=>[x.id,x.value,x.validationMessage])})));
   await page.reload();
   assert.equal(await page.locator('#inventoryList img').count(), 0);
   assert.match(await page.locator('#inventoryList').textContent(), /Trail shoes <img/);
@@ -44,7 +45,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   assert.match(await page.locator('[data-inventory-total="house"]').textContent(), /2objects.*500\.00/);
   assert.match(await page.locator('[data-inventory-total="me"]').textContent(), /1objects.*129\.95/);
   assert.match(await page.locator('#roomStats').textContent(), /Office/);
-  await page.locator('#inventoryOwnerFilter').selectOption('me');
+  await page.locator('[data-owner-filter="me"]').click();
   assert.equal(await page.locator('[data-edit-item]').count(), 1);
   assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects/);
   await page.locator('#clearInventoryFilters').click();
@@ -62,7 +63,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('[data-inventory-view="previous"]').click();
   assert.match(await page.locator('#inventoryList').textContent(), /Broken.*365 days owned/);
   await page.locator('[data-edit-item]').click();
-  assert.equal(await page.locator('.item-property').count(), 4);
+  assert.equal(await page.locator('.item-property').count(), 6);
   assert.match(await page.locator('#itemArchiveSummary').textContent(), /Sole separated/);
   await page.locator('#restoreItemButton').click(); await page.locator('[data-confirm-action]').click();
   await page.locator('[data-inventory-view="have"]').click();
@@ -125,7 +126,7 @@ test('inventory and its editor fit narrow screens, large text and dark mode', { 
   await page.locator('[data-close-dialog="supportDialog"]').click();
   await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   await page.locator('#itemName').fill('Cable '.repeat(20)); await page.locator('[data-category-preset="2"]').click();
-  await page.locator('[data-property-value]').fill('150');
+  await page.locator('[data-property-value]').first().fill('150');
   assert.equal(await page.locator('#itemDialog').evaluate(el => el.scrollWidth <= el.clientWidth), true);
   assert.equal(await page.locator('#itemForm .dialog-body').evaluate(el => el.scrollWidth <= el.clientWidth), true);
   await page.locator('#saveItemButton').click();
@@ -489,7 +490,7 @@ test('smart suggestions escape markup, defaults preserve old unknown methods, an
   assert.equal(await page.locator('#smartPreview img, #smartDestinations img').count(), 0);
   await page.locator('#itemName').fill('My Object'); await page.locator('#itemSmartEntry').fill('');
   assert.equal(await page.locator('#itemName').inputValue(), 'My Object');
-  assert.equal(await page.locator('#itemValue').inputValue(), '');
+  assert.equal(await page.locator('#itemValue').inputValue(), '0');
   await page.locator('input[name="itemObtainedHowChoice"][value=""]').check();
   await page.locator('#saveItemButton').click(); await page.locator('[data-edit-item]').click();
   assert.equal(await page.locator('input[name="itemObtainedHowChoice"][value=""]').isChecked(), true);
@@ -604,13 +605,20 @@ test('multiple copies save independently across rooms and Color is reusable with
   assert.equal(items[1].properties.find(p => p.name === 'Zone').value, 'Upstairs');
   assert.ok(items.every(i => i.properties.find(p => p.name === 'Color').value === 'Teal'));
   assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120.00/);
-  await page.locator('[data-edit-item]').first().click(); await page.locator('#copyItemButton').click();
-  await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
-  assert.equal(await page.locator('#itemDialogTitle').textContent(), 'Add a Copy');
-  await page.locator('#itemRoom').fill('Kitchen'); await page.locator('[data-property-value]').fill('White');
+  await page.locator('[data-edit-item]').first().click();
+  assert.equal(await page.locator('#itemCopies').inputValue(), '3');
+  await page.locator('#itemCopies').fill('4');
+  await page.locator('[data-copy-room]').nth(3).fill('Kitchen');
+  await page.locator('[data-copy-room]').nth(1).fill('Nook');
+  await page.locator('[data-copy-space]').nth(1).fill('Sling Bag');
+  await page.locator('[data-copy-room]').first().fill('Den'); assert.equal(await page.locator('#itemRoom').inputValue(),'Den');
+  await page.locator('#itemRoom').fill('Office'); assert.equal(await page.locator('[data-copy-room]').first().inputValue(),'Office');
+  await page.screenshot({path:'/private/tmp/my-stuff-18-copies.png'});
   await page.locator('#saveItemButton').click(); await page.reload();
   items = await page.evaluate(() => window.LocalApp.storage.getState().inventory.items);
-  assert.equal(items.length, 4); assert.equal(items.filter(i => i.properties.find(p => p.name === 'Color').value === 'Teal').length, 3);
+  assert.equal(items.length, 4); assert.equal(new Set(items.map(i=>i.copyGroup)).size,1);
+  assert.equal(items[1].room,'Nook'); assert.equal(items[1].properties.find(p=>p.name==='Space').value,'Sling Bag');
+  assert.equal(items[3].room,'Kitchen');
   await page.locator('[data-edit-item]').first().click(); await page.locator('#archiveItemButton').click();
   await page.locator('#itemGoneReason').selectOption('Sold'); await page.locator('#archiveForm button[type="submit"]').click();
   assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120.00/);
@@ -665,13 +673,13 @@ test('bulk review suggests fields, saves only approved objects, resumes edits an
   await page.locator('#skipBulkRow').click();
   await page.waitForFunction(() => document.querySelector('#bulkReviewInfo').textContent.includes('Copy 2 of 2'));
   await page.locator('#saveItemButton').click();
-  await page.waitForFunction(() => document.querySelector('#bulkDialog').open);
+  await page.waitForFunction(() => !document.querySelector('#itemDialog').open); await page.locator('#bulkEntryButton').click();
   assert.match(await page.locator('#bulkQueueStatus').textContent(), /2 saved.*0 awaiting review.*1 skipped/);
   await page.locator('#reviewSkippedButton').click();
   await page.waitForFunction(() => document.activeElement.id === 'itemName');
   assert.equal(await page.locator('#itemDescription').inputValue(), 'Keep this review edit');
   await page.locator('#saveItemButton').click();
-  await page.waitForFunction(() => document.querySelector('#bulkDialog').open);
+  await page.waitForFunction(() => !document.querySelector('#itemDialog').open); await page.locator('#bulkEntryButton').click();
   assert.match(await page.locator('#bulkQueueStatus').textContent(), /3 saved.*0 awaiting review.*0 skipped/);
   const result = await page.evaluate(() => window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()));
   assert.equal(result.data.inventory.items.length, 3);
@@ -689,7 +697,7 @@ test('bulk queue guards against duplicate saves after interruption and escapes i
   const key = await page.evaluate(() => window.LocalApp.config.storage.bulkDraftKey);
   const pending = await page.evaluate(k => localStorage.getItem(k), key);
   await page.locator('#saveItemButton').click();
-  await page.waitForFunction(() => document.querySelector('#bulkDialog').open);
+  await page.waitForFunction(() => !document.querySelector('#itemDialog').open); await page.locator('#bulkEntryButton').click();
   await page.evaluate(({key,pending}) => localStorage.setItem(key,pending), {key,pending});
   await page.reload(); await page.locator('#bulkEntryButton').click();
   assert.match(await page.locator('#bulkQueueStatus').textContent(), /1 saved.*0 awaiting review/);
@@ -783,7 +791,7 @@ test('bulk review stays usable on desktop and enlarged mobile screens and saves 
   assert.equal(await page.locator('#itemForm .dialog-body').evaluate(el => el.scrollWidth <= el.clientWidth), true);
   await page.screenshot({ path: '/private/tmp/my-stuff-bulk-mobile-review.png' });
   await page.locator('#itemRoom').fill('Kitchen'); await page.locator('#saveItemButton').click();
-  await page.waitForFunction(() => document.querySelector('#bulkDialog').open); await page.reload();
+  await page.waitForFunction(() => !document.querySelector('#itemDialog').open); await page.locator('#bulkEntryButton').click(); await page.reload();
   assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Kitchen');
   assert.deepEqual(errors, []);
 });
@@ -866,8 +874,75 @@ test('bulk Copies expands individual reviews with their chosen locations and no 
  await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>document.querySelector('#bulkReviewInfo').textContent.includes('Review 2 of 2'));
  assert.equal(await page.locator('#itemRoom').inputValue(),'Office'); assert.equal(await page.locator('#itemSpace').inputValue(),'Desk');
  assert.equal(await page.locator('#itemCopies').inputValue(),'1');
- await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>document.querySelector('#bulkDialog').open);
+ await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
  const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
- assert.equal(items.length,2); assert.ok(items.every(i=>!i.categories.includes('Float')));
+ assert.equal(items.length,2); assert.ok(items.every(i=>!i.categories.includes('Float'))); assert.ok(items[0].copyGroup); assert.equal(items[1].copyGroup,items[0].copyGroup);
  assert.deepEqual(items.map(i=>i.properties.find(p=>p.name==='Space').value),['Sling Bag','Desk']);
+});
+
+test('ownership chips, category cards and hierarchical location filters work across the full workspace', { timeout:30000 }, async t=>{
+ const {page}=await fixture(t,{viewport:{width:1800,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
+  {id:'a',name:'Cable one',owner:'me',room:'Nook',categories:['Cable'],price:12,properties:[{name:'Space',value:'Sling Bag'}]},
+  {id:'b',name:'Water bottle',owner:'house',room:'Office',categories:['Water'],value:20,properties:[{name:'Space',value:'Desk'}]}
+ ].map(window.LocalApp.inventoryModel.normalizeItem);}));
+ assert.ok(await page.locator('#inventoryWorkspace').evaluate(el=>el.clientWidth>1700));
+ await page.locator('[data-owner-filter="me"]').click(); assert.equal(await page.locator('[data-edit-item]').count(),1);
+ await page.locator('[data-owner-filter=""]').click();
+ await page.locator('[data-category-filter="Cables"]').click(); assert.match(await page.locator('#inventoryList').textContent(),/Cable one/); assert.equal(await page.locator('#inventoryCategoryFilter').inputValue(),'Cables');
+ await page.locator('#inventoryCategoryFilter').selectOption('');
+ await page.locator('#inventoryRoomFilter').selectOption('zone:Main Level'); assert.equal(await page.locator('[data-edit-item]').count(),1);
+ await page.locator('#inventoryRoomFilter').selectOption('space:'+JSON.stringify(['Office','Desk'])); assert.match(await page.locator('#inventoryList').textContent(),/Water bottle/);
+ await page.locator('#clearInventoryFilters').click();
+ await page.screenshot({path:'/private/tmp/my-stuff-18-home-desktop.png'});
+ await page.setViewportSize({width:320,height:844});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff-18-home-mobile.png'});
+ await page.locator('[data-edit-item="a"]').click();
+ const names=await page.locator('[data-property-name]').evaluateAll(els=>els.map(el=>el.value)); assert.ok(names.includes('End A')&&names.includes('End B'));
+ assert.equal(await page.locator('#itemValue').inputValue(),'12');
+});
+
+test('finishing bulk review closes the modal and returns home', {timeout:30000},async t=>{
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#bulkEntryButton').click(); await page.locator('#bulkPaste').fill('Cable\t$8\tUSB cable'); await page.locator('#readBulkPaste').click(); await page.locator('#startBulkReview').click();
+ await page.waitForFunction(()=>document.activeElement.id==='itemName'); await page.locator('#saveItemButton').click();
+ await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ assert.equal(await page.locator('#bulkDialog').evaluate(el=>el.open),false); assert.equal(await page.locator('#inventoryTitle').textContent(),'Stuff I Have');
+});
+
+test('total copies can shrink with confirmation and accidental items can be permanently deleted', {timeout:30000}, async t => {
+ const {page} = await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await addInventoryItem(page,{name:'Notebook'});
+ await page.locator('[data-edit-item]').click(); await page.locator('#itemCopies').fill('2');
+ await page.locator('[data-copy-room]').nth(1).fill('Nook'); await page.locator('[data-copy-space]').nth(1).fill('Sling Bag');
+ await page.locator('#saveItemButton').click();
+ await page.locator('[data-edit-item]').first().click(); assert.equal(await page.locator('#itemCopies').inputValue(),'2');
+ await page.locator('#itemCopies').fill('1'); await page.locator('#saveItemButton').click(); await page.locator('[data-confirm-cancel]').click();
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),2);
+ await page.locator('#saveItemButton').click(); await page.locator('[data-confirm-action]').click();
+ await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ assert.equal(await page.locator('[data-edit-item]').count(),1);
+ await page.locator('[data-edit-item]').click(); await page.locator('#deleteItemButton').click(); await page.locator('[data-confirm-cancel]').click();
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
+ await page.locator('#deleteItemButton').click(); await page.locator('[data-confirm-action]').click();
+ await page.reload(); assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),0);
+});
+
+test('copy edits and item deletion reject concurrent changes; archived mistakes can be deleted', {timeout:30000}, async t => {
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=window.LocalApp.inventoryModel.createCopies({id:'x',name:'Pen',owner:'me'},2);}));
+ await page.locator('[data-edit-item]').first().click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items[1].room='Office';}));
+ await page.locator('#saveItemButton').click(); assert.match(await page.locator('#itemFormError').textContent(),/changed while/);
+ await page.locator('[data-inv-close="itemDialog"]').last().click();
+ await page.locator('[data-edit-item]').first().click(); await page.locator('#deleteItemButton').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items[0].name='Updated pen';}));
+ await page.locator('[data-confirm-action]').click(); assert.match(await page.locator('#itemFormError').textContent(),/changed while/);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),2);
+ await page.locator('[data-inv-close="itemDialog"]').last().click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items[0].archive={date:'2026-09-09',reason:'Sold',notes:''};}));
+ await page.locator('[data-inventory-view="previous"]').click(); await page.locator('[data-edit-item]').click();
+ await page.locator('#deleteItemButton').click(); await page.locator('[data-confirm-action]').click();
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
 });

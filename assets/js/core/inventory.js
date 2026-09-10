@@ -20,7 +20,7 @@
   function tags(value) {
     const list = Array.isArray(value) ? value : String(value || "").split(",");
     const seen = new Set();
-    return list.map(function (tag) { return u.cleanLine(tag, 60); }).filter(function (tag) {
+    return list.map(function (tag) { const clean = u.cleanLine(tag, 60); return /^cables?$/i.test(clean) ? "Cables" : clean; }).filter(function (tag) {
       if (!tag || seen.has(tag.toLowerCase())) return false;
       seen.add(tag.toLowerCase()); return true;
     }).slice(0, 30);
@@ -51,13 +51,15 @@
       id: id, name: name, description: u.cleanText(input.description, 4000), owner: input.owner,
       room: u.cleanLine(input.room, 80), categories: tags(input.categories), obtainedDate: obtainedDate,
       obtainedHow: methods.includes(input.obtainedHow) ? input.obtainedHow : "",
-      source: u.cleanLine(input.source, 240), value: amount(input.value), price: amount(input.price),
-      properties: properties, archive: archive
+      source: u.cleanLine(input.source, 240), value: amount(input.value) ?? amount(input.price), price: amount(input.price) ?? amount(input.value),
+      properties: properties, archive: archive,
+      ...(u.cleanLine(input.copyGroup, 100) ? { copyGroup: u.cleanLine(input.copyGroup, 100) } : {})
     };
   }
   function createCopies(input, count, rooms) {
     if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
     const template = normalizeItem(input);
+    template.copyGroup = template.copyGroup || u.uid("copies");
     return Array.from({ length: count }, function (_, index) {
       const item = normalizeItem(Object.assign({}, template, { id: u.uid("item"), archive: null }));
       const override = rooms?.[index], requestedRoom = typeof override === 'object' ? override?.room : override;
