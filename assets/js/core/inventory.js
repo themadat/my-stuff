@@ -60,12 +60,24 @@
     const template = normalizeItem(input);
     return Array.from({ length: count }, function (_, index) {
       const item = normalizeItem(Object.assign({}, template, { id: u.uid("item"), archive: null }));
-      const room = u.cleanLine(rooms?.[index], 80);
+      const override = rooms?.[index], requestedRoom = typeof override === 'object' ? override?.room : override;
+      const space = u.cleanLine(typeof override === 'object' ? override?.space : '', 80);
+      let room = u.cleanLine(requestedRoom, 80);
+      if (space && !room) {
+        const matches = App.config.inventory.locations.filter(function (l) { return l.spaces.some(function (s) { return s.toLowerCase() === space.toLowerCase(); }); });
+        if (matches.length === 1) room = matches[0].room;
+      }
       if (room && room.toLowerCase() !== item.room.toLowerCase()) {
         item.room = room;
         item.properties = item.properties.filter(function (p) { return !["zone", "space"].includes(p.name.toLowerCase()); });
         const location = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === room.toLowerCase(); });
         if (location) item.properties.push({ name: "Zone", value: location.zone, unit: "" });
+      }
+      if (space) {
+        const known = App.config.inventory.locations.filter(function (l) { return l.spaces.some(function (s) { return s.toLowerCase() === space.toLowerCase(); }); });
+        if (known.length && !known.some(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })) throw new Error('Choose the matching room for space ' + space + '.');
+        item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'space'; });
+        item.properties.push({ name: 'Space', value: space, unit: '' });
       }
       return normalizeItem(item);
     });

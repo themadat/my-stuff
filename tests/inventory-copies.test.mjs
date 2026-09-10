@@ -36,3 +36,13 @@ test('settings catalog preserves hierarchy, all tag groups, category property gr
   assert.ok(catalog.propertyGroups.find(g => g.name === 'Shoes').properties.some(p => p.name === 'Weight'));
   assert.equal(catalog.propertyGroups.find(g => g.name === 'Custom Properties').properties[0].name, 'Finish');
 });
+
+test('copies have independent spaces, resolve unique spaces and reject conflicting room-space combinations', () => {
+ const copies = app.inventoryModel.createCopies(item, 2, [{room:'Nook',space:'Sling Bag'},{room:'Office',space:'Desk'}]);
+ assert.equal(copies[0].properties.find(p=>p.name==='Space').value,'Sling Bag');
+ assert.equal(copies[1].properties.find(p=>p.name==='Space').value,'Desk');
+ assert.equal(copies[1].properties.find(p=>p.name==='Zone').value,'Upstairs');
+ assert.equal(app.inventoryModel.createCopies(item,1,[{space:'Sling Bag'}])[0].room,'Nook');
+ assert.throws(()=>app.inventoryModel.createCopies(item,1,[{room:'Office',space:'Sling Bag'}]),/matching room/);
+ assert.equal(item.properties.find(p=>p.name==='Space').value,'Bar');
+});

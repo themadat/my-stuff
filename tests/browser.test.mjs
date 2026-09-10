@@ -822,5 +822,52 @@ test('bulk inventory Smart Complete highlights each row, protects corrections, a
   assert.match(await page.locator('#smartPreview').textContent(), /09\/23\/24/);
   const item = await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0]);
   assert.equal(item.properties.find(p=>p.name==='Volume').value, '24');
-  assert.deepEqual(item.categories, ['Water','Float']);
+  assert.deepEqual(item.categories, ['Water']);
+});
+
+
+test('property sets toggle with highlighted borders; manual text stays white; copies use separate spaces', { timeout:30000 }, async t => {
+ const {page} = await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Notebook');
+ assert.equal(await page.locator('#itemName').evaluate(el=>getComputedStyle(el).color),'rgb(255, 255, 255)');
+ const water=page.locator('#categoryPresets button').filter({hasText:'Water'});
+ await water.click(); assert.equal(await water.getAttribute('aria-pressed'),'true');
+ assert.equal(await water.evaluate(el=>getComputedStyle(el).borderTopWidth),'2px');
+ assert.match(await water.getAttribute('aria-label'),/^Remove/);
+ assert.equal(await page.locator('[data-property-name]').inputValue(),'Volume');
+ await water.click(); assert.equal(await water.getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('.item-property').count(),0);
+ const shoes=page.locator('#categoryPresets button').filter({hasText:'Shoes'}), backpack=page.locator('#categoryPresets button').filter({hasText:'Backpacking gear'});
+ await shoes.click(); await backpack.click(); await shoes.click();
+ assert.equal(await page.locator('[data-property-name]').inputValue(),'Weight', 'shared property remains with Backpacking');
+ await backpack.click();
+ await page.locator('#itemCopies').fill('2');
+ await page.locator('[data-copy-room]').nth(0).fill('Nook'); await page.locator('[data-copy-space]').nth(0).fill('Sling Bag');
+ await page.locator('[data-copy-room]').nth(1).fill('Office'); await page.locator('[data-copy-space]').nth(1).fill('Desk');
+ await page.screenshot({path:'/private/tmp/my-stuff-17-copies-desktop.png'});
+ await page.setViewportSize({width:320,height:844});
+ assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ await page.locator('[data-copy-space]').nth(1).scrollIntoViewIfNeeded();
+ await page.screenshot({path:'/private/tmp/my-stuff-17-copies-mobile.png'});
+ await page.locator('#saveItemButton').click();
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.deepEqual(items.map(i=>[i.room,i.properties.find(p=>p.name==='Space').value]),[['Nook','Sling Bag'],['Office','Desk']]);
+});
+
+test('bulk Copies expands individual reviews with their chosen locations and no Float tag', { timeout:30000 }, async t => {
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click(); await page.locator('#bulkEntryButton').click();
+ await page.locator('#bulkPaste').fill('Floating\tWater\t09/22/24\t$12\tAmazon - Vapur Bottle 23 Ounce [24], Float');
+ await page.locator('#readBulkPaste').click(); await page.locator('#startBulkReview').click(); await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ assert.equal(await page.locator('#categoryPresets button').filter({hasText:'Water'}).getAttribute('aria-pressed'),'true');
+ assert.match(await page.locator('#itemDescription').inputValue(),/Float/);
+ await page.locator('#itemCopies').fill('2'); await page.locator('[data-copy-room]').nth(0).fill('Nook'); await page.locator('[data-copy-space]').nth(0).fill('Sling Bag');
+ await page.locator('[data-copy-room]').nth(1).fill('Office'); await page.locator('[data-copy-space]').nth(1).fill('Desk');
+ await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>document.querySelector('#bulkReviewInfo').textContent.includes('Review 2 of 2'));
+ assert.equal(await page.locator('#itemRoom').inputValue(),'Office'); assert.equal(await page.locator('#itemSpace').inputValue(),'Desk');
+ assert.equal(await page.locator('#itemCopies').inputValue(),'1');
+ await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>document.querySelector('#bulkDialog').open);
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,2); assert.ok(items.every(i=>!i.categories.includes('Float')));
+ assert.deepEqual(items.map(i=>i.properties.find(p=>p.name==='Space').value),['Sling Bag','Desk']);
 });

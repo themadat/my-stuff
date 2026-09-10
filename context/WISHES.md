@@ -34,7 +34,7 @@ Zones: Upstairs, Main Level, Outside.
 | Main Level | Hallway | — |
 | Main Level | Game Room | — |
 | Main Level | Kitchen | Pantry |
-| Main Level | Nook | Floating, Go Bag |
+| Main Level | Nook | Floating, Go Bag, Sling Bag |
 | Main Level | Den | Bar |
 | Main Level | Doge’s Den | — |
 | Main Level | Mud Room | — |
@@ -63,7 +63,7 @@ Capture the user's household locations and tag vocabulary so inventory can descr
 
 Acceptance criteria:
 
-- Represent all 3 zones, 23 rooms, and 16 spaces with their supplied parent relationships.
+- Represent all 3 zones, 23 rooms, and 17 spaces with their supplied parent relationships.
 - Distinguish repeated space names such as Closet by their parent room.
 - Preserve all 8 tag groups and 54 supplied tags, including the user's spelling and punctuation.
 - Preserve existing inventory records when introducing structured locations or grouped tags.
@@ -72,7 +72,7 @@ Constraints and assumptions:
 
 - Initially captured as requirements only. The 2026-09-08 request explicitly authorized pre-populating the form with this vocabulary.
 - Keep runtime static, local-first, and dependency-free, with backup/import and optional sync compatibility.
-- Preserve Pickle Bag, Car, Floating, and Go Bag as supplied spaces.
+- Preserve Pickle Bag, Car, Floating, and Go Bag as supplied spaces. Sling Bag was added under Nook by direct request on 2026-09-10.
 - Priority is provisional; effort and implementation decisions belong to planning.
 
 Implementation decisions (authorized by the compact-form request):

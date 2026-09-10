@@ -41,7 +41,15 @@
       }
     });
     const tail = /\[\$?[\d,.]+\]\s*,\s*([^\t\n]+)$/.exec(text);
-    if (tail) take(tail.index + tail[0].indexOf(','), tail[0].length - tail[0].indexOf(','), 'categories', App.inventoryModel.tags((fields.categories || '') + ',' + tail[1]).join(', '));
+    if (tail) {
+      let offset = tail.index + tail[0].indexOf(',') + 1;
+      tail[1].split(',').forEach(function (part) {
+        const start = text.indexOf(part.trim(), offset), raw = part.trim();
+        const tag = vocabulary.find(function (value) { return value.toLowerCase() === raw.toLowerCase(); });
+        if (raw) take(start,raw.length,tag ? 'categories' : null,tag ? App.inventoryModel.tags((fields.categories || '') + ',' + tag).join(', ') : undefined);
+        offset = start + raw.length + 1;
+      });
+    }
     if (/\bwater\b/i.test(fields.categories || '') || /\b(?:bottle|anti-bottle)\b/i.test(text)) {
       const volume = /\b(\d+(?:\.\d+)?)\s*(fl\.?\s*oz|fluid ounces?|ounces?|oz|ml|milliliters?|liters?|litres?|l)\b/i.exec(text);
       if (volume) { take(volume.index,volume[0].length,'volume',volume[1]); fields.volumeUnit = /^(?:ml|milliliter)/i.test(volume[2]) ? 'mL' : /^(?:l|liters?|litres?)$/i.test(volume[2]) ? 'L' : 'oz'; }

@@ -105,6 +105,12 @@
     $("#clearInventoryFilters").addEventListener("click", function () { ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
+    $('#itemCopyLocations').addEventListener('input', function (event) {
+      if (!event.target.matches('[data-copy-room]')) return;
+      const row = event.target.closest('[data-copy-location]'), space = $('[data-copy-space]',row), room = event.target.value.trim().toLowerCase();
+      space.value = '';
+      $('#' + space.getAttribute('list')).innerHTML = options(unique(App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room; }).flatMap(function (l) { return l.spaces; })));
+    });
     $("#addColorButton").addEventListener("click", function () {
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
       if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
@@ -118,11 +124,20 @@
     });
     $("#archiveForm").addEventListener("submit", saveArchive);
     $("#addPropertyButton").addEventListener("click", function () { addProperty({ name: "", value: "", unit: "" }, true); });
-    $("#itemProperties").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-property]"); if (button) { button.closest(".item-property").remove(); $("#addPropertyButton").focus(); } });
+    $("#itemProperties").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-property]"); if (button) { button.closest(".item-property").remove(); renderPresets(); $("#addPropertyButton").focus(); } });
     $("#categoryPresets").addEventListener("click", function (event) {
       const button = event.target.closest("[data-category-preset]"); if (!button) return;
       const preset = App.config.inventory.categories[Number(button.dataset.categoryPreset)];
-      $("#itemCategories").value = m.tags($("#itemCategories").value + "," + preset.name).join(", "); renderTags(); suggestProperties();
+      const active = button.getAttribute('aria-pressed') === 'true';
+      smartManual.add('categories'); $('#itemCategories').removeAttribute('data-smart-field');
+      if (active) {
+        preset.properties.forEach(function (p) { smartManual.add(p.name.toLowerCase()); });
+        const remaining = m.tags($('#itemCategories').value).filter(function (tag) { return tag.toLowerCase() !== preset.name.toLowerCase(); });
+        const shared = App.config.inventory.categories.filter(function (c) { return remaining.some(function (tag) { return tag.toLowerCase() === c.name.toLowerCase(); }); }).flatMap(function (c) { return c.properties.map(function (p) { return p.name.toLowerCase(); }); });
+        $$('.item-property').forEach(function (row) { const name = $('[data-property-name]',row).value.toLowerCase(); if (preset.properties.some(function (p) { return p.name.toLowerCase() === name; }) && !shared.includes(name)) row.remove(); });
+        $('#itemCategories').value = remaining.join(', ');
+      } else { $('#itemCategories').value = m.tags($('#itemCategories').value + ',' + preset.name).join(', '); suggestProperties(); }
+      renderTags(); renderPresets();
     });
 
     $("#archiveItemButton").addEventListener("click", function () {
@@ -261,6 +276,7 @@
     });
   }
   function renderTags() {
+    renderPresets();
     $("#selectedItemTags").toggleAttribute('data-smart-field', $("#itemCategories").hasAttribute('data-smart-field'));
     $("#selectedItemTags").innerHTML = m.tags($("#itemCategories").value).map(function (tag) { return '<button type="button" class="tag-chip" data-remove-tag="' + esc(tag) + '" aria-label="Remove ' + esc(tag) + '">' + esc(tag) + ' ' + icon("close") + '</button>'; }).join("");
   }
@@ -341,6 +357,7 @@
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
     $("#itemForm").addEventListener('input', function (event) {
       event.target.removeAttribute('data-smart-field');
+      if (event.target.matches('[data-property-name]')) renderPresets();
       if (event.target.matches('[data-property-value], [data-property-unit]') && $('[data-property-name]', event.target.closest('.item-property')).value.toLowerCase() === 'volume') smartManual.add('volume');
     });
     $("#itemForm").addEventListener("change", function (event) {
@@ -400,7 +417,16 @@
     row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit</span><input data-property-unit maxlength="30" placeholder="e.g. g" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
     function propertySuggestions() { const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else value.removeAttribute("list"); }
     $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions();
-    $("#itemProperties").appendChild(row); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
+    $("#itemProperties").appendChild(row); renderPresets(); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
+  }
+  function renderPresets() {
+    const names = $$('[data-property-name]').map(function (el) { return el.value.trim().toLowerCase(); });
+    $$('#categoryPresets [data-category-preset]').forEach(function (button) {
+      const preset = App.config.inventory.categories[Number(button.dataset.categoryPreset)], active = m.tags($('#itemCategories').value).some(function (tag) { return tag.toLowerCase() === preset.name.toLowerCase(); }) && preset.properties.every(function (p) { return names.includes(p.name.toLowerCase()); });
+      button.setAttribute('aria-pressed', String(active)); button.classList.toggle('preset-applied', active);
+      button.innerHTML = icon(active ? 'close' : 'inventoryPlus') + ' ' + esc(preset.name);
+      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set');
+    });
   }
   function suggestProperties() {
     const tags = m.tags($("#itemCategories").value).map(function (tag) { return tag.toLowerCase(); });
@@ -408,11 +434,15 @@
       category.properties.forEach(function (property) { if (!$$('[data-property-name]').some(function (el) { return el.value.trim().toLowerCase() === property.name.toLowerCase(); })) addProperty(property); });
     });
   }
-  function renderCopyLocations() {
-    const count = Number($("#itemCopies").value), root = $("#itemCopyLocations"), old = $$('[data-copy-room]').map(function (el) { return el.value; });
+  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value }; }); }
+  function renderCopyLocations(saved) {
+    const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
     root.hidden = Boolean(editingId) || !Number.isInteger(count) || count < 2 || count > 100;
-    if (root.hidden) { root.innerHTML = ""; return; }
-    root.innerHTML = '<p>Each copy is saved separately. Leave a room blank to use the location above.</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) { return '<label class="field"><span>Copy ' + (index + 1) + ' Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(old[index] || "") + '"></label>'; }).join("") + '</div>';
+    if (root.hidden) { root.innerHTML = ''; return; }
+    root.innerHTML = '<p>Each copy has its own location. Blank fields use the location above; a different room clears the inherited space.</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
+      const room = old[index]?.room || '', spaces = App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room.toLowerCase(); }).flatMap(function (l) { return l.spaces; });
+      return '<div data-copy-location><strong>Copy ' + (index + 1) + '</strong><label class="field"><span>Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(room) + '"></label><label class="field"><span>Space</span><input data-copy-space list="copySpaceOptions' + index + '" maxlength="80" placeholder="Use room default" value="' + esc(old[index]?.space || '') + '"></label><datalist id="copySpaceOptions' + index + '">' + options(unique(spaces)) + '</datalist></div>';
+    }).join('') + '</div>';
   }
   function openItem(id, trigger, copy, draft) {
     let item = inventory().items.find(function (entry) { return entry.id === id; });
@@ -421,14 +451,14 @@
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
     $("#itemDialogTitle").textContent = id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
-    $("#itemCopiesField").hidden = Boolean(id || draft); $("#itemCopies").disabled = Boolean(id || draft);
+    $("#itemCopiesField").hidden = Boolean(id); $("#itemCopies").disabled = Boolean(id);
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
     $("#saveItemButton").textContent = draft ? "Save & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#copyItemButton").hidden = !id;
-    $("#itemCopyLocations").innerHTML = ""; renderCopyLocations();
+    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || 1; renderCopyLocations(draft?._copyLocations);
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -480,8 +510,8 @@
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
       const next = m.normalizeItem(item);
-      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next); return; }
-      const copies = previous ? [] : m.createCopies(next, count, $$('[data-copy-room]').map(function (el) { return el.value; }));
+      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, copyLocations()); return; }
+      const copies = previous ? [] : m.createCopies(next, count, copyLocations());
       App.storage.mutate(function (state) { if (previous) state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); else state.inventory.items.push.apply(state.inventory.items, copies); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
       App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + " is in your inventory.") : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
@@ -540,6 +570,7 @@
     ["Brand", "Zone", "Space"].forEach(function (key) { if ($("#item" + key).value) draft.properties.push({ name: key, value: $("#item" + key).value, unit: "" }); });
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
+    draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();
     draft._reviewed = true;
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;

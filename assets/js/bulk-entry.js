@@ -69,8 +69,16 @@
   function skip() {
     try { saveDraft(); const current = row(), next = u.clone(queue); next.rows.find(function (r) { return r.id === current.id; }).status = 'skipped'; persist(next); advance(); } catch (e) { error(e.message); }
   }
-  function accept(item) {
+  function accept(item, count, locations) {
     saveDraft(); const current = row(); if (!current) throw new Error('No bulk row is being reviewed.');
+    if (count > 1) {
+      if (queue.rows.length + count - 1 > 500) throw new Error('These copies would exceed the 500-object review limit.');
+      if (App.storage.getState().inventory.items.length + count > 5000) throw new Error('These copies would exceed the 5,000-item inventory limit.');
+      const copies = App.inventoryModel.createCopies(item,count,locations), next = u.clone(queue), index = next.rows.findIndex(function (r) { return r.id === current.id; });
+      const rows = copies.map(function (copy, i) { return Object.assign({},u.clone(current), { id: i ? copy.id.replace(/^item-/, 'bulk-') : current.id, copy: (i+1) + ' of ' + count, draft: Object.assign({},current.draft,copy,{ _copies:1, _copyLocations:[] }) }); });
+      next.rows.splice(index,1,...rows); persist(next);
+      item = copies[0]; App.inventoryUI.openDraft(rows[0].draft,$('#bulkEntryButton')); renderReview(); renderStatus();
+    }
     const nextItem = App.inventoryModel.normalizeItem(Object.assign({}, item, { id: current.id, archive: null }));
     const existing = App.storage.getState().inventory.items.find(function (i) { return i.id === current.id; });
     if (existing && JSON.stringify(existing) !== JSON.stringify(nextItem)) throw new Error('This queued object has already been saved. Pause and resume to continue, then edit it from your inventory if needed.');

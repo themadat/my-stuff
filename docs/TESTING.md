@@ -15,7 +15,7 @@ The dependency-free sync suite uses simulated GitHub responses and storage. It c
 
 Optional browser regression tests require a development-only Playwright installation with Chromium, not an application dependency. Start `python3 -m http.server 8765 --bind 127.0.0.1`, then run `node --test tests/browser.test.mjs`. Set `PLAYWRIGHT_MODULE` to an absolute Playwright `index.mjs` if it is installed outside this repository, and optionally `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to an installed Chromium executable. Set `TEST_BASE_URL` if using another local port. Tests use isolated browser contexts and mocked GitHub responses; they never touch a real token or cloud file. Coverage includes desktop/mobile Settings at 320px–130% text, credentials and draft retention, real sync/restore controls, export privacy, reduced motion, and service-worker offline reload.
 
-Smart Complete coverage also verifies leading Floating/Nook location hierarchy, tab-separated Water/date/price, Vapur brand, trailing Float tag, Volume extraction, ambiguous spaces, revised mouse gestures, white autofill values, and manual corrections across pause/resume.
+Smart Complete coverage also verifies leading Floating/Nook location hierarchy, tab-separated Water/date/price, Vapur brand, trailing Float text retained as Notes, Volume extraction, ambiguous spaces, revised mouse gestures, white entered values, and manual corrections across pause/resume.
 
 Bulk parser coverage includes quoted/multiline CSV and TSV, purchase dates and amounts, explicit-field precedence, independent quantities, raw ownership/acquisition annotations, vocabulary matching and limits. Browser coverage includes the checked-in XLSX fixture (multiple worksheets, rich shared strings, sparse cells, Excel/ISO dates, cached and uncached formulas), local review/resume/skip, escaping, interrupted-save reconciliation, storage failure, concurrent queue replacement, enlarged mobile layout and offline saves. `tests/fixtures/bulk-import.xlsx` is synthetic test data only; no private purchase data is included.
 
@@ -39,3 +39,5 @@ Serve the repository locally and check desktop and mobile widths:
 - focus is visible, reduced motion is honored, and no horizontal overflow appears.
 
 Stop the local server when finished.
+
+Copy-location checks cover independent rooms/spaces, Sling Bag hierarchy, invalid room/space pairs, regular and bulk copies, and shared-property preservation when toggling sets.
