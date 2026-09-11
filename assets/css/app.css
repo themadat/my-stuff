@@ -660,3 +660,66 @@ main { min-width: 0; padding: .75rem max(.9rem, var(--safe-right)) calc(5.5rem +
 .catalog-chips button .sf-symbol { width: .9em; height: .9em; vertical-align: -.1em; }
 .catalog-chips button[aria-pressed="false"] .sf-symbol path { fill: none; }
 .inventory-row-actions { text-align: right; }
+
+/* Compact navigation and full-width copy location rows. */
+.app-header { grid-template-columns: auto minmax(0,auto) minmax(220px,1fr) auto; grid-template-areas: "title inventory-nav search toolbar"; }
+.app-header .inventory-nav { grid-area: inventory-nav; display: flex; gap: .2rem; margin: 0; padding: 0; border: 0; }
+.app-header .inventory-tab { padding: .4rem; font-size: .7rem; white-space: nowrap; }
+.copy-room-grid { grid-template-columns: minmax(0,1fr); }
+.copy-room-grid > [data-copy-location] { display: grid; grid-template-columns: 100px repeat(3,minmax(0,1fr)); align-items: center; gap: .5rem; }
+.item-property.unitless { grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; }
+.inventory-table th:nth-child(4) { width: 11%; }
+.inventory-table th:nth-child(5) { width: 5%; }
+.inventory-table th:nth-child(6) { width: 8%; }
+.inventory-table th:nth-child(7) { width: 9%; }
+.inventory-table th:last-child { width: 7%; }
+@media(max-width:1100px) {
+ .app-header { grid-template-columns: minmax(0,1fr) minmax(220px,1fr); grid-template-areas: "title toolbar" "inventory-nav search"; }
+ .app-header .inventory-nav { flex-wrap: wrap; }
+}
+@media(max-width:620px) {
+ .app-header { grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "title toolbar" "inventory-nav inventory-nav" "search search"; }
+ .app-header .inventory-nav { justify-content: space-between; }
+ .app-header .inventory-tab { font-size: .62rem; gap: .2rem; }
+ .app-header .inventory-tab small { display: none; }
+ .copy-room-grid > [data-copy-location] { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .copy-room-grid > [data-copy-location] > strong { grid-column: 1 / -1; }
+ .copy-room-grid .picker { min-width: 0; }
+ .copy-room-grid input { padding-inline: .3rem; }
+}
+
+@media(max-width:620px) { .item-property.unitless { grid-template-columns: minmax(0,1fr) 38px; } }
+/* Wide, navigable catalog and compact inventory summaries. */
+@media(min-width:701px) { dialog.support-dialog { width: min(1800px,calc(100vw - 2rem)); max-width: calc(100vw - 2rem); } }
+.catalog-rooms li { display: flex; align-items: baseline; gap: .5rem; }
+.catalog-rooms li > strong { flex: 0 0 auto; }
+.catalog-rooms li .catalog-chips { margin-top: 0; min-width: 0; }
+.catalog-filter { border: 0; padding: .12rem .2rem; border-radius: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.catalog-filter:hover { color: var(--accent); background: var(--surface-2); text-decoration: underline; }
+.catalog-chips .catalog-chip { display: inline-flex; align-items: center; padding: 0; }
+.catalog-chip .catalog-filter { border: 0; background: transparent; }
+.catalog-chip .favorite-brand { padding: .2rem; border: 0; background: transparent; }
+.inventory-heading > #inventoryStats { flex-wrap: wrap; }
+.inventory-stat { width: 250px; min-width: 230px; padding: .45rem .7rem; }
+.stat-matrix { display: grid; gap: .2rem; margin-top: .2rem; }
+.stat-row { display: grid; grid-template-columns: 78px minmax(30px,1fr) minmax(65px,1.6fr); gap: .4rem; align-items: baseline; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.stat-row > span:first-child { color: var(--muted); }
+.stat-count, .stat-money { text-align: right; white-space: nowrap; }
+.object-title { display: flex; flex-wrap: wrap; gap: .3rem; align-items: baseline; font-size: .9rem; font-weight: 650; }
+.object-title [data-instant-filter="name"] { color: var(--accent); }
+.object-details { margin-top: .25rem; line-height: 1.5; }
+.object-details .item-tags { display: inline-flex; margin: 0; }
+.location-path { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: .2rem; }
+.location-path > :nth-child(2) { margin-left: .45rem; }
+.location-path > :nth-child(3) { margin-left: .9rem; }
+.inventory-table th:first-child { width: 50%; }
+.inventory-table th:nth-child(2) { width: 20%; }
+.inventory-table th:nth-child(3) { width: 5%; }
+.inventory-table th:nth-child(4) { width: 8%; }
+.inventory-table th:nth-child(5) { width: 10%; }
+.inventory-table th:last-child { width: 7%; }
+@media(max-width:700px) {
+ .inventory-stat { flex: 1 1 230px; width: auto; min-width: 0; }
+ .catalog-rooms li { flex-wrap: wrap; }
+ .inventory-table td:nth-child(3) { grid-column: auto; }
+}

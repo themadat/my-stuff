@@ -246,7 +246,7 @@
 
   function renderHelp() {
     const query = $("#helpSearch").value.trim().toLowerCase();
-    const topics = config.helpTopics.filter(function (topic) { return !query || (topic.title + " " + topic.section + " " + topic.keywords).toLowerCase().includes(query); });
+    const topics = config.helpTopics.filter(function (topic) { return !query || (topic.title + " " + topic.section + " " + topic.keywords + " " + topic.html.replace(/<[^>]*>/g," ")).toLowerCase().includes(query); });
     const groups = new Map();
     topics.forEach(function (topic) { if (!groups.has(topic.section)) groups.set(topic.section, []); groups.get(topic.section).push(topic); });
     $("#helpResultCount").textContent = topics.length + (topics.length === 1 ? " topic" : " topics");
@@ -304,14 +304,18 @@
     const needle = query.trim().toLowerCase();
     if (!needle) return [];
     const results = [];
+    state().inventory.items.filter(function (item) { return [item.name,item.description,item.owner,item.room,item.obtainedDate,item.obtainedHow,item.source,item.price,item.value,item.categories.join(' '),item.properties.map(function (p) { return p.name+' '+p.value+' '+p.unit; }).join(' '),item.archive?.date,item.archive?.reason,item.archive?.notes].join(' ').toLowerCase().includes(needle); }).slice(0,20).forEach(function (item) { results.push({type:'inventory',id:item.id,title:item.name,meta:(item.archive?'Stuff I Had':'Stuff I Have')+' · '+(item.room || 'Unassigned')}); });
+    const catalog = App.inventoryCatalog.data(state().inventory.items);
+    if (JSON.stringify(catalog).toLowerCase().includes(needle)) results.push({type:'catalog',id:query,title:'Inventory Options',meta:'Locations, tags, brands and properties'});
+    [['settings','Settings appearance controls theme'],['data-sync','Data Sync GitHub backup import recovery'],['inventory','Inventory Settings locations tags properties brands favorites'],['roadmap','Roadmap wishes plans'],['shortcuts','Keyboard Shortcuts']].forEach(function (entry) { if(entry[1].toLowerCase().includes(needle)) results.push({type:'settings',id:entry[0],title:entry[1],meta:'Settings'}); });
     config.helpTopics.forEach(function (topic) {
-      if ((topic.title + " " + topic.section + " " + topic.keywords).toLowerCase().includes(needle)) results.push({ type: "help", id: topic.id, title: topic.title, meta: topic.section });
+      if ((topic.title + " " + topic.section + " " + topic.keywords + " " + topic.html.replace(/<[^>]*>/g," ")).toLowerCase().includes(needle)) results.push({ type: "help", id: topic.id, title: topic.title, meta: topic.section });
     });
     config.releases.forEach(function (release) {
-      if ((release.title + " " + release.summary).toLowerCase().includes(needle)) results.push({ type: "release", title: release.title, meta: "What’s New" });
+      if (JSON.stringify(release).toLowerCase().includes(needle)) results.push({ type: "release", title: release.title, meta: "What’s New" });
     });
     if (("notes " + state().notes.text).toLowerCase().includes(needle)) results.push({ type: "notes", title: "Notes", meta: "Local notes" });
-    return results.slice(0, 12);
+    return results.slice(0, 50);
   }
 
   function renderSearch() {
@@ -325,6 +329,9 @@
   function activateSearchResult(button) {
     const type = button.dataset.resultType;
     $("#globalSearchResults").hidden = true;
+    if (type === 'inventory') return App.inventoryUI.openSearchItem(button.dataset.resultId,$('#globalSearch'));
+    if (type === 'catalog') { openSupport('inventory',$('#globalSearch')); $('#inventoryCatalogSearch').value=button.dataset.resultId; App.inventoryCatalog.render(); return; }
+    if (type === 'settings') return openSupport(button.dataset.resultId,$('#globalSearch'));
     if (type === "notes") return openNotes($("#globalSearch"));
     if (type === "release") return openSupport("releases", $("#globalSearch"));
     openSupport("help", $("#globalSearch"));

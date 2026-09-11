@@ -954,11 +954,11 @@ test('inventory detail filters retain overall totals, use whole dollars, and arc
  {id:'lamp-b',name:'Lamp',owner:'house',room:'Den',price:40,value:40,obtainedDate:'2024-01-31',properties:[]}
  ].map(window.LocalApp.inventoryModel.normalizeItem);}));
  assert.equal(await page.locator('.item-money').first().textContent(),'$63');
- assert.deepEqual(await page.locator('.inventory-table th').allTextContents(),['Object','Properties','Notes','Room / Belongs to','Value','Obtained','Actions']);
+ assert.deepEqual(await page.locator('.inventory-table th').allTextContents(),['Object and Properties / Notes','Zone / Room / Space','Count','Value','Obtained','Actions']);
  await page.locator('#inventoryList [data-instant-filter="property:color"]').click();
  assert.equal(await page.locator('[data-edit-item]').count(),1);
  assert.match(await page.locator('[data-inventory-total="all"]').textContent(),/2objects\$103/);
- assert.match(await page.locator('[data-filtered-total="all"]').textContent(),/1 · \$63/);
+ assert.match(await page.locator('[data-filtered-total="all"]').textContent(),/Filtered1\$63/);
  await page.locator('#clearInventoryFilters').click();
  await page.locator('#inventoryList [data-instant-filter="name"]').first().click(); assert.equal(await page.locator('[data-edit-item]').count(),2);
  await page.locator('#clearInventoryFilters').click();
@@ -988,4 +988,68 @@ test('inventory settings uses three columns and favorites sort brand choices fir
  assert.equal(await page.evaluate(()=>window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()).data.favoriteBrands),undefined);
  await page.setViewportSize({width:320,height:844});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+});
+
+test('grouped copies show counts and combined value; horizontal copy pickers resolve parents', {timeout:30000}, async t => {
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=window.LocalApp.inventoryModel.createCopies({id:'n',name:'Notebook',owner:'me',room:'Nook',value:12,properties:[{name:'Color',value:'Blue'}]},3,['Nook','Nook','Office']);}));
+ assert.deepEqual(await page.locator('.item-count').allTextContents(),['2','1']);
+ assert.match(await page.locator('.item-money').first().textContent(),/\$24/);
+ await page.locator('[data-edit-item]').first().click();
+ assert.equal(await page.locator('#itemCopies').inputValue(),'3');
+ const row=page.locator('[data-copy-location]').nth(1);
+ await row.locator('[data-copy-space]').fill('Sling Bag');
+ assert.equal(await row.locator('[data-copy-room]').inputValue(),'Nook');
+ assert.equal(await row.locator('[data-copy-zone]').inputValue(),'Main Level');
+ await row.locator('[data-copy-room]').fill('Office');
+ assert.equal(await row.locator('[data-copy-zone]').inputValue(),'Upstairs');
+ assert.equal(await row.locator('[data-copy-space]').inputValue(),'');
+ assert.equal(await page.locator('[data-property-unit]').first().isVisible(),false);
+ await page.locator('#saveItemButton').click();
+ assert.deepEqual((await page.locator('.item-count').allTextContents()).sort(),['1','2']);
+ await page.setViewportSize({width:320,height:844});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+});
+
+test('top navigation and global search reach current items, archived items, Notes and catalog', {timeout:30000}, async t => {
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ assert.equal(await page.locator('.app-header [data-inventory-view]').count(),4);
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[{id:'search-item',name:'Rare Notebook',owner:'me',room:'Office',properties:[{name:'Color',value:'Cerulean'}],archive:{date:'2026-09-10',reason:'Sold'}}].map(window.LocalApp.inventoryModel.normalizeItem);state.notes.text='Cerulean memo';}));
+ await page.locator('#globalSearch').fill('Cerulean');
+ assert.equal(await page.locator('[data-result-type="inventory"]').count(),1);
+ assert.equal(await page.locator('[data-result-type="notes"]').count(),1);
+ assert.equal(await page.locator('[data-result-type="catalog"]').count(),1);
+ await page.locator('[data-result-type="inventory"]').click();
+ assert.equal(await page.locator('#itemName').inputValue(),'Rare Notebook');
+ assert.equal(await page.locator('#inventoryTitle').textContent(),'Stuff I Had');
+});
+
+test('wide catalog links return to filtered Have; grouped categories and aligned totals share the compact layout', {timeout:30000}, async t => {
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
+ {id:'catalog-water',name:'Bottle',owner:'me',room:'Nook',value:12,source:'Amazon',description:'Trail bottle',categories:['Water'],properties:[{name:'Brand',value:'Vapur'},{name:'Space',value:'Sling Bag'},{name:'Volume',value:'23',unit:'oz'}]},
+ {id:'catalog-cable',name:'USB cable',owner:'house',room:'Office',value:8,categories:['Cables'],properties:[{name:'Color',value:'Black'}]}
+ ].map(window.LocalApp.inventoryModel.normalizeItem);}));
+ await page.locator('#inventorySettingsTab').click();
+ assert.ok((await page.locator('#supportDialog').boundingBox()).width>1500);
+ await page.locator('#inventoryCatalogSearch').fill('Sling Bag');
+ await page.locator('[data-catalog-filter]').filter({hasText:'Sling Bag'}).click();
+ assert.equal(await page.locator('#supportDialog').evaluate(el=>el.open),false);
+ assert.equal(await page.locator('#inventoryTitle').textContent(),'Stuff I Have');
+ assert.equal(await page.locator('[data-edit-item]').count(),1);
+ assert.match(await page.locator('.object-title').textContent(),/Vapur.*Bottle/);
+ assert.match(await page.locator('.object-details').textContent(),/Volume.*Seller: Amazon.*Trail bottle/);
+ assert.match(await page.locator('.item-location').textContent(),/Main Level.*Nook.*Sling Bag/);
+ await page.locator('#clearInventoryFilters').click();
+ await page.locator('#inventoryCategoryFilter').selectOption('group:Power');
+ assert.equal(await page.locator('[data-edit-item]').count(),1);
+ assert.match(await page.locator('.object-title').textContent(),/USB cable/);
+ const positions=await page.locator('[data-inventory-total="all"] .stat-count').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().right));
+ assert.equal(positions[0],positions[1]);
+ await page.locator('#supportButton').click(); await page.locator('#inventorySettingsTab').click();
+ await page.locator('#inventoryCatalogSearch').fill('Color');
+ await page.locator('[data-catalog-filter]').filter({hasText:/^Color$/}).first().click();
+ assert.equal(await page.locator('[data-edit-item]').count(),1);
+ assert.match(await page.locator('.object-title').textContent(),/USB cable/);
+ await page.screenshot({path:'/private/tmp/my-stuff-20-compact.png'});
 });

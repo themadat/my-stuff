@@ -66,3 +66,40 @@ test('ownership age uses calendar anniversaries and annual cost handles unknown 
  assert.equal(app.inventoryModel.ownershipAge({...base,obtainedDate:''},'2026-09-10'),null);
  assert.equal(app.inventoryModel.ownershipAge({...base,price:null,value:null},'2026-09-10').annualValue,null);
 });
+
+test('same-room matching objects group without merging storage or hiding separate rooms and brands', () => {
+ const copies=app.inventoryModel.createCopies(item,3,['Den','Den','Office']);
+ copies[1].properties.find(p=>p.name==='Color').value='White';
+ assert.deepEqual(Array.from(app.inventoryModel.groupRows(copies),g=>g.length),[2,1]);
+ assert.equal(copies.length,3);
+ const other=app.inventoryModel.normalizeItem({...copies[0],id:'brand',properties:[{name:'Brand',value:'Different'}]});
+ assert.equal(app.inventoryModel.groupRows([...copies,other]).length,3);
+ assert.equal(app.inventoryModel.sameObject(copies[0],copies[1]),true);
+ assert.equal(app.inventoryModel.sameObject(copies[0],other),false);
+ copies[0].archive={date:'2026-09-10',reason:'Sold',notes:''};
+ copies[1].archive={date:'2026-09-10',reason:'Sold',notes:''};
+ assert.equal(app.inventoryModel.groupRows(copies).length,3,'departure histories remain individual');
+});
+
+test('copy overrides preserve zone-only and custom room parents', () => {
+ const zone=app.inventoryModel.createCopies(item,1,[{zone:'Upstairs'}])[0];
+ assert.equal(zone.room,''); assert.equal(zone.properties.find(p=>p.name==='Zone').value,'Upstairs');
+ assert.equal(zone.properties.some(p=>p.name==='Space'),false);
+ const custom=app.inventoryModel.createCopies(item,1,[{zone:'Annex',room:'Studio',space:'Shelf'}])[0];
+ assert.equal(custom.properties.find(p=>p.name==='Zone').value,'Annex');
+ const known=app.inventoryModel.createCopies(item,1,[{zone:'Wrong',room:'Office',space:'Desk'}])[0];
+ assert.equal(known.properties.find(p=>p.name==='Zone').value,'Upstairs');
+});
+
+test('catalog filters respect location parents, tag groups, properties and property values', () => {
+ const entry=app.inventoryModel.normalizeItem({...item,room:'Nook',categories:['Water'],properties:[{name:'Space',value:'Sling Bag'},{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]});
+ const matches=app.inventoryCatalog.matches;
+ assert.equal(matches(entry,{kind:'zone',value:'Main Level'}),true);
+ assert.equal(matches(entry,{kind:'space',value:'Sling Bag',room:'Nook',zone:'Main Level'}),true);
+ assert.equal(matches(entry,{kind:'space',value:'Sling Bag',room:'Office',zone:'Upstairs'}),false);
+ assert.equal(matches(entry,{kind:'tags',values:['Water','Fire']}),true);
+ assert.equal(matches(entry,{kind:'tags',values:['OXO'],brands:true}),true);
+ assert.equal(matches(entry,{kind:'properties',values:['color','weight']}),true);
+ assert.equal(matches(entry,{kind:'property',name:'Color',value:'Blue'}),true);
+ assert.equal(matches(entry,{kind:'property',name:'Color',value:'Red'}),false);
+});

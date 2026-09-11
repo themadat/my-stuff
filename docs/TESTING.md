@@ -47,3 +47,7 @@ Inventory filter checks cover the full-width workspace, ownership chips, categor
 - Total Copies: increase and reopen, edit each room/space, preserve other copies’ details, confirm/cancel reductions, delete/cancel one current or archived item, and reject stale edits. Verify copy-group links survive normalization, bulk pause/resume, backup and sync.
 
 - Verify whole-dollar display retains stored cents, exact detail filters and filtered totals, direct archive actions, calendar age across leap/end-of-month dates, same-day/unknown annual averages, three-column/mobile catalog, and favorite-brand persistence and ordering.
+
+- 0.0.1.20: verify same-room grouping/count/combined value, differing properties and separate departure history; copy picker parent inference including ambiguous spaces and custom zones; unitless fields; top-bar desktop/mobile layout and global search into current/archived records, Notes and catalog. Browser checks are pending because preview launch was rejected by automatic approval review (workspace credits exhausted).
+
+- Latest layout: verify wide Settings and inline spaces; each catalog type routes to Have with the correct filter and parent scope; group/category hierarchy works; favorite stars do not navigate; Everything/Filtered numeric columns align; combined object/details and location columns remain usable on mobile. Added browser coverage is unrun pending workspace credit refill.

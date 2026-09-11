@@ -5,7 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", closing = false;
-  let editingCopies = [], instantFilters = new Map();
+  let editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
@@ -92,6 +92,8 @@
         <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" maxlength="2000" rows="3" placeholder="Anything you want to remember"></textarea></label>
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
+    $('.global-search-wrap').before($('.inventory-nav'));
+    $('.inventory-nav').addEventListener('click', function (event) { const nav = event.target.closest('[data-inventory-view]'); if (nav) { view = nav.dataset.inventoryView; render(); $('#inventoryTitle').focus({preventScroll:true}); } });
     initSmartControls(); $("#itemBrand").maxLength = 300;
     ["#itemPrice","#itemValue"].forEach(function (id) { $(id).addEventListener("blur", function () { setTimeout(fillMissingAmount,0); }); });
     initObjectWords();
@@ -119,19 +121,6 @@
     $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
-    $('#itemCopyLocations').addEventListener('input', function (event) {
-      const row = event.target.closest('[data-copy-location]'); if (!row) return;
-      const space = $('[data-copy-space]',row), room = $('[data-copy-room]',row).value.trim();
-      if (event.target.matches('[data-copy-room]')) {
-        space.value = '';
-        $('#' + space.getAttribute('list')).innerHTML = options(unique(App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room.toLowerCase(); }).flatMap(function (l) { return l.spaces; })));
-      }
-      if (editingId && row === $('[data-copy-location]')) {
-        ['room','space','zone'].forEach(function (key) { smartManual.add(key); });
-        $('#itemRoom').value = room; $('#itemSpace').value = space.value;
-        $('#itemZone').value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === room.toLowerCase(); })?.zone || '';
-      }
-    });
     $("#addColorButton").addEventListener("click", function () {
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
       if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
@@ -327,11 +316,19 @@
     if (id === "itemRoom") return App.inventoryCatalog.data(items).locations.flatMap(function (zone) { return [{value:zone.name,kind:'zone',detail:'Zone',zone:zone.name}].concat(zone.rooms.flatMap(function (room) { return [{value:room.name,kind:'room',level:1,detail:zone.name,zone:zone.name}].concat(room.spaces.map(function (space) { return {value:space,kind:'space',level:2,detail:zone.name+' / '+room.name,room:room.name,zone:zone.name}; })); })); });
     return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); }).concat(propertyValues("space"));
   }
-  function initPicker(id) {
+  function initPicker(id, copyRow, kind) {
+    const type = kind || id;
     const input = $("#" + id), list = $("#" + id + "Options"); let choices = [], active = -1;
     function close() { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; }
     function choose(index) {
       const option = choices[index]; if (!option) return;
+      if (copyRow) {
+        const zone = $('[data-copy-zone]',copyRow), room = $('[data-copy-room]',copyRow), space = $('[data-copy-space]',copyRow);
+        if (kind === 'itemZone') { zone.value = option.value; room.value = ''; space.value = ''; }
+        if (kind === 'itemRoom') { zone.value = option.zone || ''; room.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; space.value = option.kind === 'space' ? option.value : ''; }
+        if (kind === 'itemSpace') { space.value = option.value; if (option.room) { room.value = option.room; zone.value = option.zone; } }
+        syncCopyToPrimary(copyRow); close(); input.focus(); close(); return;
+      }
       input.value = option.value;
       (id === 'itemBrand' ? ['brand'] : ['zone','room','space','categories']).forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
@@ -343,18 +340,19 @@
     }
     function show() {
       const query = input.value.trim().toLowerCase(), seen = new Set();
-      choices = pickerValues(id).filter(function (option) {
-        const key = option.value.toLowerCase() + (["itemRoom","itemSpace"].includes(id) ? "|" + option.detail + "|" + (option.kind || "") : "");
+      choices = pickerValues(type).filter(function (option) {
+        const key = option.value.toLowerCase() + (["itemRoom","itemSpace"].includes(type) ? "|" + option.detail + "|" + (option.kind || "") : "");
         if (!option.value || seen.has(key)) return false; seen.add(key);
         return (option.value + " " + option.detail).toLowerCase().includes(query);
       });
-      if (id === "itemSpace") choices.sort(function (a, b) { return Number(b.room === $("#itemRoom").value) - Number(a.room === $("#itemRoom").value); });
+      if (type === "itemSpace") choices.sort(function (a, b) { return Number(b.room === (copyRow ? $("[data-copy-room]",copyRow).value : $("#itemRoom").value)) - Number(a.room === (copyRow ? $("[data-copy-room]",copyRow).value : $("#itemRoom").value)); });
       if (query && !choices.some(function (option) { return option.value.toLowerCase() === query; })) choices.push({ value: input.value.trim(), detail: "Use Custom " + (id === "itemTagSearch" ? "Tag" : "Location") });
       list.innerHTML = choices.map(function (option, index) { return '<div role="option" aria-selected="false" id="' + id + 'Option' + index + '" data-option="' + index + '" style="padding-left:' + (.65 + (option.level || 0) * .9) + 'rem"><span>' + esc(option.value) + '</span><small>' + esc(option.detail) + '</small></div>'; }).join("") || '<p>No More Suggestions</p>';
       active = -1; input.removeAttribute("aria-activedescendant"); list.hidden = false; input.setAttribute("aria-expanded", "true");
     }
     input.addEventListener("focus", show);
     input.addEventListener("input", function () {
+      if (copyRow) { matchCopyLocation(copyRow,kind); show(); return; }
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
       if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
       if (['itemRoom','itemZone','itemSpace'].includes(id)) syncPrimaryCopy();
@@ -380,7 +378,7 @@
     });
   }
   function initSmartControls() {
-    ["itemBrand", "itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(initPicker);
+    ["itemBrand", "itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(function (id) { initPicker(id); });
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
@@ -414,15 +412,26 @@
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = stats[entry[0]];
-      return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="inventory-stat-count">' + total.count.toLocaleString() + '<span>objects</span></span><span class="inventory-stat-value">' + esc(money(total.valueCents / 100, true)) + '<small>known value' + (total.unknown ? ' · ' + total.unknown + ' not valued' : '') + '</small><small class="filtered-total" data-filtered-total="' + entry[0] + '"></small></span></button>';
+      return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
+
     }).join("");
     $("#roomStats").innerHTML = stats.rooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + stats.rooms.map(function (room) { return '<tr><th scope="row">' + filterButton('room',room.name,room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td>' + filterButton('roomOwner',[room.name,owner],total.count + ' · ' + money(total.valueCents / 100,true)) + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
     renderLocationFilter();
-    refreshOptions("#inventoryCategoryFilter", unique(App.config.inventory.tagGroups.flatMap(function (g) { return g.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; }), data.items.flatMap(function (item) { return item.categories; })).map(function (tag) { return m.tags([tag])[0]; })), "All Categories");
+    renderCategoryFilter();
     $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; }).concat(App.config.inventory.rooms, data.items.map(function (item) { return item.room; }))));
     renderList();
     App.inventoryCatalog?.render();
   }
+  function renderCategoryFilter() {
+    const el = $('#inventoryCategoryFilter'), old = el.value;
+    const groups = App.inventoryCatalog.data(inventory().items).tagGroups.map(function (g) { return g.name === 'Brands' ? {name:g.name,tags:App.inventoryCatalog.brands(inventory().items)} : g; });
+    categoryGroups = new Map(groups.map(function (g) { return ['group:'+g.name,{kind:'tags',values:g.tags,brands:g.name==='Brands'}]; }));
+    el.innerHTML = '<option value="">All Categories</option>' + groups.map(function (g) {
+      return '<optgroup label="' + esc(g.name) + '"><option value="' + esc('group:'+g.name) + '">' + esc(g.name+' — All') + '</option>' + g.tags.map(function (tag) { return '<option value="' + esc(tag) + '">　' + esc(tag) + '</option>'; }).join('') + '</optgroup>';
+    }).join('');
+    el.value = Array.from(el.options).some(function (option) { return option.value===old; }) ? old : '';
+  }
+  function matchesCategory(item,value) { return !value || (categoryGroups.has(value) ? App.inventoryCatalog.matches(item,categoryGroups.get(value)) : item.categories.includes(value) || (categoryGroups.get('group:Brands')?.values.includes(value) && App.inventoryCatalog.matches(item,{kind:'property',name:'Brand',value:value})) ); }
   function renderLocationFilter() {
     const el = $('#inventoryRoomFilter'), old = el.value;
     el.innerHTML = '<option value="">All Locations</option>' + App.inventoryCatalog.data(inventory().items).locations.map(function (zone) {
@@ -441,9 +450,9 @@
   }
   function renderCategoryCards(items) {
     const selected = $('#inventoryCategoryFilter').value, old = $('#categoryCards').scrollLeft;
-    $('#categoryCards').innerHTML = Array.from($('#inventoryCategoryFilter').options).map(function (option) {
-      const name = option.value, count = items.filter(function (item) { return !name || item.categories.includes(name); }).length;
-      return '<button type="button" class="category-card" data-category-filter="' + esc(name) + '" aria-pressed="' + (selected === name) + '">' + icon(name === 'Water' ? 'categoryWater' : name === 'Cables' ? 'categoryCables' : 'inventoryBox') + '<span>' + esc(name || 'All Categories') + '</span><small>' + count + '</small></button>';
+    $('#categoryCards').innerHTML = Array.from($('#inventoryCategoryFilter').options).filter(function (option,index,all) { return all.findIndex(function (entry) { return entry.value === option.value; }) === index; }).map(function (option) {
+      const name = option.value, count = items.filter(function (item) { return matchesCategory(item,name); }).length;
+      return '<button type="button" class="category-card" data-category-filter="' + esc(name) + '" aria-pressed="' + (selected === name) + '">' + icon(name === 'Water' ? 'categoryWater' : name === 'Cables' ? 'categoryCables' : 'inventoryBox') + '<span>' + esc(name.startsWith('group:') ? name.slice(6) : name || 'All Categories') + '</span><small>' + count + '</small></button>';
     }).join(''); $('#categoryCards').scrollLeft = old;
   }
   function fillMissingAmount() {
@@ -468,18 +477,23 @@
     $$('[data-owner-filter]').forEach(function (button) { button.setAttribute('aria-pressed',String(button.dataset.ownerFilter === owner)); });
     renderCategoryCards(all);
     const items = all.filter(function (item) {
-      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || item.categories.includes(category)) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
+      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && matchesCategory(item,category) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return view === "previous" ? b.archive.date.localeCompare(a.archive.date) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name); });
     $("#inventoryResultCount").textContent = items.length + " of " + all.length + " " + (view === "previous" ? "previous" : "current") + " objects";
     $("#clearInventoryFilters").hidden = !(search || owner || room || category || instantFilters.size);
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
-    ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').textContent = 'Filtered: ' + filtered[key].count + ' · ' + money(filtered[key].valueCents/100,true); });
-    $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown') + ' ×'); }).join(''));
+    ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').innerHTML = '<span>Filtered</span><span class="stat-count">' + filtered[key].count + '</span><span class="stat-money">' + esc(money(filtered[key].valueCents/100,true)) + '</span>'; });
+    $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
     if (!items.length) {
       $("#inventoryList").innerHTML = '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryPlus") + ' Add Your First Item</button>' : '') + '</div>'; return;
     }
-    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object</th><th>Properties</th><th>Notes</th><th>Room / Belongs to</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + items.map(function (item) {
-      return '<tr><td>' + filterButton('name',item.name,item.name) + '<div class="item-tags">' + item.categories.map(function (tag) { return filterButton('categories',tag,tag); }).join('') + '</div>' + (item.source ? filterButton('source',item.source,item.source) : '') + '</td><td>' + item.properties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name + ': ' + p.value + (p.unit ? ' '+p.unit : '')); }).join(' ') + '</td><td>' + (item.description ? filterButton('description',item.description,item.description) : '') + '</td><td>' + filterButton('room',item.room,item.room || 'Unassigned') + '<small>' + filterButton('owner',item.owner,item.owner === 'house' ? 'House' : 'Me') + '</small></td><td class="item-money">' + filterButton('value',item.value,money(item.value,true)) + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : filterButton('obtainedDate',item.obtainedDate,dateLabel(item.obtainedDate)) + (item.obtainedHow ? '<small>' + filterButton('obtainedHow',item.obtainedHow,item.obtainedHow) + '</small>' : '')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">Edit</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th>Zone / Room / Space</th><th>Count</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + m.groupRows(items).map(function (members) {
+      const item = members[0], distinct = function (values) { return Array.from(new Map(values.map(function (value) { return [JSON.stringify(value),value]; })).values()); };
+      const properties = distinct(members.flatMap(function (entry) { return entry.properties; })), descriptions = distinct(members.map(function (entry) { return entry.description; }));
+      const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
+      const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
+      const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || 'Unassigned Zone',room:entry.room || 'Unassigned Room',space:property('space')}; };
+      return '<tr><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '</div><div class="object-details">' + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,tag); }).join('') + filterButton('owner',item.owner,item.owner==='house'?'House':'Me') + '</span></div></td><td class="item-location">' + distinct(members.map(location)).map(function (l) { return '<div class="location-path">' + filterButton('catalog',{kind:'zone',value:l.zone,label:l.zone},l.zone) + filterButton('catalog',{kind:'room',value:l.room,zone:l.zone,label:l.room},l.room) + (l.space ? filterButton('catalog',{kind:'space',value:l.space,room:l.room,zone:l.zone,label:l.space},l.space) : '') + '</div>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">Edit</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join('') + '</tbody></table></div>';
   }
 
@@ -488,8 +502,8 @@
   function addProperty(property, focus) {
     if ($$(".item-property").length >= 40) return formError("#itemFormError", "Use up to 40 properties per item.");
     const row = document.createElement("div"); row.className = "item-property";
-    row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit</span><input data-property-unit maxlength="30" placeholder="e.g. g" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
-    function propertySuggestions() { const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else value.removeAttribute("list"); }
+    row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit (optional)</span><input data-property-unit maxlength="30" placeholder="Optional" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
+    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else value.removeAttribute("list"); }
     $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions();
     $("#itemProperties").appendChild(row); renderPresets(); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
   }
@@ -512,27 +526,48 @@
     const row = $('[data-copy-location]'); if (!editingId || !row) return;
     $('[data-copy-room]',row).value = $('#itemRoom').value;
     $('[data-copy-space]',row).value = $('#itemSpace').value;
+    $('[data-copy-zone]',row).value = $('#itemZone').value;
   }
-  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value }; }); }
+  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value }; }); }
   function renderCopyLocations(saved) {
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
     root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
     root.innerHTML = '<p>' + (editingId ? 'Edit each copy’s room and space. Blank fields clear an existing location; new copies use the location above.' : 'Each copy has its own location. Blank fields use the location above; a different room clears the inherited space.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      const room = old[index]?.room ?? '', spaces = App.config.inventory.locations.filter(function (l) { return !room || l.room.toLowerCase() === room.toLowerCase(); }).flatMap(function (l) { return l.spaces; });
-      return '<div data-copy-location><strong>Copy ' + (index + 1) + (editingCopies[index]?.id === editingId ? ' · This Item' : '') + '</strong><label class="field"><span>Room</span><input data-copy-room list="copyRoomOptions" maxlength="80" placeholder="Use location above" value="' + esc(room) + '"></label><label class="field"><span>Space</span><input data-copy-space list="copySpaceOptions' + index + '" maxlength="80" placeholder="Use room default" value="' + esc(old[index]?.space || '') + '"></label><datalist id="copySpaceOptions' + index + '">' + options(unique(spaces)) + '</datalist></div>';
+      return '<div data-copy-location><strong>Copy ' + (index+1) + (editingCopies[index]?.id === editingId ? ' · This Item' : '') + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + '</div>';
     }).join('') + '</div>';
+    $$('[data-copy-location]').forEach(function (row,index) {
+      ['Zone','Room','Space'].forEach(function (name) { const input = $('#copy'+index+name); input.setAttribute('data-copy-'+name.toLowerCase(),''); input.value = old[index]?.[name.toLowerCase()] || ''; });
+      if (!$('[data-copy-zone]',row).value) $('[data-copy-zone]',row).value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === $('[data-copy-room]',row).value.toLowerCase(); })?.zone || '';
+      ['Zone','Room','Space'].forEach(function (name) { initPicker('copy'+index+name,row,'item'+name); });
+    });
   }
+  function syncCopyToPrimary(row) {
+    if (!editingId || row !== $('[data-copy-location]')) return;
+    ['Zone','Room','Space'].forEach(function (name) { $('#item'+name).value = $('[data-copy-'+name.toLowerCase()+']',row).value; smartManual.add(name.toLowerCase()); });
+  }
+  function matchCopyLocation(row,kind) {
+    const zone = $('[data-copy-zone]',row), room = $('[data-copy-room]',row), space = $('[data-copy-space]',row), locations = App.inventoryCatalog.data(inventory().items).locations;
+    if (kind === 'itemZone') { room.value = ''; space.value = ''; }
+    if (kind === 'itemRoom') {
+      space.value = ''; const parent = locations.find(function (z) { return z.rooms.some(function (r) { return r.name.toLowerCase() === room.value.trim().toLowerCase(); }); }); zone.value = parent?.name || '';
+      if (!parent) { const matches = locations.flatMap(function (z) { return z.rooms.filter(function (r) { return r.spaces.some(function (s) { return s.toLowerCase() === room.value.trim().toLowerCase(); }); }).map(function (r) { return {zone:z.name,room:r.name}; }); }); if (matches.length === 1) { space.value = room.value.trim(); room.value = matches[0].room; zone.value = matches[0].zone; } }
+    }
+    if (kind === 'itemSpace') {
+      const matches = locations.flatMap(function (z) { return z.rooms.filter(function (r) { return r.spaces.some(function (s) { return s.toLowerCase() === space.value.trim().toLowerCase(); }); }).map(function (r) { return {zone:z.name,room:r.name}; }); });
+      const match = matches.find(function (l) { return l.room.toLowerCase() === room.value.toLowerCase(); }) || (matches.length === 1 ? matches[0] : null);
+      if (match) { room.value = match.room; zone.value = match.zone; }
+    }
+    syncCopyToPrimary(row);
+  }
+
   function openItem(id, trigger, copy, draft) {
     let item = inventory().items.find(function (entry) { return entry.id === id; });
     if (id && !item) return;
     if (copy) { item = Object.assign({}, item, { archive: null }); id = ""; }
     editingCopies = id && !item.archive ? inventory().items.filter(function (entry) {
       if (entry.archive) return false;
-      if (item.copyGroup) return entry.copyGroup === item.copyGroup;
-      if (entry.copyGroup) return false;
-      const signature = function (value) { const record = Object.assign({}, value); delete record.id; delete record.room; record.properties = record.properties.filter(function (p) { return !['zone', 'space'].includes(p.name.toLowerCase()); }); return JSON.stringify(record); };
-      return signature(entry) === signature(item);
+      return m.sameObject(entry,item);
     }).map(function (entry) { return JSON.parse(JSON.stringify(entry)); }) : [];
     editingCopies.sort(function (a, b) { return a.id === id ? -1 : b.id === id ? 1 : 0; });
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
@@ -545,7 +580,7 @@
     $("#saveItemButton").textContent = draft ? "Save & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#deleteItemButton").hidden = !id;
-    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || ""}; }));
+    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || ""}; }));
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -603,12 +638,12 @@
       if (previous && !previous.archive) {
         const verifyCopies = function () {
           editingCopies.forEach(function (entry) { currentItemUnchanged(entry.id, JSON.stringify(entry)); });
-          if (previous.copyGroup && inventory().items.filter(function (entry) { return !entry.archive && entry.copyGroup === previous.copyGroup; }).length !== editingCopies.length) throw new Error("Copies changed while editing. Close and reopen this item.");
+          if (inventory().items.filter(function (entry) { return !entry.archive && m.sameObject(entry,previous); }).length !== editingCopies.length) throw new Error("Copies changed while editing. Close and reopen this item.");
         };
         verifyCopies();
         const locations = copyLocations(), group = previous.copyGroup || u.uid('copies');
         const locationSignature = function (entry) { return JSON.stringify([entry.room, entry.properties.filter(function (p) { return ['zone','space'].includes(p.name.toLowerCase()); })]); };
-        if (locationSignature(next) !== locationSignature(previous)) locations[0] = {room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''};
+        if (locationSignature(next) !== locationSignature(previous)) locations[0] = {zone:next.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''};
         copies = Array.from({length:count}, function (_, index) {
           const existing = editingCopies[index], base = index === 0 || !existing ? next : existing;
           const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
@@ -695,5 +730,5 @@
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;
   }
-  App.inventoryUI = { home: function () { instantFilters.clear(); view = "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
+  App.inventoryUI = { fromCatalog: function (filter) { instantFilters.clear(); instantFilters.set('catalog',filter); view='have'; ['#inventorySearch','#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); render(); $('#inventoryTitle').focus(); }, search: function (query) { instantFilters.clear(); view='have'; ['#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); $('#inventorySearch').value=query; render(); }, openSearchItem: function (id,trigger) { const item=inventory().items.find(function (entry) { return entry.id===id; }); if(item) { view=item.archive?'previous':'have'; render(); openItem(id,trigger); } }, home: function () { instantFilters.clear(); view = "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
 })();

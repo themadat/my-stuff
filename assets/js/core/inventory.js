@@ -63,6 +63,8 @@
     return Array.from({ length: count }, function (_, index) {
       const item = normalizeItem(Object.assign({}, template, { id: u.uid("item"), archive: null }));
       const override = rooms?.[index], requestedRoom = typeof override === 'object' ? override?.room : override;
+      const zone = u.cleanLine(typeof override === 'object' ? override?.zone : '',80);
+      if (zone && !requestedRoom && !(typeof override === 'object' && override?.space)) { item.room = ''; item.properties = item.properties.filter(function (p) { return !['zone','space'].includes(p.name.toLowerCase()); }); item.properties.push({name:'Zone',value:zone,unit:''}); }
       const space = u.cleanLine(typeof override === 'object' ? override?.space : '', 80);
       let room = u.cleanLine(requestedRoom, 80);
       if (space && !room) {
@@ -81,6 +83,11 @@
         item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'space'; });
         item.properties.push({ name: 'Space', value: space, unit: '' });
       }
+      if (room || zone) {
+        const parent = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); });
+        const resolvedZone = parent?.zone || zone;
+        if (resolvedZone) { item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'zone'; }); item.properties.push({name:'Zone',value:resolvedZone,unit:''}); }
+      }
       return normalizeItem(item);
     });
   }
@@ -96,6 +103,19 @@
   function daysOwned(item, end) {
     if (!item.obtainedDate) return null;
     return Math.max(0, Math.round((Date.parse((end || item.archive?.date || today()) + "T00:00:00Z") - Date.parse(item.obtainedDate + "T00:00:00Z")) / 86400000));
+  }
+  function objectKey(item) {
+    const brand = item.properties.find(function (p) { return p.name.toLowerCase() === 'brand'; })?.value || '';
+    return JSON.stringify([item.name.trim().toLowerCase(),brand.trim().toLowerCase(),item.owner]);
+  }
+  function sameObject(a,b) { return objectKey(a) === objectKey(b); }
+  function groupRows(items) {
+    const groups = new Map();
+    items.forEach(function (item) {
+      const key = JSON.stringify([objectKey(item),item.room.trim().toLowerCase(),item.archive ? item.id : null]);
+      if (!groups.has(key)) groups.set(key,[]); groups.get(key).push(item);
+    });
+    return Array.from(groups.values());
   }
   function ownershipAge(item, end) {
     const finish = dateOnly(end || item.archive?.date || today());
@@ -139,5 +159,5 @@
     });
     return normalize({ currency: local.currency, items: Array.from(items.values()) });
   }
-  App.inventoryModel = { ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();
