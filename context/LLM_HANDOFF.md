@@ -1,3 +1,9 @@
+## Latest update — compact inventory workspace (0.0.1.23)
+
+Removed the visible duplicate workspace heading while retaining the heading as a screen-reader/focus target. Search, Location and Category now sit at the left of the ownership toolbar, with visually hidden labels and equal-height controls. Edit and Archive are adjacent icon-only controls with existing item-specific accessible labels. Room and Space share a flex line beneath Zone. Reduced row padding/detail line spacing; content still wraps as needed. Category cards are 72px (previously 90px), use 2em symbols (previous default 1em), and retain full label tooltips. Only favorite brands appear in the Brands dropdown group and derived quick cards; other category groups remain available. All brands remain available in Settings and the item editor.
+
+All 76 model/parser/static checks pass. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.23. Desktop/mobile/offline visual checks remain pending under the previously recorded preview-server approval restriction; no server launched. Transfer uses /private/tmp/my-stuff-compact-baseline equality guards against the source checkout at 44058de (0.0.1.22). No commit or push performed.
+
 ## Latest update — ownership layout and add controls (0.0.1.22)
 
 All/House/Me cards place their symbol above their word in a left column beside the Everything/Filtered totals. Mobile numeric columns can wrap to retain the left-column layout with enlarged text. The main and empty-state Add buttons read Add Item and use the supplied plus-square SVG. Bulk Add is icon-only using the supplied stacked plus-square SVG; its accessible label/title retain the pending review count when queue status updates. Original SVG viewBoxes and paths, currentColor and 0.85 opacity are retained; pasted Markdown namespaces were normalized. Other plus controls are unchanged.

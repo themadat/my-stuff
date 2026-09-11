@@ -4,7 +4,7 @@
   const $ = function (selector, root) { return (root || document).querySelector(selector); };
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
-  let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", closing = false;
+  let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   let editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
@@ -29,16 +29,15 @@
         <button class="inventory-tab" type="button" data-inventory-view="research">${icon("inventoryResearch")}<span>Research</span><small>Later</small></button>
         <button class="inventory-tab" type="button" data-inventory-view="previous">${icon("inventoryArchive")}<span>Stuff I Had</span><small id="previousCount">0</small></button>
       </nav>
-      <header class="inventory-heading"><div><span class="eyebrow">A Place for Everything</span><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle">Know what you own, where it lives, and what it’s worth.</p></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")} Add Item</button></header>
+      <header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
+            ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}
+            <input type="hidden" id="inventoryOwnerFilter" value="">
+            ${select("inventoryRoomFilter", "Location", '<option value="">All Rooms</option>')}
+            ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
+          </div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")} Add Item</button></header>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body">
         <section class="inventory-collection" aria-label="Your items">
-          <div class="inventory-filterbar">
-            ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Name, tag, source, or property…" maxlength="200"')}
-            <input type="hidden" id="inventoryOwnerFilter" value="">
-            ${select("inventoryRoomFilter", "Room", '<option value="">All Rooms</option>')}
-            ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
-          </div>
           <div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div>
           <div class="inventory-list-heading"><span id="inventoryResultCount" role="status" aria-live="polite"></span><button id="clearInventoryFilters" class="button small" type="button" hidden>Clear Filters</button></div>
           <div id="inventoryList"></div>
@@ -165,7 +164,7 @@
     ["itemDialog", "archiveDialog"].forEach(function (id) { $("#" + id).addEventListener("cancel", function (event) { event.preventDefault(); dismiss(id); }); });
     window.addEventListener("app:statechange", function () {
       const json = JSON.stringify(inventory());
-      if (json !== lastInventory) render();
+      if (json !== lastInventory || JSON.stringify(App.storage.getState().preferences.favoriteBrands || []) !== lastFavoriteBrands) render();
     });
     render();
   }
@@ -398,6 +397,7 @@
   function render() {
     const data = inventory(), stats = m.stats(data.items);
     lastInventory = JSON.stringify(data);
+    lastFavoriteBrands = JSON.stringify(App.storage.getState().preferences.favoriteBrands || []);
     $("#haveCount").textContent = stats.all.count;
     $("#previousCount").textContent = data.items.length - stats.all.count;
     $$('[data-inventory-view]').forEach(function (button) { if (button.dataset.inventoryView === view) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); });
@@ -410,6 +410,7 @@
     $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = false;
     $("#roomOverview").hidden = view !== "have"; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
+    $(".inventory-filterbar").hidden = !active;
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = stats[entry[0]];
       return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
@@ -424,7 +425,7 @@
   }
   function renderCategoryFilter() {
     const el = $('#inventoryCategoryFilter'), old = el.value;
-    const groups = App.inventoryCatalog.data(inventory().items).tagGroups.map(function (g) { return g.name === 'Brands' ? {name:g.name,tags:App.inventoryCatalog.brands(inventory().items)} : g; });
+    const groups = App.inventoryCatalog.data(inventory().items).tagGroups.map(function (g) { return g.name === 'Brands' ? {name:g.name,tags:App.inventoryCatalog.brands(inventory().items).filter(App.inventoryCatalog.isFavorite)} : g; }).filter(function (g) { return g.name !== 'Brands' || g.tags.length; });
     categoryGroups = new Map(groups.map(function (g) { return ['group:'+g.name,{kind:'tags',values:g.tags,brands:g.name==='Brands'}]; }));
     el.innerHTML = '<option value="">All Categories</option>' + groups.map(function (g) {
       return '<optgroup label="' + esc(g.name) + '"><option value="' + esc('group:'+g.name) + '">' + esc(g.name+' — All') + '</option>' + g.tags.map(function (tag) { return '<option value="' + esc(tag) + '">　' + esc(tag) + '</option>'; }).join('') + '</optgroup>';
@@ -452,7 +453,7 @@
     const selected = $('#inventoryCategoryFilter').value, old = $('#categoryCards').scrollLeft;
     $('#categoryCards').innerHTML = Array.from($('#inventoryCategoryFilter').options).filter(function (option,index,all) { return all.findIndex(function (entry) { return entry.value === option.value; }) === index; }).map(function (option) {
       const name = option.value, count = items.filter(function (item) { return matchesCategory(item,name); }).length;
-      return '<button type="button" class="category-card" data-category-filter="' + esc(name) + '" aria-pressed="' + (selected === name) + '">' + App.icons.category(name) + '<span>' + esc(name.startsWith('group:') ? name.slice(6) : name || 'All Categories') + '</span><small>' + count + '</small></button>';
+      return '<button type="button" class="category-card" title="' + esc(name.startsWith('group:') ? name.slice(6) : name || 'All Categories') + '" data-category-filter="' + esc(name) + '" aria-pressed="' + (selected === name) + '">' + App.icons.category(name) + '<span>' + esc(name.startsWith('group:') ? name.slice(6) : name || 'All Categories') + '</span><small>' + count + '</small></button>';
     }).join(''); $('#categoryCards').scrollLeft = old;
   }
   function fillMissingAmount() {
@@ -493,7 +494,7 @@
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
       const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
       const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || 'Unassigned Zone',room:entry.room || 'Unassigned Room',space:property('space')}; };
-      return '<tr><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '</div><div class="object-details">' + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,tag); }).join('') + filterButton('owner',item.owner,item.owner==='house'?'House':'Me') + '</span></div></td><td class="item-location">' + distinct(members.map(location)).map(function (l) { return '<div class="location-path">' + filterButton('catalog',{kind:'zone',value:l.zone,label:l.zone},l.zone) + filterButton('catalog',{kind:'room',value:l.room,zone:l.zone,label:l.room},l.room) + (l.space ? filterButton('catalog',{kind:'space',value:l.space,room:l.room,zone:l.zone,label:l.space},l.space) : '') + '</div>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + 'Edit</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+      return '<tr><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '</div><div class="object-details">' + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,tag); }).join('') + filterButton('owner',item.owner,item.owner==='house'?'House':'Me') + '</span></div></td><td class="item-location">' + distinct(members.map(location)).map(function (l) { return '<div class="location-path">' + filterButton('catalog',{kind:'zone',value:l.zone,label:l.zone},l.zone) + '<span class="location-room-space">' + filterButton('catalog',{kind:'room',value:l.room,zone:l.zone,label:l.room},l.room) + (l.space ? filterButton('catalog',{kind:'space',value:l.space,room:l.room,zone:l.zone,label:l.space},l.space) : '') + '</span></div>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join('') + '</tbody></table></div>';
   }
 
