@@ -67,7 +67,6 @@
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
             </div>
-            <label class="full single-location-toggle"><input id="itemSingleLocation" type="checkbox"> Single Location</label>
             <div class="full item-location-row">
               ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Search rooms…")}${picker("itemSpace", "Space", "Search spaces…")}
               <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div></div>
@@ -312,16 +311,14 @@
   }
   function pickerValues(id) {
     const config = App.config.inventory, items = inventory().items;
-    const propertyValues = function (name) { return items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === name; }).map(function (p) { return { value: p.value, detail: item.room }; }); }); };
     if (id === "itemTagSearch") {
       const selected = m.tags($("#itemCategories").value).map(function (tag) { return tag.toLowerCase(); });
       return config.tagGroups.flatMap(function (group) { return group.tags.map(function (tag) { return { value: tag, detail: group.name }; }); }).concat(config.categories.map(function (category) { return { value: category.name, detail: "Preset" }; }), items.flatMap(function (item) { return item.categories.map(function (tag) { return { value: tag, detail: "Your Tags" }; }); })).filter(function (option) { return !selected.includes(option.value.toLowerCase()); });
     }
     if (id === 'itemBrand') return App.inventoryCatalog.brands(items).map(function (brand) { return {value:brand,detail:App.inventoryCatalog.isFavorite(brand) ? 'Favorite Brand' : 'Brand'}; });
-    if (id === "itemZone") return unique(config.locations.map(function (l) { return l.zone; })).map(function (zone) { return { value: zone, detail: "Zone" }; }).concat(propertyValues("zone"));
-    if (id === 'itemRoom' && $('#itemSingleLocation').checked) return unique(items.map(function (item) { return item.room; })).map(function (room) { return {value:room,detail:'Location'}; });
+    if (id === "itemZone") return unique(config.locations.map(function (l) { return l.zone; })).map(function (zone) { return { value: zone, detail: "Zone" }; });
     if (id === "itemRoom") return App.inventoryCatalog.data(items).locations.flatMap(function (zone) { return [{value:zone.name,kind:'zone',detail:'Zone',zone:zone.name}].concat(zone.rooms.flatMap(function (room) { return [{value:room.name,kind:'room',level:1,detail:zone.name,zone:zone.name}].concat(room.spaces.map(function (space) { return {value:space,kind:'space',level:2,detail:zone.name+' / '+room.name,room:room.name,zone:zone.name}; })); })); });
-    return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); }).concat(propertyValues("space"));
+    return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); });
   }
   function initPicker(id, copyRow, kind) {
     const type = kind || id;
@@ -334,7 +331,7 @@
         if (kind === 'itemZone') { zone.value = option.value; room.value = ''; space.value = ''; }
         if (kind === 'itemRoom') { zone.value = option.zone || ''; room.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; space.value = option.kind === 'space' ? option.value : ''; }
         if (kind === 'itemSpace') { space.value = option.value; if (option.room) { room.value = option.room; zone.value = option.zone; } }
-        syncCopyToPrimary(copyRow); singleLocation(false); close(); input.focus(); close(); return;
+        syncCopyToPrimary(copyRow); close(); input.focus(); close(); return;
       }
       input.value = option.value;
       (id === 'itemBrand' ? ['brand'] : ['zone','room','space','categories']).forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
@@ -353,7 +350,7 @@
         return (option.value + " " + option.detail).toLowerCase().includes(query);
       });
       if (type === "itemSpace") choices.sort(function (a, b) { return Number(b.room === (copyRow ? $("[data-copy-room]",copyRow).value : $("#itemRoom").value)) - Number(a.room === (copyRow ? $("[data-copy-room]",copyRow).value : $("#itemRoom").value)); });
-      if (query && !choices.some(function (option) { return option.value.toLowerCase() === query; })) choices.push({ value: input.value.trim(), detail: "Use Custom " + (id === "itemTagSearch" ? "Tag" : "Location") });
+      if (!["itemZone","itemRoom","itemSpace"].includes(type) && query && !choices.some(function (option) { return option.value.toLowerCase() === query; })) choices.push({ value: input.value.trim(), detail: "Use Custom " + (id === "itemTagSearch" ? "Tag" : "Location") });
       list.innerHTML = choices.map(function (option, index) { return '<div role="option" aria-selected="false" id="' + id + 'Option' + index + '" data-option="' + index + '" style="padding-left:' + (.65 + (option.level || 0) * .9) + 'rem"><span>' + esc(option.value) + '</span><small>' + esc(option.detail) + '</small></div>'; }).join("") || '<p>No More Suggestions</p>';
       active = -1; input.removeAttribute("aria-activedescendant"); list.hidden = false; input.setAttribute("aria-expanded", "true");
     }
@@ -365,7 +362,7 @@
     input.addEventListener("input", function () {
       if (copyRow) { matchCopyLocation(copyRow,kind); show(); return; }
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
-      if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = $("#itemSingleLocation").checked ? "" : App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
+      if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
       if (['itemRoom','itemZone','itemSpace'].includes(id)) syncPrimaryCopy();
       show();
     });
@@ -397,7 +394,6 @@
       if (!this.checked) input.focus();
     });
     $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
-    $("#itemSingleLocation").addEventListener("change", function () { singleLocation(true); });
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
@@ -440,7 +436,7 @@
     $("#roomStats").innerHTML = assignedRooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + assignedRooms.map(function (room) { return '<tr><th scope="row">' + filterButton('room',room.name,room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td>' + filterButton('roomOwner',[room.name,owner],total.count + ' · ' + money(total.valueCents / 100,true)) + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
     renderLocationFilter();
     renderCategoryFilter();
-    $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; }).concat(App.config.inventory.rooms, data.items.map(function (item) { return item.room; }))));
+    $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; })));
     renderList();
     App.inventoryCatalog?.render();
   }
@@ -550,23 +546,6 @@
       category.properties.forEach(function (property) { if (!$$('[data-property-name]').some(function (el) { return el.value.trim().toLowerCase() === property.name.toLowerCase(); })) addProperty(property); });
     });
   }
-  function singleLocation(clear) {
-    const single = $('#itemSingleLocation').checked;
-    if (clear && single) {
-      $('#itemZone').value = ''; $('#itemSpace').value = '';
-      ['zone','room','space'].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
-      syncPrimaryCopy();
-    }
-    ['Zone','Space'].forEach(function (name) { $('#item'+name).closest('.picker').hidden = single; });
-    $('label', $('#itemRoom').closest('.picker')).textContent = single ? 'Location' : 'Room';
-    $('#itemRoom').placeholder = single ? 'Enter a location…' : 'Search rooms…';
-    $$('.item-location-row').forEach(function (row) { row.classList.toggle('single-location', single); });
-    $$('[data-copy-location]').forEach(function (row) {
-      ['zone','space'].forEach(function (name) { const input = $('[data-copy-'+name+']',row); input.closest('.picker').hidden = single && !input.value; });
-      $('label',$('[data-copy-room]',row).closest('.picker')).textContent = single ? 'Location' : 'Room';
-      row.classList.toggle('single-location', single && !$('[data-copy-zone]',row).value && !$('[data-copy-space]',row).value);
-    });
-  }
   function syncPrimaryCopy() {
     const row = $('[data-copy-location]'); if (!editingId || !row) return;
     $('[data-copy-room]',row).value = $('#itemRoom').value;
@@ -586,14 +565,13 @@
       if (!$('[data-copy-zone]',row).value) $('[data-copy-zone]',row).value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === $('[data-copy-room]',row).value.toLowerCase(); })?.zone || '';
       ['Zone','Room','Space'].forEach(function (name) { initPicker('copy'+index+name,row,'item'+name); });
     });
-    singleLocation(false);
+
   }
   function syncCopyToPrimary(row) {
     if (!editingId || row !== $('[data-copy-location]')) return;
     ['Zone','Room','Space'].forEach(function (name) { $('#item'+name).value = $('[data-copy-'+name.toLowerCase()+']',row).value; smartManual.add(name.toLowerCase()); });
   }
   function matchCopyLocation(row,kind) {
-    if ($('#itemSingleLocation').checked && kind === 'itemRoom') { $('[data-copy-zone]',row).value = ''; $('[data-copy-space]',row).value = ''; syncCopyToPrimary(row); singleLocation(false); return; }
     const zone = $('[data-copy-zone]',row), room = $('[data-copy-room]',row), space = $('[data-copy-space]',row), locations = App.inventoryCatalog.data(inventory().items).locations;
     if (kind === 'itemZone') { room.value = ''; space.value = ''; }
     if (kind === 'itemRoom') {
@@ -658,8 +636,7 @@
     $("#restoreItemButton").hidden = !item?.archive;
     $("#itemArchiveSummary").hidden = !item?.archive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
-    $('#itemSingleLocation').checked = draft?._singleLocation ?? Boolean($('#itemRoom').value && !$('#itemZone').value && !$('#itemSpace').value && !App.config.inventory.locations.some(function (l) { return l.room.toLowerCase() === $('#itemRoom').value.toLowerCase(); }));
-    singleLocation(false);
+
     suggestProperties(); fillMissingAmount(); syncDateUnknown();
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
@@ -771,7 +748,6 @@
     draft.categories = m.tags($("#itemCategories").value);
     draft.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: ["end a","end b"].includes($("[data-property-name]", row).value.trim().toLowerCase()) ? m.cableEnd($("[data-property-value]", row).value) : $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
     ["Brand", "Zone", "Space"].forEach(function (key) { if ($("#item" + key).value) draft.properties.push({ name: key, value: $("#item" + key).value, unit: "" }); });
-    draft._singleLocation = $('#itemSingleLocation').checked;
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
     draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();

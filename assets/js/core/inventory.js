@@ -53,12 +53,34 @@
     });
     const propertyNames = properties.map(function (property) { return property.name.toLowerCase(); });
     if (new Set(propertyNames).size !== propertyNames.length) throw new Error("Property names must be unique within an item.");
+    const hierarchy = App.config.inventory.locations;
+    const rawRoom = u.cleanLine(input.room, 80);
+    const property = function (name) { return properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
+    let room = hierarchy.find(function (l) { return l.room.toLowerCase() === rawRoom.toLowerCase(); });
+    let space = property('space');
+    // Resolve known alternate location fields only when the parent is unambiguous.
+    const alternate = property('location') || property('area');
+    if (!room && alternate) room = hierarchy.find(function (l) { return l.room.toLowerCase() === alternate.toLowerCase(); });
+    if (!space && alternate && !room) space = alternate;
+    if (!room && space) {
+      const parents = hierarchy.filter(function (l) { return l.spaces.some(function (v) { return v.toLowerCase() === space.toLowerCase(); }); });
+      if (parents.length === 1) room = parents[0];
+    }
+    const zone = room?.zone || hierarchy.find(function (l) { return l.zone.toLowerCase() === property('zone').toLowerCase(); })?.zone || '';
+    const knownSpace = room?.spaces.find(function (value) { return value.toLowerCase() === space.toLowerCase(); }) || '';
+    const cleanProperties = properties.filter(function (p) { return !['zone','room','space','area','location'].includes(p.name.toLowerCase()); });
+    if (zone) cleanProperties.push({name:'Zone',value:zone,unit:''});
+    if (knownSpace) cleanProperties.push({name:'Space',value:knownSpace,unit:''});
+    if (tags(input.categories).some(function (tag) { return tag.toLowerCase() === 'bags'; })) {
+      const capacity = cleanProperties.find(function (p) { return p.name.toLowerCase() === 'capacity'; });
+      if (capacity && !cleanProperties.some(function (p) { return p.name.toLowerCase() === 'volume'; })) capacity.name = 'Volume';
+    }
     return {
       id: id, name: name, description: u.cleanText(input.description, 4000), owner: input.owner,
-      room: u.cleanLine(input.room, 80), categories: tags(input.categories), obtainedDate: obtainedDate,
+      room: room?.room || '', categories: tags(input.categories), obtainedDate: obtainedDate,
       obtainedHow: methods.includes(input.obtainedHow) ? input.obtainedHow : "",
       source: u.cleanLine(input.source, 240), value: amount(input.value) ?? amount(input.price), price: amount(input.price) ?? amount(input.value),
-      properties: properties, archive: archive,
+      properties: cleanProperties, archive: archive,
       ...(u.cleanLine(input.copyGroup, 100) ? { copyGroup: u.cleanLine(input.copyGroup, 100) } : {})
     };
   }

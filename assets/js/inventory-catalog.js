@@ -17,12 +17,6 @@
       const row = rooms.get(room.toLowerCase()); row.spaces = unique(row.spaces.concat(spaces));
     }
     config.locations.forEach(function (l) { location(l.zone, l.room, l.spaces); });
-    config.rooms.filter(function (room) { return !config.locations.some(function (l) { return l.room.toLowerCase() === room.toLowerCase(); }); }).forEach(function (room) { location("", room, []); });
-    items.forEach(function (item) {
-      const property = function (key) { return item.properties.find(function (p) { return p.name.toLowerCase() === key; })?.value || ""; };
-      const zone = property("zone") || config.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone;
-      if (zone || item.room || property("space")) location(zone, item.room, property("space") ? [property("space")] : []);
-    });
     const tagGroups = config.tagGroups.map(function (g) { return { name: g.name, tags: g.tags.slice() }; });
     tagGroups.push({ name: "Category Presets", tags: config.categories.map(function (c) { return c.name; }) });
     const knownTags = tagGroups.flatMap(function (g) { return g.tags.map(function (tag) { return tag.toLowerCase(); }); });

@@ -29,7 +29,7 @@ test('copy count is bounded and new copies never inherit archived status', () =>
 });
 test('settings catalog preserves hierarchy, all tag groups, category property groups and custom values', () => {
   const catalog = app.inventoryCatalog.data([{ ...item, room: 'Studio', categories: ['Handmade'], properties: [{ name: 'Zone', value: 'Annex' }, { name: 'Space', value: 'Shelf' }, { name: 'Color', value: 'Teal' }, { name: 'Finish', value: 'Matte' }] }]);
-  assert.equal(catalog.locations.find(z => z.name === 'Annex').rooms[0].spaces[0], 'Shelf');
+  assert.deepEqual(Array.from(catalog.locations, z => z.name).sort(), ['Main Level','Outside','Upstairs']);
   assert.equal(catalog.tagGroups.find(g => g.name === 'Custom Tags').tags[0], 'Handmade');
   for (const group of app.config.inventory.tagGroups) assert.equal(catalog.tagGroups.find(g => g.name === group.name).tags.length, group.tags.length);
   assert.ok(catalog.propertyGroups.find(g => g.name === 'Common Properties').properties.find(p => p.name === 'Color').values.includes('Teal'));
@@ -81,12 +81,12 @@ test('same-room matching objects group without merging storage or hiding separat
  assert.equal(app.inventoryModel.groupRows(copies).length,3,'departure histories remain individual');
 });
 
-test('copy overrides preserve zone-only and custom room parents', () => {
+test('copy overrides preserve configured parents and remove custom locations', () => {
  const zone=app.inventoryModel.createCopies(item,1,[{zone:'Upstairs'}])[0];
  assert.equal(zone.room,''); assert.equal(zone.properties.find(p=>p.name==='Zone').value,'Upstairs');
  assert.equal(zone.properties.some(p=>p.name==='Space'),false);
  const custom=app.inventoryModel.createCopies(item,1,[{zone:'Annex',room:'Studio',space:'Shelf'}])[0];
- assert.equal(custom.properties.find(p=>p.name==='Zone').value,'Annex');
+ assert.equal(custom.room,''); assert.ok(!custom.properties.some(p=>['Zone','Space'].includes(p.name)));
  const known=app.inventoryModel.createCopies(item,1,[{zone:'Wrong',room:'Office',space:'Desk'}])[0];
  assert.equal(known.properties.find(p=>p.name==='Zone').value,'Upstairs');
 });
@@ -112,21 +112,21 @@ test('cable ends canonicalize common spelling variants while retaining custom co
   assert.equal(app.inventoryModel.cableEnd('USB-C female'), 'USB-C female');
   assert.equal(app.inventoryModel.cableEnd(''), '');
 });
-test('standalone locations and locationless objects remain intact without placeholder catalog labels', () => {
+test('unassigned locations are removed while their objects remain intact', () => {
   const standalone = app.inventoryModel.normalizeItem({ ...item, room: 'Offsite Locker', properties: [] });
   const blank = app.inventoryModel.normalizeItem({ ...item, id: 'blank', room: '', properties: [] });
   const copies = app.inventoryModel.createCopies(standalone, 2);
-  assert.ok(copies.every(copy => copy.room === 'Offsite Locker' && !copy.properties.some(p => ['Zone','Space'].includes(p.name))));
+  assert.ok(copies.every(copy => copy.room === '' && !copy.properties.some(p => ['Zone','Space'].includes(p.name))));
   assert.equal(app.inventoryModel.stats([standalone, blank]).all.count, 2);
   const locations = app.inventoryCatalog.data([standalone, blank]).locations;
-  assert.ok(locations.some(zone => zone.rooms.some(room => room.name === 'Offsite Locker')));
+  assert.ok(!locations.some(zone => zone.rooms.some(room => room.name === 'Offsite Locker')));
   assert.ok(locations.every(zone => zone.name !== 'Unassigned Zone' && zone.rooms.every(room => room.name !== 'Unassigned Room')));
 });
-test('Tech offers the requested device tags and Bags offers capacity in liters', () => {
+test('Tech offers the requested device tags and Bags offers volume in liters', () => {
   const tech = app.config.inventory.tagGroups.find(group => group.name === 'Tech').tags;
   for (const tag of ['Laptop','Watch','Phone','Tablet']) assert.ok(tech.includes(tag));
   const bags = app.config.inventory.categories.find(category => category.name === 'Bags');
-  assert.equal(bags.properties[0].name, 'Capacity');
+  assert.equal(bags.properties[0].name, 'Volume');
   assert.equal(bags.properties[0].unit, 'L');
 });
 
@@ -137,4 +137,20 @@ test('Power includes Charger and the requested electrical property presets', () 
   assert.equal(presets.find(p => p.name === 'Powerbank').properties[0].unit, 'mAh');
   assert.equal(presets.find(p => p.name === 'Charger').properties[0].name, 'Charge Capacity');
   assert.equal(presets.find(p => p.name === 'Charger').properties[1].name, 'Output Ports');
+});
+
+test('location normalization retains configured hierarchy and clears legacy locations', () => {
+  for (const name of ['Bathroom','Bedroom','Closet','Living room','Storage']) {
+    const clean = app.inventoryModel.normalizeItem({...item,room:name,properties:[{name:'Zone',value:name},{name:'Space',value:'Shelf'},{name:'Area',value:'Annex'},{name:'Location',value:'Elsewhere'}]});
+    assert.equal(clean.room,''); assert.equal(clean.properties.length,0);
+    assert.equal(clean.name,item.name); assert.equal(clean.value,item.value);
+  }
+  const known = app.inventoryModel.normalizeItem({...item,room:'office',properties:[{name:'Zone',value:'Wrong'},{name:'Space',value:'desk'}]});
+  assert.equal(known.room,'Office');
+  assert.equal(known.properties.find(p=>p.name==='Zone').value,'Upstairs');
+  assert.equal(known.properties.find(p=>p.name==='Space').value,'Desk');
+  const bag = app.inventoryModel.normalizeItem({...item,categories:['Bags'],properties:[{name:'Capacity',value:'25',unit:'L'}]});
+  assert.equal(bag.properties.find(p=>p.name==='Volume').value,'25');
+  assert.equal(bag.properties.find(p=>p.name==='Volume').unit,'L');
+  assert.ok(!bag.properties.some(p=>p.name==='Capacity'));
 });

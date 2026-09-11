@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.25",
-      buildId: "0.0.1.25",
+      version: "0.0.1.26",
+      buildId: "0.0.1.26",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -31,7 +31,7 @@
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": []}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling Bag"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
       tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footware", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Cables", "Powerbank", "Coax", "Ethernet", "Extension", "Charger"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Water", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Barware", "Glassware", "Dishware", "Appliances", "Tools"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
       brands: ["Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
-      rooms: ["Living room", "Kitchen", "Bedroom", "Bathroom", "Office", "Garage", "Closet", "Storage"],
+      rooms: ["Yard", "Shed", "Nest", "Patio", "Garage", "Attic", "Crawl", "Foyer", "Hallway", "Game Room", "Kitchen", "Nook", "Den", "Doge’s Den", "Mud Room", "Powder Room", "Primary Bedroom", "Primary Bathroom", "Loft", "Office", "Utility Room", "Guest Room", "J&J Bathroom"],
       bulkSuggestions: [
         { match: "whiskey|whisky|cocktail|decanter|barware", tags: ["Barware", "Glassware"], room: "Den", space: "Bar" },
         { match: "tasting glass|wine glass|tumbler|glassware", tags: ["Glassware"], room: "Kitchen" },
@@ -54,7 +54,7 @@
         { name: "Cables", properties: [{ name: "Length", unit: "cm" }, { name: "End A", unit: "" }, { name: "End B", unit: "" }] },
         { name: "Powerbank", properties: [{ name: "Battery Capacity", unit: "mAh" }] },
         { name: "Charger", properties: [{ name: "Charge Capacity", unit: "W" }, { name: "Output Ports", unit: "" }] },
-        { name: "Bags", properties: [{ name: "Capacity", unit: "L" }] },
+        { name: "Bags", properties: [{ name: "Volume", unit: "L" }] },
         { name: "Water", properties: [{ name: "Volume", unit: "oz" }] }
       ]
     },
@@ -78,6 +78,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.26", date: "2026-09-11T00:00:00.000Z", title: "Assigned Locations and Compact Toolbar",
+      summary: "Locations follow Outside, Upstairs and Main Level with their configured rooms and spaces.",
+      features: [], improvements: ["Removed legacy and unassigned location choices", "Bags Volume replaces Capacity", "Ownership, Add and filter controls share a compact height"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.25", date: "2026-09-11T00:00:00.000Z", title: "Unknown Dates and Power Details",
       summary: "Dates can stay Unknown, and Room and Space clear when clicked for a new entry.",
       features: [], improvements: ["Powerbank Battery Capacity in mAh", "Charger tag with Charge Capacity in W and Output Ports", "Unparsed import dates remain unknown and retain their source text in Notes"], fixes: [], knownIssues: []
