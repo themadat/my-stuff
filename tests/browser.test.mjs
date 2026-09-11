@@ -41,9 +41,9 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   assert.match(await page.locator('#inventoryList').textContent(), /Trail shoes <img/);
   await addInventoryItem(page, { name: 'Desk', owner: 'house', value: '500' });
   await addInventoryItem(page, { name: 'Lamp', owner: 'house', value: '' });
-  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*629\.95.*1 not valued/);
-  assert.match(await page.locator('[data-inventory-total="house"]').textContent(), /2objects.*500\.00/);
-  assert.match(await page.locator('[data-inventory-total="me"]').textContent(), /1objects.*129\.95/);
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*630.*1 not valued/);
+  assert.match(await page.locator('[data-inventory-total="house"]').textContent(), /2objects.*500/);
+  assert.match(await page.locator('[data-inventory-total="me"]').textContent(), /1objects.*130/);
   assert.match(await page.locator('#roomStats').textContent(), /Office/);
   await page.locator('[data-owner-filter="me"]').click();
   assert.equal(await page.locator('[data-edit-item]').count(), 1);
@@ -58,7 +58,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('#itemGoneNotes').fill('Sole separated');
   assert.match(await page.locator('#archiveDuration').textContent(), /365 days/);
   await page.locator('#archiveForm button[type="submit"]').click();
-  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /2objects.*500\.00/);
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /2objects.*500/);
   await page.locator('#clearInventoryFilters').click();
   await page.locator('[data-inventory-view="previous"]').click();
   assert.match(await page.locator('#inventoryList').textContent(), /Broken.*365 days owned/);
@@ -604,7 +604,7 @@ test('multiple copies save independently across rooms and Color is reusable with
   assert.deepEqual(items.map(i => i.room), ['Den', 'Office', 'Guest Room']);
   assert.equal(items[1].properties.find(p => p.name === 'Zone').value, 'Upstairs');
   assert.ok(items.every(i => i.properties.find(p => p.name === 'Color').value === 'Teal'));
-  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120.00/);
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120/);
   await page.locator('[data-edit-item]').first().click();
   assert.equal(await page.locator('#itemCopies').inputValue(), '3');
   await page.locator('#itemCopies').fill('4');
@@ -621,7 +621,7 @@ test('multiple copies save independently across rooms and Color is reusable with
   assert.equal(items[3].room,'Kitchen');
   await page.locator('[data-edit-item]').first().click(); await page.locator('#archiveItemButton').click();
   await page.locator('#itemGoneReason').selectOption('Sold'); await page.locator('#archiveForm button[type="submit"]').click();
-  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120.00/);
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120/);
   const payload = await page.evaluate(() => window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()));
   assert.equal(payload.data.inventory.items.length, 4);
   assert.equal(payload.data.inventory.items.filter(i => i.archive).length, 1);
@@ -945,4 +945,47 @@ test('copy edits and item deletion reject concurrent changes; archived mistakes 
  await page.locator('[data-inventory-view="previous"]').click(); await page.locator('[data-edit-item]').click();
  await page.locator('#deleteItemButton').click(); await page.locator('[data-confirm-action]').click();
  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
+});
+
+test('inventory detail filters retain overall totals, use whole dollars, and archive directly with calendar age', {timeout:30000}, async t => {
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
+ {id:'lamp-a',name:'Lamp',owner:'me',room:'Nook',price:30,value:62.77,obtainedDate:'2023-09-10',description:'Desk light',categories:['Lighting'],properties:[{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]},
+ {id:'lamp-b',name:'Lamp',owner:'house',room:'Den',price:40,value:40,obtainedDate:'2024-01-31',properties:[]}
+ ].map(window.LocalApp.inventoryModel.normalizeItem);}));
+ assert.equal(await page.locator('.item-money').first().textContent(),'$63');
+ assert.deepEqual(await page.locator('.inventory-table th').allTextContents(),['Object','Properties','Notes','Room / Belongs to','Value','Obtained','Actions']);
+ await page.locator('#inventoryList [data-instant-filter="property:color"]').click();
+ assert.equal(await page.locator('[data-edit-item]').count(),1);
+ assert.match(await page.locator('[data-inventory-total="all"]').textContent(),/2objects\$103/);
+ assert.match(await page.locator('[data-filtered-total="all"]').textContent(),/1 · \$63/);
+ await page.locator('#clearInventoryFilters').click();
+ await page.locator('#inventoryList [data-instant-filter="name"]').first().click(); assert.equal(await page.locator('[data-edit-item]').count(),2);
+ await page.locator('#clearInventoryFilters').click();
+ await page.locator('[data-row-archive="lamp-a"]').click();
+ await page.locator('#itemGoneDate').fill('2026-09-10');
+ assert.match(await page.locator('#archiveDuration').textContent(),/3 years 0 months 0 days.*\$10.00 per year/);
+ await page.locator('#itemGoneReason').selectOption('Sold'); await page.locator('#archiveForm button[type="submit"]').click();
+ await page.locator('[data-inventory-view="previous"]').click(); assert.equal(await page.locator('#inventoryStats').isVisible(),true);
+ assert.equal(await page.locator('[data-edit-item]').count(),1);
+ await page.setViewportSize({width:1440,height:1000}); await page.screenshot({path:'/private/tmp/my-stuff-19-inventory.png',fullPage:true});
+ await page.setViewportSize({width:320,height:844}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff-19-inventory-mobile.png',fullPage:true});
+});
+
+test('inventory settings uses three columns and favorites sort brand choices first across reload', {timeout:30000}, async t => {
+ const {page}=await fixture(t,{viewport:{width:1440,height:1000}});
+ await page.locator('#inventorySettingsTab').click();
+ assert.equal(await page.locator('#inventoryCatalog').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),3);
+ await page.locator('[data-favorite-brand="Ryobi"]').first().click();
+ assert.equal(await page.locator('[data-favorite-brand="Ryobi"]').first().getAttribute('aria-pressed'),'true');
+ await page.screenshot({path:'/private/tmp/my-stuff-19-settings.png'});
+ await page.reload();
+ await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemBrand').focus();
+ assert.match(await page.locator('#itemBrandOptions [role="option"]').first().textContent(),/^Ryobi/);
+ await page.locator('#itemBrandOptions [role="option"]').first().click(); assert.equal(await page.locator('#itemBrand').inputValue(),'Ryobi');
+ assert.equal(await page.evaluate(()=>window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()).data.favoriteBrands),undefined);
+ await page.setViewportSize({width:320,height:844});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
 });

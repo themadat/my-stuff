@@ -5,10 +5,10 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", closing = false;
-  let editingCopies = [];
+  let editingCopies = [], instantFilters = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
-  function money(value) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, maximumFractionDigits: 2 }).format(value); }
+  function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
   function dateLabel(value) { return value ? new Date(value + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Not recorded"; }
   function duration(item) { const days = m.daysOwned(item); return days == null ? "Duration unknown" : days.toLocaleString() + (days === 1 ? " day owned" : " days owned"); }
   function options(values, empty) { return (empty == null ? "" : '<option value="">' + esc(empty) + '</option>') + values.map(function (value) { return '<option value="' + esc(value) + '">' + esc(value) + '</option>'; }).join(""); }
@@ -57,7 +57,7 @@
           <div class="item-form-grid compact-item-grid">
             <div class="full item-identity-row">
               ${field("itemSource", "Seller", 'type="text" maxlength="240" placeholder="Seller"')}
-              ${field("itemBrand", "Brand", 'type="text" maxlength="300" placeholder="Brand"')}
+              ${picker("itemBrand", "Brand", "Brand")}
               <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required maxlength="160" placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
             <div class="full item-purchase-row">
@@ -75,11 +75,11 @@
           <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
           <details id="itemMoreDetails" class="item-more" open><summary>More Details <span id="itemMoreCount"></span></summary>
             <div class="item-more-content">
-              <label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
               <fieldset class="item-fieldset"><legend>Custom Properties</legend>
                 <div class="item-property-tools"><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><div id="categoryPresets" class="category-presets" aria-label="Category Presets">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
                 <div id="itemProperties"></div>
               </fieldset>
+              <label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
             </div>
           </details>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
@@ -92,7 +92,7 @@
         <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" maxlength="2000" rows="3" placeholder="Anything you want to remember"></textarea></label>
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
-    initSmartControls();
+    initSmartControls(); $("#itemBrand").maxLength = 300;
     ["#itemPrice","#itemValue"].forEach(function (id) { $(id).addEventListener("blur", function () { setTimeout(fillMissingAmount,0); }); });
     initObjectWords();
     $("#itemGoneReason").required = true;
@@ -100,13 +100,23 @@
     $("#inventoryWorkspace").addEventListener("click", function (event) {
       const nav = event.target.closest("[data-inventory-view]"), item = event.target.closest("[data-edit-item]"), add = event.target.closest("[data-add-inventory]");
       if (nav) { view = nav.dataset.inventoryView; render(); $("#inventoryTitle").focus({ preventScroll: true }); }
+      const filter = event.target.closest('[data-instant-filter]'), archive = event.target.closest('[data-row-archive]');
+      if (filter) {
+        const key = filter.dataset.instantFilter, value = JSON.parse(filter.dataset.filterValue), control = {owner:'#inventoryOwnerFilter',categories:'#inventoryCategoryFilter',room:'#inventoryRoomFilter'}[key];
+        if (control) { const el = $(control), selected = key === 'room' && !value ? 'Unassigned' : value; el.value = el.value === selected ? '' : selected; }
+        else if (instantFilters.has(key) && JSON.stringify(instantFilters.get(key)) === JSON.stringify(value)) instantFilters.delete(key); else instantFilters.set(key,value);
+        renderList();
+        const target = $$('#inventoryList [data-instant-filter]').find(function (entry) { return entry.dataset.instantFilter === key && entry.dataset.filterValue === JSON.stringify(value); });
+        (target || $('#clearInventoryFilters')).focus({preventScroll:true});
+      }
+      if (archive) { const record = inventory().items.find(function (entry) { return entry.id === archive.dataset.rowArchive; }); if (record) { originalItem = JSON.stringify(record); openArchive(record.id, archive); } }
       if (item) openItem(item.dataset.editItem, item);
       if (add) openItem("", add);
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
     $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
     $('#categoryCards').addEventListener('click', function (event) { const button = event.target.closest('[data-category-filter]'); if (button) { const el = $('#inventoryCategoryFilter'); const selected = button.dataset.categoryFilter; el.value = el.value === selected ? '' : selected; renderList(); $$('#categoryCards [data-category-filter]').find(function (entry) { return entry.dataset.categoryFilter === selected; })?.focus({preventScroll:true}); } });
-    $("#clearInventoryFilters").addEventListener("click", function () { ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
+    $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
     $('#itemCopyLocations').addEventListener('input', function (event) {
@@ -312,6 +322,7 @@
       const selected = m.tags($("#itemCategories").value).map(function (tag) { return tag.toLowerCase(); });
       return config.tagGroups.flatMap(function (group) { return group.tags.map(function (tag) { return { value: tag, detail: group.name }; }); }).concat(config.categories.map(function (category) { return { value: category.name, detail: "Preset" }; }), items.flatMap(function (item) { return item.categories.map(function (tag) { return { value: tag, detail: "Your Tags" }; }); })).filter(function (option) { return !selected.includes(option.value.toLowerCase()); });
     }
+    if (id === 'itemBrand') return App.inventoryCatalog.brands(items).map(function (brand) { return {value:brand,detail:App.inventoryCatalog.isFavorite(brand) ? 'Favorite Brand' : 'Brand'}; });
     if (id === "itemZone") return unique(config.locations.map(function (l) { return l.zone; })).map(function (zone) { return { value: zone, detail: "Zone" }; }).concat(propertyValues("zone"));
     if (id === "itemRoom") return App.inventoryCatalog.data(items).locations.flatMap(function (zone) { return [{value:zone.name,kind:'zone',detail:'Zone',zone:zone.name}].concat(zone.rooms.flatMap(function (room) { return [{value:room.name,kind:'room',level:1,detail:zone.name,zone:zone.name}].concat(room.spaces.map(function (space) { return {value:space,kind:'space',level:2,detail:zone.name+' / '+room.name,room:room.name,zone:zone.name}; })); })); });
     return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); }).concat(propertyValues("space"));
@@ -322,7 +333,7 @@
     function choose(index) {
       const option = choices[index]; if (!option) return;
       input.value = option.value;
-      ['zone','room','space','categories'].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
+      (id === 'itemBrand' ? ['brand'] : ['zone','room','space','categories']).forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
       if (id === "itemRoom") { $('#itemZone').value = option.zone || ''; $('#itemSpace').value = option.kind === 'space' ? option.value : ''; input.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; }
       if (id === "itemSpace" && option.room) { $("#itemRoom").value = option.room; $("#itemZone").value = option.zone; }
@@ -369,7 +380,7 @@
     });
   }
   function initSmartControls() {
-    ["itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(initPicker);
+    ["itemBrand", "itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(initPicker);
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
@@ -398,14 +409,14 @@
     const active = view === "have" || view === "previous";
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
     if ($("#bulkEntryButton")) $("#bulkEntryButton").hidden = view !== "have";
-    $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = view !== "have";
+    $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = false;
     $("#roomOverview").hidden = view !== "have"; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = stats[entry[0]];
-      return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="inventory-stat-count">' + total.count.toLocaleString() + '<span>objects</span></span><span class="inventory-stat-value">' + esc(money(total.valueCents / 100)) + '<small>known value' + (total.unknown ? ' · ' + total.unknown + ' not valued' : '') + '</small></span></button>';
+      return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="inventory-stat-count">' + total.count.toLocaleString() + '<span>objects</span></span><span class="inventory-stat-value">' + esc(money(total.valueCents / 100, true)) + '<small>known value' + (total.unknown ? ' · ' + total.unknown + ' not valued' : '') + '</small><small class="filtered-total" data-filtered-total="' + entry[0] + '"></small></span></button>';
     }).join("");
-    $("#roomStats").innerHTML = stats.rooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + stats.rooms.map(function (room) { return '<tr><th scope="row">' + esc(room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td><strong>' + total.count + '</strong><small>' + esc(money(total.valueCents / 100)) + '</small>' + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
+    $("#roomStats").innerHTML = stats.rooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + stats.rooms.map(function (room) { return '<tr><th scope="row">' + filterButton('room',room.name,room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td>' + filterButton('roomOwner',[room.name,owner],total.count + ' · ' + money(total.valueCents / 100,true)) + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
     renderLocationFilter();
     refreshOptions("#inventoryCategoryFilter", unique(App.config.inventory.tagGroups.flatMap(function (g) { return g.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; }), data.items.flatMap(function (item) { return item.categories; })).map(function (tag) { return m.tags([tag])[0]; })), "All Categories");
     $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; }).concat(App.config.inventory.rooms, data.items.map(function (item) { return item.room; }))));
@@ -440,23 +451,38 @@
     if (document.activeElement !== price && !price.value && value.value && value.validity.valid) price.value = value.value;
     if (document.activeElement !== value && !value.value && price.value && price.validity.valid) value.value = price.value;
   }
+  function filterValue(item, key) {
+    if (key === 'roomOwner') return [item.room || 'Unassigned',item.owner];
+    if (key === 'daysOwned') return m.daysOwned(item);
+    if (key.startsWith('property:')) { const p = item.properties.find(function (p) { return p.name.toLowerCase() === key.slice(9); }); return p ? [p.value,p.unit] : null; }
+    if (key === 'reason') return item.archive?.reason || '';
+    if (key === 'departureDate') return item.archive?.date || '';
+    return item[key];
+  }
+  function filterButton(key, value, label) {
+    return '<button type="button" class="instant-filter" data-instant-filter="' + esc(key) + '" data-filter-value="' + esc(JSON.stringify(value)) + '" aria-pressed="' + (instantFilters.has(key) && JSON.stringify(instantFilters.get(key)) === JSON.stringify(value)) + '">' + esc(label) + '</button>';
+  }
   function renderList() {
     const search = $("#inventorySearch").value.trim().toLowerCase(), owner = $("#inventoryOwnerFilter").value, room = $("#inventoryRoomFilter").value, category = $("#inventoryCategoryFilter").value;
     const all = inventory().items.filter(function (item) { return Boolean(item.archive) === (view === "previous"); });
     $$('[data-owner-filter]').forEach(function (button) { button.setAttribute('aria-pressed',String(button.dataset.ownerFilter === owner)); });
     renderCategoryCards(all);
     const items = all.filter(function (item) {
-      return (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || item.categories.includes(category)) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
+      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || item.categories.includes(category)) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return view === "previous" ? b.archive.date.localeCompare(a.archive.date) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name); });
     $("#inventoryResultCount").textContent = items.length + " of " + all.length + " " + (view === "previous" ? "previous" : "current") + " objects";
-    $("#clearInventoryFilters").hidden = !(search || owner || room || category);
+    $("#clearInventoryFilters").hidden = !(search || owner || room || category || instantFilters.size);
+    const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
+    ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').textContent = 'Filtered: ' + filtered[key].count + ' · ' + money(filtered[key].valueCents/100,true); });
+    $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown') + ' ×'); }).join(''));
     if (!items.length) {
       $("#inventoryList").innerHTML = '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryPlus") + ' Add Your First Item</button>' : '') + '</div>'; return;
     }
-    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">' + (view === "previous" ? "Previous" : "Current") + ' items. Select an item to view or edit all details.</caption><thead><tr><th scope="col">Item</th><th scope="col">Room / Belongs to</th><th scope="col">Value</th><th scope="col">' + (view === "previous" ? "Departure" : "Obtained") + '</th></tr></thead><tbody>' + items.map(function (item) {
-      return '<tr><td><button class="inventory-item-name" type="button" data-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button>' + (item.description ? '<p class="inventory-item-description">' + esc(item.description) + '</p>' : '') + '<div class="item-tags">' + item.categories.map(function (tag) { return '<span>' + esc(tag) + '</span>'; }).join("") + '</div></td><td><span>' + esc(item.room || "Unassigned") + '</span><small>' + (item.owner === "house" ? "The house" : "Me") + '</small></td><td class="item-money">' + esc(money(item.value)) + '</td><td>' + (item.archive ? '<strong>' + esc(item.archive.reason) + '</strong><small>' + esc(dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : esc(dateLabel(item.obtainedDate)) + (item.obtainedHow ? '<small>' + esc(item.obtainedHow) + '</small>' : '')) + '</td></tr>';
-    }).join("") + '</tbody></table></div>';
+    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object</th><th>Properties</th><th>Notes</th><th>Room / Belongs to</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + items.map(function (item) {
+      return '<tr><td>' + filterButton('name',item.name,item.name) + '<div class="item-tags">' + item.categories.map(function (tag) { return filterButton('categories',tag,tag); }).join('') + '</div>' + (item.source ? filterButton('source',item.source,item.source) : '') + '</td><td>' + item.properties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name + ': ' + p.value + (p.unit ? ' '+p.unit : '')); }).join(' ') + '</td><td>' + (item.description ? filterButton('description',item.description,item.description) : '') + '</td><td>' + filterButton('room',item.room,item.room || 'Unassigned') + '<small>' + filterButton('owner',item.owner,item.owner === 'house' ? 'House' : 'Me') + '</small></td><td class="item-money">' + filterButton('value',item.value,money(item.value,true)) + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : filterButton('obtainedDate',item.obtainedDate,dateLabel(item.obtainedDate)) + (item.obtainedHow ? '<small>' + filterButton('obtainedHow',item.obtainedHow,item.obtainedHow) + '</small>' : '')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">Edit</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
   }
+
   function formSignature(selector) { return JSON.stringify($$("input, textarea, select", $(selector)).map(function (el) { return el.type === "radio" ? [el.value, el.checked] : el.value; })); }
   function formError(selector, message) { const el = $(selector); el.textContent = message; el.hidden = false; el.focus(); }
   function addProperty(property, focus) {
@@ -607,7 +633,7 @@
       $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
     } catch (error) { formError("#itemFormError", error.message); }
   }
-  function openArchive(id) {
+  function openArchive(id, trigger) {
     const item = currentItemUnchanged(id, originalItem);
     archiveId = id; archiveOriginal = JSON.stringify(item);
     $("#archiveForm").reset(); $("#archiveError").hidden = true;
@@ -615,9 +641,13 @@
     $("#itemGoneDate").value = item.archive?.date || m.today(); $("#itemGoneDate").min = item.obtainedDate; $("#itemGoneDate").max = m.today();
     $("#itemGoneReason").value = item.archive?.reason || ""; $("#itemGoneNotes").value = item.archive?.notes || "";
     archiveForm = formSignature("#archiveForm"); renderArchiveDuration();
-    App.components.openDialog("#archiveDialog", { trigger: $("#archiveItemButton"), focus: "#itemGoneReason" });
+    App.components.openDialog("#archiveDialog", { trigger: trigger || $("#archiveItemButton"), focus: "#itemGoneReason" });
   }
-  function renderArchiveDuration() { const item = inventory().items.find(function (entry) { return entry.id === archiveId; }); if (item) $("#archiveDuration").textContent = item.obtainedDate && $("#itemGoneDate").value ? m.daysOwned(item, $("#itemGoneDate").value).toLocaleString() + " days owned" : "Add an obtained date to track how long you owned it."; }
+  function renderArchiveDuration() {
+    const item = inventory().items.find(function (entry) { return entry.id === archiveId; }); if (!item) return;
+    const age = $('#itemGoneDate').value ? m.ownershipAge(item, $('#itemGoneDate').value) : null;
+    $('#archiveDuration').textContent = age ? age.years + (age.years === 1 ? ' year ' : ' years ') + age.months + (age.months === 1 ? ' month ' : ' months ') + age.days + (age.days === 1 ? ' day · ' : ' days · ') + age.totalDays.toLocaleString() + ' days owned · Yearly average value: ' + (age.annualValue === null ? 'Unavailable until at least one day has passed and a value is known' : money(age.annualValue) + ' per year (obtaining price)') : 'Add a valid obtained and departure date to calculate age and yearly average value.';
+  }
   function saveArchive(event) {
     event.preventDefault();
     try {
@@ -665,5 +695,5 @@
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;
   }
-  App.inventoryUI = { home: function () { view = "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
+  App.inventoryUI = { home: function () { instantFilters.clear(); view = "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
 })();

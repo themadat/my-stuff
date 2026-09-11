@@ -1,3 +1,13 @@
+## Latest update — instant filters and ownership age (0.0.1.19)
+
+Main inventory amounts render in whole dollars without changing stored cents or form precision. Rows place Properties between Object and Notes and offer Edit plus a far-right archive action. Displayed details and room totals are exact, composable filters; Clear Filters resets them. Overall current All/House/Me totals remain visible across views, with filtered counts and values below. Object names now filter; Edit opens the object. Custom properties precede Notes in the editor too.
+
+`inventoryModel.ownershipAge` returns calendar years/months/days and annual obtaining-price cost (current value fallback). Month/year anniversaries clamp to the last valid day, covering leap dates. The archive form shows age, total days and annual average, updating with the departure date; missing dates/amounts and same-day ownership have no annual average. Direct row archive uses the same stale-record protection and save flow.
+
+Settings Inventory has three columns for locations, tags and properties, stacking on narrow screens. Star controls use a shared SVG. Favorite brands sort first in catalog brand lists and the searchable Brand picker. `preferences.favoriteBrands` is normalized device state included in full backups and excluded from inventory cloud payloads. Brand selection retains manual Smart Complete protection.
+
+Verification: 73 parser/model/static checks and 35 isolated browser checks pass, with final focused regressions also passing. Tested whole-dollar display vs stored cents, exact filters and fixed/filtered totals, direct archive, calendar edge cases, brand ordering/reload, mobile layout, and offline flows. Desktop/mobile screenshots inspected; version/cache/manifest/workflow and script/asset/whitespace checks aligned. Source baseline HEAD c0ea390 (0.0.1.18). No commit, push, live cloud writes, or agent-status files.
+
 ## Latest update — compact inventory filters (0.0.1.18)
 
 Inventory fills the available horizontal space. All/House/Me totals are compact header buttons, replacing the ownership dropdown. Category dropdown and horizontal square cards share one filter; configured and used categories are available. Location filtering uses grouped native options for zones, indented rooms and their spaces; zones and spaces are selectable. The Add Room picker exposes the same hierarchy. Supplied Me/House/Water/Cables SVG paths and viewBoxes are retained in the shared symbol registry.

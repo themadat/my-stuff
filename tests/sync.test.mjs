@@ -640,3 +640,12 @@ test('Cable aliases merge and missing prices/values mirror without replacing dis
  const different=inventoryItem(h,{price:10,value:20}); assert.equal(different.price,10); assert.equal(different.value,20);
  const unknown=inventoryItem(h,{price:null,value:null}); assert.equal(unknown.price,null); assert.equal(unknown.value,null);
 });
+
+test('favorite brands survive device-state normalization without entering the inventory sync payload', () => {
+ const {App}=harness(); const state=App.stateModel.createDefaultState();
+ state.preferences.favoriteBrands=['Ryobi','OXO','Ryobi'];
+ const normalized=App.stateModel.normalize(state);
+ assert.deepEqual(Array.from(normalized.preferences.favoriteBrands),['Ryobi','OXO']);
+ assert.deepEqual(Array.from(App.stateModel.normalize(JSON.parse(JSON.stringify(normalized))).preferences.favoriteBrands),['Ryobi','OXO']);
+ assert.equal(JSON.stringify(App.stateModel.syncPayload(normalized)).includes('favoriteBrands'),false);
+});

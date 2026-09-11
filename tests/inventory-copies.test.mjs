@@ -53,3 +53,16 @@ test('copy groups persist through normalization while older records remain compa
  assert.equal(app.inventoryModel.normalize({currency:'USD',items:copies}).items[1].copyGroup,copies[0].copyGroup);
  assert.equal(Object.hasOwn(app.inventoryModel.normalizeItem(item),'copyGroup'),false);
 });
+
+test('ownership age uses calendar anniversaries and annual cost handles unknown and same-day dates', () => {
+ const base = app.inventoryModel.normalizeItem({...item,obtainedDate:'2023-09-10',price:30});
+ const age = app.inventoryModel.ownershipAge(base,'2026-09-10');
+ assert.deepEqual([age.years,age.months,age.days,age.annualValue],[3,0,0,10]);
+ const leap = app.inventoryModel.ownershipAge({...base,obtainedDate:'2024-02-29'},'2025-02-28');
+ assert.deepEqual([leap.years,leap.months,leap.days],[1,0,0]);
+ const month = app.inventoryModel.ownershipAge({...base,obtainedDate:'2024-01-31'},'2024-03-01');
+ assert.deepEqual([month.years,month.months,month.days],[0,1,1]);
+ assert.equal(app.inventoryModel.ownershipAge(base,'2023-09-10').annualValue,null);
+ assert.equal(app.inventoryModel.ownershipAge({...base,obtainedDate:''},'2026-09-10'),null);
+ assert.equal(app.inventoryModel.ownershipAge({...base,price:null,value:null},'2026-09-10').annualValue,null);
+});

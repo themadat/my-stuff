@@ -33,6 +33,7 @@
           developerMode: false
         },
         hints: { enabled: config.features.hints, dismissed: [] },
+        favoriteBrands: [],
         installation: { iconVariant: "auto" }
       },
       ui: {
@@ -115,6 +116,7 @@
           enabled: config.features.hints && hints.enabled !== false,
           dismissed: Array.from(new Set((Array.isArray(hints.dismissed) ? hints.dismissed : []).map(function (id) { return u.cleanLine(id, 80); }).filter(Boolean))).slice(0, 200)
         },
+        favoriteBrands: Array.from(new Set((Array.isArray(preferences.favoriteBrands) ? preferences.favoriteBrands : []).map(function (name) { return u.cleanLine(name, 300); }).filter(Boolean))).slice(0, 200),
         installation: { iconVariant: ["auto", "light", "dark"].includes(installation.iconVariant) ? installation.iconVariant : "auto" }
       },
       ui: {

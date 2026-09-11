@@ -97,6 +97,22 @@
     if (!item.obtainedDate) return null;
     return Math.max(0, Math.round((Date.parse((end || item.archive?.date || today()) + "T00:00:00Z") - Date.parse(item.obtainedDate + "T00:00:00Z")) / 86400000));
   }
+  function ownershipAge(item, end) {
+    const finish = dateOnly(end || item.archive?.date || today());
+    if (!item.obtainedDate || !finish || finish < item.obtainedDate) return null;
+    const start = new Date(item.obtainedDate + 'T00:00:00Z'), stop = new Date(finish + 'T00:00:00Z');
+    function anniversary(months) {
+      const first = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1));
+      const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+      first.setUTCDate(Math.min(start.getUTCDate(), last)); return first;
+    }
+    let months = (stop.getUTCFullYear()-start.getUTCFullYear())*12 + stop.getUTCMonth()-start.getUTCMonth();
+    if (anniversary(months) > stop) months--;
+    const years = Math.floor(months/12), days = Math.round((stop-anniversary(months))/86400000);
+    const elapsedYears = years + (stop-anniversary(years*12))/(anniversary((years+1)*12)-anniversary(years*12));
+    const basis = item.price ?? item.value;
+    return {years:years,months:months%12,days:days,totalDays:Math.round((stop-start)/86400000),annualValue:elapsedYears > 0 && basis !== null ? basis/elapsedYears : null};
+  }
   function emptyTotal() { return { count: 0, valueCents: 0, unknown: 0 }; }
   function add(total, item) {
     total.count += 1;
@@ -123,5 +139,5 @@
     });
     return normalize({ currency: local.currency, items: Array.from(items.values()) });
   }
-  App.inventoryModel = { createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

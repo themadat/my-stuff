@@ -77,3 +77,5 @@ The reset baseline is `0.0.1.1`. Every completed application update increments t
 ## Agent workflow
 
 Repository lifecycle shorthands are documented in `AGENTS.md` and `context/LLM_HANDOFF.md`: `reset`, `wish`, `plan`, `start`, and `cut` never silently advance into one another.
+
+Inventory details are clickable exact filters; **Edit** opens the object and the far-right archive button records departure. Properties appear between Object and Notes. Main-page money uses whole dollars while saved amounts retain cents. All/House/Me cards show overall and filtered totals. Archiving shows calendar age and obtaining price divided by elapsed years, with current value as fallback. Unknown dates/amounts or same-day ownership have no annual average. Inventory Settings has locations, tags and properties in three columns (stacked on mobile); star brands to prioritize their lists and suggestions. Favorites stay in device preferences and full backups.
