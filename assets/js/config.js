@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.27",
-      buildId: "0.0.1.27",
+      version: "0.0.1.28",
+      buildId: "0.0.1.28",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -78,6 +78,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.28", date: "2026-09-11T00:00:00.000Z", title: "Tighter Inventory Controls",
+      summary: "Reduced spacing and moved Clear Filters beside Bulk Add with its supplied symbol.",
+      features: [], improvements: ["Removed the duplicate object-count line", "Output Ports has no unit control"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.27", date: "2026-09-11T00:00:00.000Z", title: "Save Bulk Copies Together",
       summary: "Review shared details once, set each copy’s location and notes, then save all copies together.",
       features: [], improvements: ["Bulk copy groups advance together with retry-safe identities", "House-owned objects use amber highlighting"], fixes: [], knownIssues: []

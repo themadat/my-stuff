@@ -1,3 +1,11 @@
+## Latest update — tighter inventory controls (0.0.1.28)
+
+Reduced main top padding, toolbar vertical padding/gaps and quick-card padding. Removed the duplicate current/previous object-count text; active detail-filter chips remain, and their row is hidden when empty. Clear Filters now appears immediately left of Bulk Add, with the supplied square-X SVG above its words and the same height/style as Add controls. Existing clear behavior and conditional visibility remain intact. Output Ports now uses the unitless property layout and clears its unit in the editor, like End A/End B.
+
+Sort behavior is unchanged: current objects sort alphabetically by object name; archived objects sort by departure date descending, then object name. Matching copies group after sorting.
+
+All 86 automated checks pass. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.28. Browser desktop/mobile/offline visual review remains pending under the recorded preview-server approval restriction; no server launched. Source checkout was clean at 23fd1c0 (0.0.1.27); before-copies are /private/tmp/my-stuff-clear-baseline. Transfer uses baseline equality guards and byte verification. No commit or push performed.
+
 ## Latest update — bulk copies saved together (0.0.1.27)
 
 Bulk review groups pending quantity copies from the same spreadsheet row/copyGroup. Shared object fields are reviewed once; the copy section sets each location and optionally separate Notes. Use Shared Notes stays checked by default; uncheck it for per-copy text or explicitly blank Notes. Save All Copies & Next writes all copies in one inventory mutation and advances to the next object. Pause retains count/location/note drafts and Skip applies to the pending group. Existing quantity queues group on resume; already-saved copies remain excluded.
