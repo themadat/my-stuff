@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.21",
-      buildId: "0.0.1.21",
+      version: "0.0.1.22",
+      buildId: "0.0.1.22",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -74,6 +74,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.22", date: "2026-09-11T00:00:00.000Z", title: "Ownership Cards and Add Controls",
+      summary: "All, House and Me place their stacked symbol and label beside the totals.",
+      features: [], improvements: ["Add Item uses the supplied plus-square symbol", "Bulk Add uses the supplied stacked-square symbol with an accessible queue status"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.21", date: "2026-09-11T00:00:00.000Z", title: "Inventory Symbols",
       summary: "Supplied artwork identifies Edit and matching category cards.",
       features: ["Category symbols follow existing tag names and group filters"],

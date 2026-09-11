@@ -1,3 +1,9 @@
+## Latest update — ownership layout and add controls (0.0.1.22)
+
+All/House/Me cards place their symbol above their word in a left column beside the Everything/Filtered totals. Mobile numeric columns can wrap to retain the left-column layout with enlarged text. The main and empty-state Add buttons read Add Item and use the supplied plus-square SVG. Bulk Add is icon-only using the supplied stacked plus-square SVG; its accessible label/title retain the pending review count when queue status updates. Original SVG viewBoxes and paths, currentColor and 0.85 opacity are retained; pasted Markdown namespaces were normalized. Other plus controls are unchanged.
+
+All 76 automated checks pass; version/build/cache/manifests/HTML/workflow/release align at 0.0.1.22. Visual desktop/mobile/offline review remains pending under the recorded preview-server approval restriction. No preview server, commit or push was run. Transfer uses byte-equality guards against /private/tmp/my-stuff-actions-baseline and the original iCloud GitHub checkout at b2452cd (0.0.1.21).
+
 ## Latest update — supplied inventory symbols (0.0.1.21)
 
 Added 51 unique supplied symbols to the shared inline registry. Edit retains its visible text and item-specific accessible label with the supplied pencil. Category cards resolve supplied symbols for matching names and existing vocabulary aliases (including group prefixes, Paddles, Biking, Footware, Apparel, Lighting, Books, Appliances and Barware). Unknown categories keep the box fallback. Existing Water/Cables symbols remain intact. The later Glassware SVG takes precedence over the earlier duplicate; Powercord and Power Chord remain separate supplied entries. Scarf loses fixed dimensions/root ID and uses currentColor for theme compatibility. Supplied path geometry and viewBoxes are preserved; all symbols are decorative and nonfocusable. No vocabulary or stored inventory changes.

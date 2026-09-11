@@ -35,7 +35,11 @@
     const skipped = queue?.rows.filter(function (r) { return r.status === 'skipped'; }).length || 0;
     $('#bulkQueueStatus').textContent = queue ? queue.name + ' · ' + saved + ' saved · ' + pending + ' awaiting review · ' + skipped + ' skipped' : 'Load a spreadsheet or paste cells. Nothing enters your inventory until you save each object.';
     $('#resumeBulkButton').hidden = !pending; $('#reviewSkippedButton').hidden = !skipped;
-    $('#bulkEntryButton').textContent = pending ? 'Bulk Entry (' + pending + ')' : 'Bulk Entry';
+    const bulkButton = $('#bulkEntryButton');
+    const bulkLabel = pending ? 'Bulk Add (' + pending + ' awaiting review)' : 'Bulk Add';
+    bulkButton.innerHTML = App.icons.markup('inventoryBulkAdd');
+    bulkButton.setAttribute('aria-label', bulkLabel);
+    bulkButton.title = bulkLabel;
   }
   function show() {
     reviewing = false; $('#bulkError').hidden = true; if (loadError) error(loadError);
@@ -124,7 +128,7 @@
     } catch (e) { error(e.message); }
   }
   function init() {
-    $('#addItemButton').insertAdjacentHTML('beforebegin', '<button id="bulkEntryButton" class="button" type="button">Bulk Entry</button>');
+    $('#addItemButton').insertAdjacentHTML('beforebegin', '<button id="bulkEntryButton" class="button" type="button" aria-label="Bulk Add" title="Bulk Add">' + App.icons.markup('inventoryBulkAdd') + '</button>');
     document.body.insertAdjacentHTML('beforeend', `<dialog id="bulkDialog" class="app-dialog" aria-labelledby="bulkTitle"><div class="dialog-shell"><header class="dialog-header"><h2 id="bulkTitle">Bulk Entry</h2><button type="button" class="icon-button" data-close-dialog="bulkDialog" aria-label="Close Bulk Entry">${App.icons.markup('close')}</button></header><div class="dialog-body">
       <p id="bulkQueueStatus" role="status"></p><div class="button-row"><button id="resumeBulkButton" class="button primary" type="button" hidden>Resume Review</button><button id="reviewSkippedButton" class="button" type="button" hidden>Review Skipped</button></div>
       <p id="bulkError" class="inventory-error" role="alert" hidden></p>
