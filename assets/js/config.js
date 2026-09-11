@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.23",
-      buildId: "0.0.1.23",
+      version: "0.0.1.24",
+      buildId: "0.0.1.24",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -29,7 +29,7 @@
       defaultCurrency: "USD",
       currencies: ["USD"],
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": []}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling Bag"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
-      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footware", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Cables", "Powerbank", "Coax", "Ethernet", "Extension"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Water", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Barware", "Glassware", "Dishware", "Appliances", "Tools"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
+      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footware", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Cables", "Powerbank", "Coax", "Ethernet", "Extension"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Water", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Barware", "Glassware", "Dishware", "Appliances", "Tools"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
       brands: ["Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
       rooms: ["Living room", "Kitchen", "Bedroom", "Bathroom", "Office", "Garage", "Closet", "Storage"],
       bulkSuggestions: [
@@ -46,11 +46,13 @@
         { match: "hammer|drill|screwdriver|wrench|ryobi", tags: ["Tools"], room: "Garage" },
         { match: "board game|card game|puzzle", tags: ["Games"], room: "Game Room" }
       ],
+      cableEnds: ["USB-C", "USB-A", "USB-B", "Micro-USB", "Mini-USB", "Lightning", "HDMI", "Mini HDMI", "Micro HDMI", "DisplayPort", "Mini DisplayPort", "Thunderbolt", "Ethernet (RJ45)", "Coax (F-type)", "3.5 mm", "6.35 mm", "RCA", "XLR", "Optical (TOSLINK)", "DC Barrel", "AC Plug", "IEC C7", "IEC C13"],
       commonProperties: [{ name: "Color", unit: "", values: ["Black", "White", "Gray", "Silver", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Brown", "Beige", "Clear", "Multicolor"] }],
       categories: [
         { name: "Shoes", properties: [{ name: "Size", unit: "" }, { name: "Color", unit: "" }, { name: "Weight", unit: "g" }] },
         { name: "Backpacking gear", properties: [{ name: "Weight", unit: "g" }] },
         { name: "Cables", properties: [{ name: "Length", unit: "cm" }, { name: "End A", unit: "" }, { name: "End B", unit: "" }] },
+        { name: "Bags", properties: [{ name: "Capacity", unit: "L" }] },
         { name: "Water", properties: [{ name: "Volume", unit: "oz" }] }
       ]
     },
@@ -74,6 +76,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.24", date: "2026-09-11T00:00:00.000Z", title: "Locations, Tags and Cable Details",
+      summary: "Use a single custom location, consistent cable ends, and expanded Tech and Bags details.",
+      features: [], improvements: ["Location filters and Settings list actual locations", "Objects without a location remain in inventory and overall totals", "Single Location hides empty Zone and Space fields", "Search cable-end suggestions or enter a custom value", "Laptop, Watch, Phone and Tablet tags; Bags Capacity in liters", "Add Item and Bulk Add labels sit beneath their symbols"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.23", date: "2026-09-11T00:00:00.000Z", title: "Compact Inventory Workspace",
       summary: "Search and filters share the ownership toolbar, with denser item rows and category shortcuts.",
       features: [], improvements: ["Only favorite brands appear in category filters", "Smaller category cards have larger symbols", "Edit and Archive are adjacent icon-only controls", "Room and Space share a line"], fixes: [], knownIssues: []

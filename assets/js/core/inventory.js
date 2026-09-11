@@ -3,6 +3,12 @@
   const App = window.LocalApp, u = App.utils;
   const reasons = ["Trashed", "Lost", "Broken", "Sold", "Donated", "Given away", "Other"];
   const methods = ["Purchased", "Gift", "Inherited", "Made", "Found", "Other"];
+  function cableEnd(value) {
+    const text = String(value || '').trim();
+    const key = function (name) { return name.toLowerCase().replace(/[\s_-]+/g, ''); };
+    const aliases = { usbtypec: 'USB-C', usbtypea: 'USB-A', usbtypeb: 'USB-B', usbmicrob: 'Micro-USB', microusb: 'Micro-USB', usbminib: 'Mini-USB', miniusb: 'Mini-USB', rj45: 'Ethernet (RJ45)', ethernet: 'Ethernet (RJ45)', toslink: 'Optical (TOSLINK)' };
+    return aliases[key(text)] || App.config.inventory.cableEnds.find(function (name) { return key(name) === key(text); }) || text;
+  }
   function today() {
     const date = new Date();
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
@@ -159,5 +165,5 @@
     });
     return normalize({ currency: local.currency, items: Array.from(items.values()) });
   }
-  App.inventoryModel = { sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

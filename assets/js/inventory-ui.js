@@ -34,7 +34,7 @@
             <input type="hidden" id="inventoryOwnerFilter" value="">
             ${select("inventoryRoomFilter", "Location", '<option value="">All Rooms</option>')}
             ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
-          </div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")} Add Item</button></header>
+          </div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")}<span>Add Item</span></button></header>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body">
         <section class="inventory-collection" aria-label="Your items">
@@ -44,6 +44,7 @@
         </section>
         <aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><div class="room-overview-heading">${icon("inventoryHome")}<h2 id="roomOverviewTitle">Around the House</h2></div><p>All current items, grouped by room and who they belong to.</p><div id="roomStats"></div><p class="inventory-footnote">Values are estimates. Items without a value are counted, but excluded from value totals.</p><p class="inventory-footnote">All values and prices are in USD.</p></aside>
       </div>`;
+    document.body.insertAdjacentHTML("beforeend", '<datalist id="inventoryCableEnds">' + options(App.config.inventory.cableEnds) + '</datalist>');
     document.body.insertAdjacentHTML("beforeend", `
       <dialog id="itemDialog" class="app-dialog inventory-dialog" aria-labelledby="itemDialogTitle" data-backdrop-close="false"><form id="itemForm" class="dialog-shell">
         <header class="dialog-header"><div><h2 id="itemDialogTitle">Add an Item</h2></div><button type="button" class="icon-button" data-inv-close="itemDialog" aria-label="Close item">${icon("close")}</button></header>
@@ -66,6 +67,7 @@
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
             </div>
+            <label class="full single-location-toggle"><input id="itemSingleLocation" type="checkbox"> Single Location</label>
             <div class="full item-location-row">
               ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Search rooms…")}${picker("itemSpace", "Space", "Search spaces…")}
               <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div></div>
@@ -312,6 +314,7 @@
     }
     if (id === 'itemBrand') return App.inventoryCatalog.brands(items).map(function (brand) { return {value:brand,detail:App.inventoryCatalog.isFavorite(brand) ? 'Favorite Brand' : 'Brand'}; });
     if (id === "itemZone") return unique(config.locations.map(function (l) { return l.zone; })).map(function (zone) { return { value: zone, detail: "Zone" }; }).concat(propertyValues("zone"));
+    if (id === 'itemRoom' && $('#itemSingleLocation').checked) return unique(items.map(function (item) { return item.room; })).map(function (room) { return {value:room,detail:'Location'}; });
     if (id === "itemRoom") return App.inventoryCatalog.data(items).locations.flatMap(function (zone) { return [{value:zone.name,kind:'zone',detail:'Zone',zone:zone.name}].concat(zone.rooms.flatMap(function (room) { return [{value:room.name,kind:'room',level:1,detail:zone.name,zone:zone.name}].concat(room.spaces.map(function (space) { return {value:space,kind:'space',level:2,detail:zone.name+' / '+room.name,room:room.name,zone:zone.name}; })); })); });
     return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); }).concat(propertyValues("space"));
   }
@@ -326,7 +329,7 @@
         if (kind === 'itemZone') { zone.value = option.value; room.value = ''; space.value = ''; }
         if (kind === 'itemRoom') { zone.value = option.zone || ''; room.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; space.value = option.kind === 'space' ? option.value : ''; }
         if (kind === 'itemSpace') { space.value = option.value; if (option.room) { room.value = option.room; zone.value = option.zone; } }
-        syncCopyToPrimary(copyRow); close(); input.focus(); close(); return;
+        syncCopyToPrimary(copyRow); singleLocation(false); close(); input.focus(); close(); return;
       }
       input.value = option.value;
       (id === 'itemBrand' ? ['brand'] : ['zone','room','space','categories']).forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
@@ -353,7 +356,7 @@
     input.addEventListener("input", function () {
       if (copyRow) { matchCopyLocation(copyRow,kind); show(); return; }
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
-      if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
+      if (id === "itemRoom") { ["zone","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemSpace").value = ""; $("#itemZone").value = $("#itemSingleLocation").checked ? "" : App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === input.value.trim().toLowerCase(); })?.zone || ""; }
       if (['itemRoom','itemZone','itemSpace'].includes(id)) syncPrimaryCopy();
       show();
     });
@@ -378,6 +381,7 @@
   }
   function initSmartControls() {
     ["itemBrand", "itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(function (id) { initPicker(id); });
+    $("#itemSingleLocation").addEventListener("change", function () { singleLocation(true); });
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
@@ -416,7 +420,8 @@
       return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
 
     }).join("");
-    $("#roomStats").innerHTML = stats.rooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + stats.rooms.map(function (room) { return '<tr><th scope="row">' + filterButton('room',room.name,room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td>' + filterButton('roomOwner',[room.name,owner],total.count + ' · ' + money(total.valueCents / 100,true)) + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
+    const assignedRooms = stats.rooms.filter(function (room) { return room.name !== "Unassigned"; });
+    $("#roomStats").innerHTML = assignedRooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + assignedRooms.map(function (room) { return '<tr><th scope="row">' + filterButton('room',room.name,room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td>' + filterButton('roomOwner',[room.name,owner],total.count + ' · ' + money(total.valueCents / 100,true)) + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
     renderLocationFilter();
     renderCategoryFilter();
     $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; }).concat(App.config.inventory.rooms, data.items.map(function (item) { return item.room; }))));
@@ -436,17 +441,20 @@
   function renderLocationFilter() {
     const el = $('#inventoryRoomFilter'), old = el.value;
     el.innerHTML = '<option value="">All Locations</option>' + App.inventoryCatalog.data(inventory().items).locations.map(function (zone) {
-      return '<optgroup label="' + esc(zone.name) + '"><option value="' + esc('zone:' + zone.name) + '">' + esc(zone.name + ' — All') + '</option>' + zone.rooms.map(function (room) {
-        return '<option value="' + esc(room.name === 'Unassigned Room' ? 'Unassigned' : room.name) + '">　' + esc(room.name) + '</option>' + room.spaces.map(function (space) { return '<option value="' + esc('space:' + JSON.stringify([room.name,space])) + '">　　' + esc(space) + '</option>'; }).join('');
-      }).join('') + '</optgroup>';
-    }).join('') + '<option value="Unassigned">Unassigned Room</option>';
+      const rooms = zone.rooms.map(function (room) {
+        return (room.name ? '<option value="' + esc(room.name) + '">　' + esc(room.name) + '</option>' : '') + room.spaces.map(function (space) {
+          return '<option value="' + esc('space:' + JSON.stringify([room.name,space])) + '">　　' + esc(space) + '</option>';
+        }).join('');
+      }).join('');
+      return zone.name ? '<optgroup label="' + esc(zone.name) + '"><option value="' + esc('zone:' + zone.name) + '">' + esc(zone.name + ' — All') + '</option>' + rooms + '</optgroup>' : rooms;
+    }).join('');
     el.value = Array.from(el.options).some(function (o) { return o.value === old; }) ? old : '';
   }
   function matchesLocation(item, filter) {
     if (!filter) return true;
     const property = function (name) { return item.properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
-    if (filter.startsWith('zone:')) return (property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || 'Unassigned Zone') === filter.slice(5);
-    if (filter.startsWith('space:')) { const path = JSON.parse(filter.slice(6)); return (item.room || 'Unassigned Room') === path[0] && property('space') === path[1]; }
+    if (filter.startsWith('zone:')) return (property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || '') === filter.slice(5);
+    if (filter.startsWith('space:')) { const path = JSON.parse(filter.slice(6)); return (item.room || '') === path[0] && property('space') === path[1]; }
     return (item.room || 'Unassigned') === filter;
   }
   function renderCategoryCards(items) {
@@ -470,6 +478,7 @@
     return item[key];
   }
   function filterButton(key, value, label) {
+    if (!label) return "";
     return '<button type="button" class="instant-filter" data-instant-filter="' + esc(key) + '" data-filter-value="' + esc(JSON.stringify(value)) + '" aria-pressed="' + (instantFilters.has(key) && JSON.stringify(instantFilters.get(key)) === JSON.stringify(value)) + '">' + esc(label) + '</button>';
   }
   function renderList() {
@@ -493,7 +502,7 @@
       const properties = distinct(members.flatMap(function (entry) { return entry.properties; })), descriptions = distinct(members.map(function (entry) { return entry.description; }));
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
       const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
-      const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || 'Unassigned Zone',room:entry.room || 'Unassigned Room',space:property('space')}; };
+      const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || '',room:entry.room || '',space:property('space')}; };
       return '<tr><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '</div><div class="object-details">' + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,tag); }).join('') + filterButton('owner',item.owner,item.owner==='house'?'House':'Me') + '</span></div></td><td class="item-location">' + distinct(members.map(location)).map(function (l) { return '<div class="location-path">' + filterButton('catalog',{kind:'zone',value:l.zone,label:l.zone},l.zone) + '<span class="location-room-space">' + filterButton('catalog',{kind:'room',value:l.room,zone:l.zone,label:l.room},l.room) + (l.space ? filterButton('catalog',{kind:'space',value:l.space,room:l.room,zone:l.zone,label:l.space},l.space) : '') + '</span></div>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join('') + '</tbody></table></div>';
   }
@@ -504,7 +513,9 @@
     if ($$(".item-property").length >= 40) return formError("#itemFormError", "Use up to 40 properties per item.");
     const row = document.createElement("div"); row.className = "item-property";
     row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit (optional)</span><input data-property-unit maxlength="30" placeholder="Optional" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
-    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else value.removeAttribute("list"); }
+    const endpoint = function () { return ['end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); };
+    $('[data-property-value]',row).addEventListener('change', function () { if (endpoint()) this.value = m.cableEnd(this.value); });
+    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else value.removeAttribute("list"); }
     $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions();
     $("#itemProperties").appendChild(row); renderPresets(); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
   }
@@ -521,6 +532,23 @@
     const tags = m.tags($("#itemCategories").value).map(function (tag) { return tag.toLowerCase(); });
     App.config.inventory.categories.filter(function (category) { return tags.includes(category.name.toLowerCase()); }).forEach(function (category) {
       category.properties.forEach(function (property) { if (!$$('[data-property-name]').some(function (el) { return el.value.trim().toLowerCase() === property.name.toLowerCase(); })) addProperty(property); });
+    });
+  }
+  function singleLocation(clear) {
+    const single = $('#itemSingleLocation').checked;
+    if (clear && single) {
+      $('#itemZone').value = ''; $('#itemSpace').value = '';
+      ['zone','room','space'].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
+      syncPrimaryCopy();
+    }
+    ['Zone','Space'].forEach(function (name) { $('#item'+name).closest('.picker').hidden = single; });
+    $('label', $('#itemRoom').closest('.picker')).textContent = single ? 'Location' : 'Room';
+    $('#itemRoom').placeholder = single ? 'Enter a location…' : 'Search rooms…';
+    $$('.item-location-row').forEach(function (row) { row.classList.toggle('single-location', single); });
+    $$('[data-copy-location]').forEach(function (row) {
+      ['zone','space'].forEach(function (name) { const input = $('[data-copy-'+name+']',row); input.closest('.picker').hidden = single && !input.value; });
+      $('label',$('[data-copy-room]',row).closest('.picker')).textContent = single ? 'Location' : 'Room';
+      row.classList.toggle('single-location', single && !$('[data-copy-zone]',row).value && !$('[data-copy-space]',row).value);
     });
   }
   function syncPrimaryCopy() {
@@ -542,12 +570,14 @@
       if (!$('[data-copy-zone]',row).value) $('[data-copy-zone]',row).value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === $('[data-copy-room]',row).value.toLowerCase(); })?.zone || '';
       ['Zone','Room','Space'].forEach(function (name) { initPicker('copy'+index+name,row,'item'+name); });
     });
+    singleLocation(false);
   }
   function syncCopyToPrimary(row) {
     if (!editingId || row !== $('[data-copy-location]')) return;
     ['Zone','Room','Space'].forEach(function (name) { $('#item'+name).value = $('[data-copy-'+name.toLowerCase()+']',row).value; smartManual.add(name.toLowerCase()); });
   }
   function matchCopyLocation(row,kind) {
+    if ($('#itemSingleLocation').checked && kind === 'itemRoom') { $('[data-copy-zone]',row).value = ''; $('[data-copy-space]',row).value = ''; syncCopyToPrimary(row); singleLocation(false); return; }
     const zone = $('[data-copy-zone]',row), room = $('[data-copy-room]',row), space = $('[data-copy-space]',row), locations = App.inventoryCatalog.data(inventory().items).locations;
     if (kind === 'itemZone') { room.value = ''; space.value = ''; }
     if (kind === 'itemRoom') {
@@ -612,6 +642,8 @@
     $("#restoreItemButton").hidden = !item?.archive;
     $("#itemArchiveSummary").hidden = !item?.archive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
+    $('#itemSingleLocation').checked = draft?._singleLocation ?? Boolean($('#itemRoom').value && !$('#itemZone').value && !$('#itemSpace').value && !App.config.inventory.locations.some(function (l) { return l.room.toLowerCase() === $('#itemRoom').value.toLowerCase(); }));
+    singleLocation(false);
     suggestProperties(); fillMissingAmount();
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
@@ -628,7 +660,7 @@
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       commitTags();
       item.categories = m.tags($("#itemCategories").value);
-      item.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
+      item.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: ["end a","end b"].includes($("[data-property-name]", row).value.trim().toLowerCase()) ? m.cableEnd($("[data-property-value]", row).value) : $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
       ["Brand", "Zone", "Space"].forEach(function (key) {
         const value = $("#item" + key).value.trim(), old = previous?.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); });
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
@@ -657,7 +689,7 @@
           return m.normalizeItem(result);
         });
         if (count < editingCopies.length) {
-          const removed = editingCopies.slice(count).map(function (entry) { return entry.name + ' (' + (entry.room || 'Unassigned') + ')'; }).join(', ');
+          const removed = editingCopies.slice(count).map(function (entry) { return entry.name + (entry.room ? ' (' + entry.room + ')' : ''); }).join(', ');
           if (!await App.components.confirm({title:'Delete Removed Copies?',message:'Permanently delete ' + (editingCopies.length-count) + ' copies: ' + removed + '. This cannot be undone.',confirmLabel:'Delete Copies',danger:true,trigger:$('#saveItemButton')})) return;
           verifyCopies();
         }
@@ -721,8 +753,9 @@
     const draft = {};
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { draft[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
     draft.categories = m.tags($("#itemCategories").value);
-    draft.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
+    draft.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: ["end a","end b"].includes($("[data-property-name]", row).value.trim().toLowerCase()) ? m.cableEnd($("[data-property-value]", row).value) : $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
     ["Brand", "Zone", "Space"].forEach(function (key) { if ($("#item" + key).value) draft.properties.push({ name: key, value: $("#item" + key).value, unit: "" }); });
+    draft._singleLocation = $('#itemSingleLocation').checked;
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
     draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();

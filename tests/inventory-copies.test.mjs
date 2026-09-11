@@ -103,3 +103,29 @@ test('catalog filters respect location parents, tag groups, properties and prope
  assert.equal(matches(entry,{kind:'property',name:'Color',value:'Blue'}),true);
  assert.equal(matches(entry,{kind:'property',name:'Color',value:'Red'}),false);
 });
+
+test('cable ends canonicalize common spelling variants while retaining custom connectors', () => {
+  for (const value of ['USB C', 'usb-c', 'USB_C', 'USB Type C']) assert.equal(app.inventoryModel.cableEnd(value), 'USB-C');
+  assert.equal(app.inventoryModel.cableEnd('micro usb'), 'Micro-USB');
+  assert.equal(app.inventoryModel.cableEnd('RJ45'), 'Ethernet (RJ45)');
+  assert.equal(app.inventoryModel.cableEnd(' Proprietary 4-pin '), 'Proprietary 4-pin');
+  assert.equal(app.inventoryModel.cableEnd('USB-C female'), 'USB-C female');
+  assert.equal(app.inventoryModel.cableEnd(''), '');
+});
+test('standalone locations and locationless objects remain intact without placeholder catalog labels', () => {
+  const standalone = app.inventoryModel.normalizeItem({ ...item, room: 'Offsite Locker', properties: [] });
+  const blank = app.inventoryModel.normalizeItem({ ...item, id: 'blank', room: '', properties: [] });
+  const copies = app.inventoryModel.createCopies(standalone, 2);
+  assert.ok(copies.every(copy => copy.room === 'Offsite Locker' && !copy.properties.some(p => ['Zone','Space'].includes(p.name))));
+  assert.equal(app.inventoryModel.stats([standalone, blank]).all.count, 2);
+  const locations = app.inventoryCatalog.data([standalone, blank]).locations;
+  assert.ok(locations.some(zone => zone.rooms.some(room => room.name === 'Offsite Locker')));
+  assert.ok(locations.every(zone => zone.name !== 'Unassigned Zone' && zone.rooms.every(room => room.name !== 'Unassigned Room')));
+});
+test('Tech offers the requested device tags and Bags offers capacity in liters', () => {
+  const tech = app.config.inventory.tagGroups.find(group => group.name === 'Tech').tags;
+  for (const tag of ['Laptop','Watch','Phone','Tablet']) assert.ok(tech.includes(tag));
+  const bags = app.config.inventory.categories.find(category => category.name === 'Bags');
+  assert.equal(bags.properties[0].name, 'Capacity');
+  assert.equal(bags.properties[0].unit, 'L');
+});
