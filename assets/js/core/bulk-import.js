@@ -33,6 +33,7 @@
   }
   function date(value) {
     const text = String(value).trim(), parts = text.split('/');
+    if (/^(?:unknown|n\/?a|none|\?|-)$/i.test(text)) return '';
     const iso = parts.length === 3 ? (parts[2].length === 2 ? '20' + parts[2] : parts[2]) + '-' + parts[0].padStart(2, '0') + '-' + parts[1].padStart(2, '0') : text;
     return m.dateOnly(iso);
   }
@@ -102,7 +103,7 @@
         const value = mapped[key];
         try {
           if (['price', 'value'].includes(key)) draft[key] = amount(value);
-          else if (key === 'obtainedDate') draft[key] = date(value);
+          else if (key === 'obtainedDate') { draft[key] = ''; draft[key] = date(value); }
           else if (key === 'categories') draft.categories = m.tags(value.replace(/;/g, ','));
           else if (['brand', 'source', 'room'].includes(key)) draft[key] = value;
           else if (key === 'name') draft.name = App.smartEntry.parse(value, brands.concat(mapped.brand || [])).fields.name || value;

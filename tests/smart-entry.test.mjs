@@ -23,7 +23,7 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
   assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 17);
   assert.equal(c.tagGroups.length, 8);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 58);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 59);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 

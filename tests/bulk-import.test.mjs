@@ -51,3 +51,14 @@ test('bulk inventory row retains its source for Smart Complete and Water include
  assert.deepEqual(plain(d.properties.find(p=>p.name==='Volume')),{name:'Volume',value:'23',unit:'oz'});
  assert.ok(app.config.inventory.categories.find(c=>c.name==='Water').properties.some(p=>p.name==='Volume'));
 });
+
+test('unknown or unparsed mapped dates override inferred dates without inventing a date', () => {
+ for (const date of ['Unknown','N/A','not a date','02/30/26']) {
+  const rows = [['Object','Date'], ['08/03/26 Lamp',date]];
+  const result = bulk.prepare(rows,true,bulk.mapping(rows[0]),[])[0];
+  assert.equal(result.draft.obtainedDate, '');
+  if (['not a date','02/30/26'].includes(date)) assert.ok(result.draft.description.includes(date));
+ }
+ const noDate = bulk.prepare([['Object'],['Lamp']],true,['name'],[])[0];
+ assert.equal(noDate.draft.obtainedDate, '');
+});

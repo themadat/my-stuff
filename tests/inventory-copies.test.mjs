@@ -129,3 +129,12 @@ test('Tech offers the requested device tags and Bags offers capacity in liters',
   assert.equal(bags.properties[0].name, 'Capacity');
   assert.equal(bags.properties[0].unit, 'L');
 });
+
+test('Power includes Charger and the requested electrical property presets', () => {
+  assert.ok(app.config.inventory.tagGroups.find(g => g.name === 'Power').tags.includes('Charger'));
+  const presets = app.config.inventory.categories;
+  assert.equal(presets.find(p => p.name === 'Powerbank').properties[0].name, 'Battery Capacity');
+  assert.equal(presets.find(p => p.name === 'Powerbank').properties[0].unit, 'mAh');
+  assert.equal(presets.find(p => p.name === 'Charger').properties[0].name, 'Charge Capacity');
+  assert.equal(presets.find(p => p.name === 'Charger').properties[1].name, 'Output Ports');
+});

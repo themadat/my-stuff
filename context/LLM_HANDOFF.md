@@ -1,3 +1,11 @@
+## Latest update — unknown dates and power properties (0.0.1.25)
+
+Date Obtained has an explicit Unknown checkbox; new/unparsed dates default to Unknown (stored as the existing empty date). Uncheck it to enter a date, or check it to clear the date with Smart Complete manual-edit protection. Valid parsed dates reveal the date input. Unknown dates display as Unknown in inventory. Invalid mapped bulk dates clear any inferred date and preserve the raw text in Notes/warnings; Unknown/N/A markers are accepted. Saved manual dates remain protected from unrelated parser results. Archive departure-date requirements are unchanged.
+
+Room and Space input clicks clear the current text and run existing input handling, including parent/copy synchronization and Smart Complete protection; dropdown option clicks and keyboard focus do not clear selected choices. Applies to main and copy location inputs. Powerbank offers Battery Capacity (mAh); Power adds Charger with Charge Capacity (W) and Output Ports (free text). There are now 59 configured tags. Units remain editable.
+
+All 81 parser/model/static checks pass, including unknown/malformed mapped dates overriding inferred dates and the new presets. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.25. Browser desktop/mobile/offline review remains pending under the recorded preview-server approval restriction; no server launched. Before-copies are /private/tmp/my-stuff-date-power-baseline; source checkout was clean at bcd5638 (0.0.1.24). Transfer uses exact equality guards and byte verification. No commit or push performed.
+
 ## Latest update — locations, Tech tags and cable details (0.0.1.24)
 
 Missing zones/rooms no longer render Unassigned labels, dropdown options or room-total rows. Settings omits placeholder headings while retaining standalone named rooms/spaces. Inventory records and overall totals remain unchanged. Single Location in the editor hides the main Zone/Space fields and accepts free text in the existing room field; toggling it on clears the current item's parents in the draft. Standalone custom locations reopen in this mode. Empty parent controls on copy rows collapse in this mode; other copies with existing structured locations retain their parents. Bulk draft capture retains the mode. No schema changes.

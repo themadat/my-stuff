@@ -9,7 +9,7 @@
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
-  function dateLabel(value) { return value ? new Date(value + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Not recorded"; }
+  function dateLabel(value) { return value ? new Date(value + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Unknown"; }
   function duration(item) { const days = m.daysOwned(item); return days == null ? "Duration unknown" : days.toLocaleString() + (days === 1 ? " day owned" : " days owned"); }
   function options(values, empty) { return (empty == null ? "" : '<option value="">' + esc(empty) + '</option>') + values.map(function (value) { return '<option value="' + esc(value) + '">' + esc(value) + '</option>'; }).join(""); }
   function unique(values) { return Array.from(new Set(values.filter(Boolean))).sort(function (a, b) { return a.localeCompare(b); }); }
@@ -63,7 +63,7 @@
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
               ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-              ${field("itemObtainedDate", "Date Obtained", 'type="date"')}
+              <div class="field obtained-date-field"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice"><input id="itemDateUnknown" type="checkbox" checked> Unknown</label><input id="itemObtainedDate" type="date" hidden></div>
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
             </div>
@@ -179,6 +179,11 @@
     $("#itemSmartEntry").value = ""; $("#smartPreview").hidden = true; $("#smartPreview").textContent = ""; $("#smartDestinations").textContent = "";
     $$("[data-smart-field]").forEach(function (el) { el.removeAttribute("data-smart-field"); });
   }
+  function syncDateUnknown() {
+    const unknown = !$('#itemObtainedDate').value;
+    $('#itemDateUnknown').checked = unknown;
+    $('#itemObtainedDate').hidden = unknown;
+  }
   function syncSegments() {
     ["itemOwner", "itemObtainedHow"].forEach(function (id) { $$('input[name="' + id + 'Choice"]').forEach(function (el) { el.checked = el.value === $("#" + id).value; }); });
   }
@@ -203,7 +208,7 @@
       if (result.fields.volume && smartField('volume')?.hasAttribute('data-smart-field')) { const unit = $('[data-property-unit]', smartField('volume').closest('.item-property')); unit.value = result.fields.volumeUnit || 'oz'; unit.setAttribute('data-smart-field','volume'); }
       suggestProperties();
     }
-    if (!previewOnly) fillMissingAmount(); syncSegments(); renderTags();
+    if (!previewOnly) fillMissingAmount(); syncSegments(); renderTags(); if (!previewOnly) syncDateUnknown();
     let cursor = 0, html = "";
     result.spans.forEach(function (span) {
       html += esc(text.slice(cursor, span.start));
@@ -353,6 +358,10 @@
       active = -1; input.removeAttribute("aria-activedescendant"); list.hidden = false; input.setAttribute("aria-expanded", "true");
     }
     input.addEventListener("focus", show);
+    if (['itemRoom','itemSpace'].includes(type)) input.addEventListener('click', function () {
+      input.value = '';
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+    });
     input.addEventListener("input", function () {
       if (copyRow) { matchCopyLocation(copyRow,kind); show(); return; }
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
@@ -381,6 +390,13 @@
   }
   function initSmartControls() {
     ["itemBrand", "itemZone", "itemRoom", "itemSpace", "itemTagSearch"].forEach(function (id) { initPicker(id); });
+    $('#itemDateUnknown').addEventListener('change', function () {
+      const input = $('#itemObtainedDate');
+      if (this.checked) { input.value = ''; smartManual.add('obtainedDate'); input.removeAttribute('data-smart-field'); delete smartApplied.obtainedDate; }
+      input.hidden = this.checked;
+      if (!this.checked) input.focus();
+    });
+    $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
     $("#itemSingleLocation").addEventListener("change", function () { singleLocation(true); });
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
@@ -644,7 +660,7 @@
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
     $('#itemSingleLocation').checked = draft?._singleLocation ?? Boolean($('#itemRoom').value && !$('#itemZone').value && !$('#itemSpace').value && !App.config.inventory.locations.some(function (l) { return l.room.toLowerCase() === $('#itemRoom').value.toLowerCase(); }));
     singleLocation(false);
-    suggestProperties(); fillMissingAmount();
+    suggestProperties(); fillMissingAmount(); syncDateUnknown();
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
   }
