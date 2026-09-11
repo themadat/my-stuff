@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.20",
-      buildId: "0.0.1.20",
+      version: "0.0.1.21",
+      buildId: "0.0.1.21",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -74,6 +74,11 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.21", date: "2026-09-11T00:00:00.000Z", title: "Inventory Symbols",
+      summary: "Supplied artwork identifies Edit and matching category cards.",
+      features: ["Category symbols follow existing tag names and group filters"],
+      improvements: ["Shared decorative SVGs inherit the active theme color"], fixes: [], knownIssues: []
+    }, {
       version:"0.0.1.20", date:"2026-09-11T00:00:00.000Z", title:"Grouped Copies and Search Everywhere",
       summary:"Matching objects in the same room share a row with Count and combined Value.",
       features:["Inventory navigation lives beside the top search", "Wider Settings offers clickable catalog filters and inline room spaces", "Aligned overall/filtered totals and hierarchical category groups", "Combined Object/details and Zone/Room/Space columns", "Search includes current and archived objects, catalog options, Notes, settings and help", "Copy locations use horizontal Zone, Room and Space rows with autocomplete and parent matching", "Color, End A and End B have no unit control; other units are optional"],
