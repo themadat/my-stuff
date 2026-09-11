@@ -116,6 +116,7 @@
         const resolvedZone = parent?.zone || zone;
         if (resolvedZone) { item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'zone'; }); item.properties.push({name:'Zone',value:resolvedZone,unit:''}); }
       }
+      if (typeof override?.notes === 'string') item.description = override.notes;
       return normalizeItem(item);
     });
   }

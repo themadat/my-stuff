@@ -671,8 +671,6 @@ test('bulk review suggests fields, saves only approved objects, resumes edits an
   await page.waitForFunction(() => document.activeElement.id === 'itemName');
   assert.equal(await page.locator('#itemDescription').inputValue(), 'Keep this review edit');
   await page.locator('#skipBulkRow').click();
-  await page.waitForFunction(() => document.querySelector('#bulkReviewInfo').textContent.includes('Copy 2 of 2'));
-  await page.locator('#saveItemButton').click();
   await page.waitForFunction(() => !document.querySelector('#itemDialog').open); await page.locator('#bulkEntryButton').click();
   assert.match(await page.locator('#bulkQueueStatus').textContent(), /2 saved.*0 awaiting review.*1 skipped/);
   await page.locator('#reviewSkippedButton').click();
@@ -863,7 +861,7 @@ test('property sets toggle with highlighted borders; manual text stays white; co
  assert.deepEqual(items.map(i=>[i.room,i.properties.find(p=>p.name==='Space').value]),[['Nook','Sling Bag'],['Office','Desk']]);
 });
 
-test('bulk Copies expands individual reviews with their chosen locations and no Float tag', { timeout:30000 }, async t => {
+test('bulk copies save together with their locations and separate notes', { timeout:30000 }, async t => {
  const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click(); await page.locator('#bulkEntryButton').click();
  await page.locator('#bulkPaste').fill('Floating\tWater\t09/22/24\t$12\tAmazon - Vapur Bottle 23 Ounce [24], Float');
  await page.locator('#readBulkPaste').click(); await page.locator('#startBulkReview').click(); await page.waitForFunction(()=>document.activeElement.id==='itemName');
@@ -871,13 +869,13 @@ test('bulk Copies expands individual reviews with their chosen locations and no 
  assert.match(await page.locator('#itemDescription').inputValue(),/Float/);
  await page.locator('#itemCopies').fill('2'); await page.locator('[data-copy-room]').nth(0).fill('Nook'); await page.locator('[data-copy-space]').nth(0).fill('Sling Bag');
  await page.locator('[data-copy-room]').nth(1).fill('Office'); await page.locator('[data-copy-space]').nth(1).fill('Desk');
- await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>document.querySelector('#bulkReviewInfo').textContent.includes('Review 2 of 2'));
- assert.equal(await page.locator('#itemRoom').inputValue(),'Office'); assert.equal(await page.locator('#itemSpace').inputValue(),'Desk');
- assert.equal(await page.locator('#itemCopies').inputValue(),'1');
+ await page.locator('[data-copy-shared-notes]').nth(1).uncheck();
+ await page.locator('[data-copy-notes]').nth(1).fill('Office copy');
  await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
  const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
  assert.equal(items.length,2); assert.ok(items.every(i=>!i.categories.includes('Float'))); assert.ok(items[0].copyGroup); assert.equal(items[1].copyGroup,items[0].copyGroup);
  assert.deepEqual(items.map(i=>i.properties.find(p=>p.name==='Space').value),['Sling Bag','Desk']);
+ assert.equal(items[1].description,'Office copy');
 });
 
 test('ownership chips, category cards and hierarchical location filters work across the full workspace', { timeout:30000 }, async t=>{

@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.26",
-      buildId: "0.0.1.26",
+      version: "0.0.1.27",
+      buildId: "0.0.1.27",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -78,6 +78,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.27", date: "2026-09-11T00:00:00.000Z", title: "Save Bulk Copies Together",
+      summary: "Review shared details once, set each copy’s location and notes, then save all copies together.",
+      features: [], improvements: ["Bulk copy groups advance together with retry-safe identities", "House-owned objects use amber highlighting"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.26", date: "2026-09-11T00:00:00.000Z", title: "Assigned Locations and Compact Toolbar",
       summary: "Locations follow Outside, Upstairs and Main Level with their configured rooms and spaces.",
       features: [], improvements: ["Removed legacy and unassigned location choices", "Bags Volume replaces Capacity", "Ownership, Add and filter controls share a compact height"], fixes: [], knownIssues: []

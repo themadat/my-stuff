@@ -21,6 +21,13 @@
     } catch (_) { loadError = 'The saved review queue could not be read. Your inventory is unchanged. Load the source spreadsheet to start a new batch.'; error(loadError); }
   }
   function row() { return reviewing ? queue?.rows.find(function (r) { return r.status === 'pending'; }) : null; }
+  function reviewCopies(current) {
+    current = current || row();
+    if (!current) return [];
+    return queue.rows.filter(function (entry) {
+      return entry.status === 'pending' && (entry.id === current.id || (current.draft.copyGroup && entry.draft.copyGroup === current.draft.copyGroup && entry.row === current.row));
+    });
+  }
   function reconcile() {
     if (!queue) return;
     const ids = new Set(App.storage.getState().inventory.items.map(function (item) { return item.id; }));
@@ -50,7 +57,7 @@
     const current = row(); if (!current) return;
     const index = queue.rows.indexOf(current), count = queue.rows.length;
     const matches = App.storage.getState().inventory.items.filter(function (item) { return item.id !== current.id && item.name.toLowerCase() === current.draft.name.toLowerCase(); }).length;
-    $('#bulkReviewInfo').innerHTML = '<strong>Review ' + (index + 1) + ' of ' + count + ' · Spreadsheet Row ' + esc(current.row) + (current.copy ? ' · Copy ' + esc(current.copy) : '') + '</strong>' +
+    $('#bulkReviewInfo').innerHTML = '<strong>Review ' + (index + 1) + ' of ' + count + ' · Spreadsheet Row ' + esc(current.row) + (reviewCopies(current).length > 1 ? ' · ' + reviewCopies(current).length + ' copies saved together' : '') + '</strong>' +
       (current.suggestions.length ? '<p>Suggestions to check: ' + esc(current.suggestions.join(' · ')) + '</p>' : '<p>Check the imported details before saving.</p>') +
       (current.warnings.length ? '<p class="inventory-error">' + esc(current.warnings.join(' · ')) + '</p>' : '') +
       (matches ? '<p>' + matches + ' matching object name' + (matches === 1 ? ' is' : 's are') + ' already in your inventory. Check whether this is another copy.</p>' : '') +
@@ -62,36 +69,53 @@
     if (!row()) { reviewing = false; App.components.closeDialog('#itemDialog', 'saved'); App.components.closeDialog('#bulkDialog'); renderStatus(); App.inventoryUI.home(); return; }
     App.components.closeDialog('#bulkDialog');
     if (!row().draft._smartEntry && !row().draft._reviewed) row().draft._smartEntry = row().source;
-    App.inventoryUI.openDraft(row().draft, $('#bulkEntryButton'));
+    const current = row(), members = reviewCopies(current), draft = u.clone(current.draft);
+    if (!draft._copyLocations?.length && members.length > 1) {
+      draft._copies = members.length;
+      draft._copyLocations = members.map(function (entry) {
+        const prop = function (name) { return entry.draft.properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
+        return {zone:prop('zone'),room:entry.draft.room,space:prop('space'),notes:entry.draft.description === current.draft.description ? null : entry.draft.description};
+      });
+    }
+    App.inventoryUI.openDraft(draft, $('#bulkEntryButton'));
     renderReview(); renderStatus();
   }
   function saveDraft() {
     clearTimeout(draftTimer); const current = row(); if (!current) return;
-    const next = u.clone(queue); next.rows.find(function (r) { return r.id === current.id; }).draft = App.inventoryUI.captureDraft(); persist(next);
+    const next = u.clone(queue), draft = App.inventoryUI.captureDraft();
+    if (current.draft.copyGroup) draft.copyGroup = current.draft.copyGroup;
+    next.rows.find(function (r) { return r.id === current.id; }).draft = draft; persist(next);
   }
   function pause() { saveDraft(); reviewing = false; App.components.closeDialog('#itemDialog', 'paused'); renderStatus(); }
   function skip() {
-    try { saveDraft(); const current = row(), next = u.clone(queue); next.rows.find(function (r) { return r.id === current.id; }).status = 'skipped'; persist(next); advance(); } catch (e) { error(e.message); }
+    try { saveDraft(); const ids = new Set(reviewCopies().map(function (r) { return r.id; })), next = u.clone(queue); next.rows.forEach(function (r) { if (ids.has(r.id)) r.status = 'skipped'; }); persist(next); advance(); } catch (e) { error(e.message); }
   }
   function accept(item, count, locations) {
     saveDraft(); const current = row(); if (!current) throw new Error('No bulk row is being reviewed.');
-    if (count > 1) {
-      if (queue.rows.length + count - 1 > 500) throw new Error('These copies would exceed the 500-object review limit.');
-      if (App.storage.getState().inventory.items.length + count > 5000) throw new Error('These copies would exceed the 5,000-item inventory limit.');
-      const copies = App.inventoryModel.createCopies(item,count,locations), next = u.clone(queue), index = next.rows.findIndex(function (r) { return r.id === current.id; });
-      const rows = copies.map(function (copy, i) { return Object.assign({},u.clone(current), { id: i ? copy.id.replace(/^item-/, 'bulk-') : current.id, copy: (i+1) + ' of ' + count, draft: Object.assign({},current.draft,copy,{ _copies:1, _copyLocations:[] }) }); });
-      next.rows.splice(index,1,...rows); persist(next);
-      item = copies[0]; App.inventoryUI.openDraft(rows[0].draft,$('#bulkEntryButton')); renderReview(); renderStatus();
-    }
-    const nextItem = App.inventoryModel.normalizeItem(Object.assign({}, item, { id: current.id, archive: null, copyGroup: item.copyGroup || current.draft.copyGroup }));
-    const existing = App.storage.getState().inventory.items.find(function (i) { return i.id === current.id; });
-    if (existing && JSON.stringify(existing) !== JSON.stringify(nextItem)) throw new Error('This queued object has already been saved. Pause and resume to continue, then edit it from your inventory if needed.');
-    if (!existing) {
-      if (App.storage.getState().inventory.items.length >= 5000) throw new Error('The inventory has reached its 5,000-item limit.');
-      App.storage.mutate(function (state) { state.inventory.items.push(nextItem); }, { reason: 'inventory-save' });
-    }
-    if (!App.storage.saveNow()) throw new Error('This object is only in memory because browser storage failed. Keep this page open and try saving again.');
-    const next = u.clone(queue); next.rows.find(function (r) { return r.id === current.id; }).status = 'saved'; persist(next); advance();
+    const members = reviewCopies(current), memberIds = new Set(members.map(function (r) { return r.id; }));
+    if (queue.rows.length - members.length + count > 500) throw new Error('These copies would exceed the 500-object review limit.');
+    const group = current.draft.copyGroup || item.copyGroup || u.uid('copies');
+    const copies = App.inventoryModel.createCopies(Object.assign({},item,{copyGroup:group}),count,locations).map(function (copy,index) {
+      return App.inventoryModel.normalizeItem(Object.assign({},copy,{id:members[index]?.id || u.uid('bulk')}));
+    });
+    const existing = App.storage.getState().inventory.items;
+    copies.forEach(function (copy) {
+      const saved = existing.find(function (entry) { return entry.id === copy.id; });
+      if (saved && JSON.stringify(saved) !== JSON.stringify(copy)) throw new Error('A copy has already been saved with different details. Pause and resume, then edit it from inventory.');
+    });
+    if (members.some(function (member) { return existing.some(function (saved) { return saved.id === member.id; }) && !copies.some(function (copy) { return copy.id === member.id; }); })) throw new Error('Some copies have already been saved. Pause and resume before changing their count.');
+    const additions = copies.filter(function (copy) { return !existing.some(function (entry) { return entry.id === copy.id; }); });
+    if (existing.length + additions.length > 5000) throw new Error('These copies would exceed the 5,000-item inventory limit.');
+    // Persist all identities before writing inventory so retries/reloads cannot duplicate copies.
+    const nextQueue = u.clone(queue), index = nextQueue.rows.findIndex(function (entry) { return entry.id === current.id; });
+    nextQueue.rows = nextQueue.rows.filter(function (entry) { return !memberIds.has(entry.id); });
+    const rows = copies.map(function (copy,i) { return Object.assign({},u.clone(current),{id:copy.id,copy:(i+1)+' of '+count,draft:Object.assign({},current.draft,copy,{_copies:count,_copyLocations:locations || []})}); });
+    nextQueue.rows.splice(index,0,...rows); persist(nextQueue);
+    if (additions.length) App.storage.mutate(function (state) { state.inventory.items.push(...additions); }, {reason:'inventory-save'});
+    if (!App.storage.saveNow()) throw new Error('These copies are only in memory because browser storage failed. Keep this page open and try saving again.');
+    const savedIds = new Set(copies.map(function (copy) { return copy.id; })), done = u.clone(queue);
+    done.rows.forEach(function (entry) { if (savedIds.has(entry.id)) entry.status = 'saved'; });
+    persist(done); advance();
   }
   function sheet() { return sheets[Number($('#bulkSheet').value)] || sheets[0]; }
   function preview() {
@@ -100,7 +124,7 @@
       const source = sheet(); if (!source) return;
       const columns = Array.from(document.querySelectorAll('[data-bulk-column]')).map(function (el) { return el.value; });
       prepared = App.bulkImport.prepare(source.rows, $('#bulkHeaders').checked, columns, App.storage.getState().inventory.items);
-      $('#bulkPreview').innerHTML = '<p>' + prepared.length + (prepared.length === 1 ? ' object ready' : ' objects ready') + ' for individual review. Tags, location, and property suggestions remain editable.</p><ol>' + prepared.slice(0, 5).map(function (r) { return '<li>' + esc(r.draft.name || '(Needs an object name)') + '<small>' + esc(r.suggestions.join(' · ')) + '</small></li>'; }).join('') + '</ol>';
+      $('#bulkPreview').innerHTML = '<p>' + prepared.length + (prepared.length === 1 ? ' object ready' : ' objects ready') + ' for review. Copies from one row are edited and saved together. Tags, location, and property suggestions remain editable.</p><ol>' + prepared.slice(0, 5).map(function (r) { return '<li>' + esc(r.draft.name || '(Needs an object name)') + '<small>' + esc(r.suggestions.join(' · ')) + '</small></li>'; }).join('') + '</ol>';
     } catch (e) { error(e.message); $('#bulkPreview').textContent = ''; }
     $('#startBulkReview').disabled = !prepared.length;
   }

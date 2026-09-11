@@ -1,3 +1,13 @@
+## Latest update — bulk copies saved together (0.0.1.27)
+
+Bulk review groups pending quantity copies from the same spreadsheet row/copyGroup. Shared object fields are reviewed once; the copy section sets each location and optionally separate Notes. Use Shared Notes stays checked by default; uncheck it for per-copy text or explicitly blank Notes. Save All Copies & Next writes all copies in one inventory mutation and advances to the next object. Pause retains count/location/note drafts and Skip applies to the pending group. Existing quantity queues group on resume; already-saved copies remain excluded.
+
+Batch identities are persisted in the device queue before inventory writes. Inventory persistence must succeed before all batch rows are marked saved. Retries preserve copyGroup and IDs; conflicting already-saved copies are rejected, interrupted completed saves reconcile by ID, and capacity checks account for the pending group. createCopies supports notes overrides while preserving shared notes by default. Runtime remains dependency-free and cloud schema is unchanged.
+
+House-owned inventory rows and the House ownership card use amber-yellow backgrounds; object titles use contrasting amber in light/dark themes. Ownership labels remain present.
+
+All 86 automated model/parser/static/queue tests pass, including one-mutation batch saves, per-copy notes/locations, inventory-failure retries, queue-failure no-write protection and interrupted-save reconciliation. Updated browser quantity regression expects one save with per-copy Notes; browser/desktop/mobile/offline review remains unrun under the recorded preview-server approval restriction. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.27. Source checkout was clean at c9ffeec (0.0.1.26); before-copies are /private/tmp/my-stuff-batch-baseline. No server, commit or push performed.
+
 ## Latest update — configured hierarchy and toolbar height (0.0.1.26)
 
 Location choices now come exclusively from the 23 configured rooms and their spaces under Outside, Upstairs and Main Level. Removed the legacy Living room/Bedroom/Bathroom/Closet/Storage fallback list and saved/custom catalog additions. The Single Location interface and custom-location picker choices are removed, superseding 0.0.1.24. Normalization clears unrecognized room/zone/space/area/location values, retains objects and unrelated details, canonicalizes recognized rooms/spaces, and restores configured room parents. Known unambiguous alternate location fields resolve to the hierarchy. This cleanup also applies to old local state, imports, copies and sync normalization; no inventory objects are deleted.
