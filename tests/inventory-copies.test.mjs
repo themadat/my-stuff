@@ -191,3 +191,12 @@ test('company filtering includes parent and child brands but never the seller al
  assert.equal(app.inventoryCatalog.matches(explicit,{kind:'company',value:'Apple'}),false);
  assert.equal(app.inventoryCatalog.matches(explicit,{kind:'company',value:'Other Company'}),true);
 });
+
+test('explicit Unknown copy location clears shared hierarchy and survives normalization', () => {
+  const copies = app.inventoryModel.createCopies(item, 2, [{room:'Unknown',zone:'',space:''}, {}]);
+  assert.equal(copies[0].room, '');
+  assert.ok(!copies[0].properties.some(p => ['Zone','Space'].includes(p.name)));
+  assert.equal(copies[1].room, 'Den');
+  assert.equal(app.inventoryModel.normalizeItem(copies[0]).room, '');
+  assert.equal(item.room, 'Den');
+});

@@ -853,3 +853,29 @@ main { padding-top: .25rem; }
  .app-header .inventory-tab { flex: 1 1 0; padding-inline: .2rem; gap: .2rem; }
  .app-header .inventory-tab-label { font-size: .62rem; }
 }
+
+/* Compact header, wider item editor and single-row copy fields. */
+.app-header { padding-top: calc(.3rem + var(--safe-top)); padding-bottom: .3rem; }
+.app-header .inventory-tab { grid-template-columns: 1.8rem auto; min-height: 40px; padding-block: .15rem; gap: .1rem .35rem; }
+.app-header .inventory-tab > .sf-symbol { grid-row: 1 / 3; width: 1.8rem; height: 1.8rem; align-self: center; }
+.app-header .inventory-tab-meta { grid-column: 2; }
+.top-toolbar .action-button { min-height: 42px; padding-block: .1rem; }
+.app-dialog.inventory-dialog { width: min(1160px, calc(100vw - 1.2rem)); }
+.copy-room-grid > [data-copy-location] { grid-template-columns: repeat(3,minmax(90px,1fr)) minmax(120px,1fr) minmax(180px,2fr); align-items: start; gap: .4rem .6rem; }
+.copy-room-grid > [data-copy-location] > strong { grid-column: 1 / -1; }
+.copy-room-grid .copy-color, .copy-room-grid .copy-notes { grid-column: auto; display: flex; flex-direction: column; min-width: 0; }
+.copy-room-grid .copy-color > .field, .copy-room-grid .copy-notes > .field { order: -1; display: flex; flex-direction: column; align-items: stretch; gap: .25rem; }
+.copy-room-grid .field > span, .copy-room-grid .picker > label { font-size: .75rem; }
+.copy-room-grid textarea { height: var(--control-height); resize: vertical; }
+.copy-room-grid .copy-color > label:not(.field), .copy-room-grid .copy-notes > label:not(.field) { margin-top: .3rem; }
+.inventory-table th:first-child { width: 63%; }
+.inventory-table th:nth-child(2) { width: 5%; }
+.inventory-table th:nth-child(3) { width: 10%; }
+.inventory-table th:nth-child(4) { width: 13%; }
+.inventory-table th:last-child { width: 9%; }
+@media(max-width:700px) {
+ #itemCopyLocations { overflow-x: auto; }
+ .copy-room-grid { min-width: 720px; }
+ .app-header .inventory-tab { grid-template-columns: 1.35rem auto; gap: .1rem .2rem; }
+ .app-header .inventory-tab > .sf-symbol { width: 1.35rem; height: 1.7rem; }
+}

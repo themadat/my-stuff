@@ -1,3 +1,11 @@
+## Latest update — compact header, copy rows and unknown location (0.0.1.33)
+
+Reduced header vertical padding and tab/action heights; tab SVGs span both text lines. Item editor widens to 1160px. Each copy heading spans above a single row of Zone, Room, Space, Color and Notes/Description fields, with shared-detail checkboxes underneath. Phones horizontally scroll the copy fields to retain one row. Removed the redundant location column and updated table widths/group-heading colspan.
+
+Every main/copy location picker offers Unknown, clearing zone/space and selecting an Unknown room sentinel that normalizes to the existing empty location representation. This explicitly overrides shared locations for new copies without schema changes. Unknown items have an Unknown Location group and sidebar jump. Blank copy fields still inherit shared location on new copies. Existing known hierarchy rules remain.
+
+All 94 automated model/parser/static/queue checks pass, including a regression for unknown copy overrides and retained shared locations. Version/build/cache/manifests/workflow align at 0.0.1.33. Browser/desktop/mobile/offline visual review remains pending under the recorded preview-server restriction; no server launched. Source was clean at b209c6b (0.0.1.32). Before-copies: /private/tmp/my-stuff-compact-baseline. Transfer uses equality guards and byte verification. No commit or push performed.
+
 ## Latest update — centered header and supplied category symbols (0.0.1.32)
 
 The header nests inventory navigation and global search in one centered group between the app identity and Notes/Settings. Tabs use two lines: symbol/label, then a distinct keycap and count. H/W/R/D behavior is unchanged. Want/Research remain unimplemented and show zero with explanatory count titles. Counts remain visible on mobile; the centered group wraps below identity/actions on narrower screens, with search below tabs on phones.

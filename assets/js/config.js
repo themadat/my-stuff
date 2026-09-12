@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.32",
-      buildId: "0.0.1.32",
+      version: "0.0.1.33",
+      buildId: "0.0.1.33",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -81,6 +81,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.33", date: "2026-09-12T00:00:00.000Z", title: "Compact Header and Copy Editor",
+      summary: "A shorter header, wider item editor and single-row copy fields with explicit Unknown locations.",
+      features: [], improvements: ["Tab symbols span both lines", "Location groups replace the redundant table column"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.32", date: "2026-09-12T00:00:00.000Z", title: "Centered Header and Category Symbols",
       summary: "Navigation and search share a centered group, with two-line tabs and distinct shortcut keys.",
       features: [], improvements: ["Six supplied category symbols", "Tab counts remain visible on narrow screens"], fixes: [], knownIssues: []
