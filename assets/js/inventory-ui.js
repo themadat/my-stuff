@@ -24,10 +24,10 @@
   function init() {
     $("#inventoryWorkspace").innerHTML = `
       <nav class="inventory-nav" aria-label="Your stuff">
-        <button class="inventory-tab" type="button" data-inventory-view="have" aria-keyshortcuts="H" title="Have (H)" aria-current="page">${icon("inventoryBox")}<span>Stuff I Have</span><kbd>H</kbd><small id="haveCount">0</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="want" aria-keyshortcuts="W" title="Want (W)">${icon("inventoryWant")}<span>Stuff I Want</span><kbd>W</kbd><small>Later</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="research" aria-keyshortcuts="R" title="Research (R)">${icon("inventoryResearch")}<span>Research</span><kbd>R</kbd><small>Later</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span>Stuff I Had</span><kbd>D</kbd><small id="previousCount">0</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="have" aria-keyshortcuts="H" title="Have (H)" aria-current="page">${icon("inventoryBox")}<span class="inventory-tab-label">Stuff I Have</span><span class="inventory-tab-meta"><kbd aria-hidden="true">H</kbd><small id="haveCount">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="want" aria-keyshortcuts="W" title="Want (W)">${icon("inventoryWant")}<span class="inventory-tab-label">Stuff I Want</span><span class="inventory-tab-meta"><kbd aria-hidden="true">W</kbd><small title="Want tracking is coming later">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="research" aria-keyshortcuts="R" title="Research (R)">${icon("inventoryResearch")}<span class="inventory-tab-label">Research</span><span class="inventory-tab-meta"><kbd aria-hidden="true">R</kbd><small title="Research tracking is coming later">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span class="inventory-tab-label">Stuff I Had</span><span class="inventory-tab-meta"><kbd aria-hidden="true">D</kbd><small id="previousCount">0</small></span></button>
       </nav>
       <header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
             ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}

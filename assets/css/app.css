@@ -830,3 +830,26 @@ main { padding-top: .25rem; }
  .inventory-table tr.location-section-heading { display: block; padding: 0; }
  .inventory-table tr.location-section-heading th { display: block; }
 }
+
+/* Center navigation and search together between the identity and app actions. */
+.app-header { grid-template-columns: minmax(150px,1fr) minmax(0,900px) minmax(150px,1fr); grid-template-areas: "title center toolbar"; }
+.header-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: .7rem; min-width: 0; }
+.header-center .global-search-wrap { flex: 1 1 300px; min-width: 160px; }
+.app-header .inventory-nav { flex: 0 0 auto; flex-wrap: nowrap; }
+.app-header .inventory-tab { display: grid; grid-template-columns: auto auto; justify-content: center; gap: .2rem .3rem; padding: .35rem .45rem; min-height: 48px; }
+.app-header .inventory-tab > .sf-symbol { width: 1em; height: 1em; }
+.app-header .inventory-tab-label { font-size: .7rem; }
+.app-header .inventory-tab-meta { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: .5rem; }
+.app-header .inventory-tab-meta kbd { display: inline-block; min-width: 1.4em; padding: .06rem .25rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--surface-2); color: var(--accent-strong); font: 700 .65rem ui-monospace, monospace; }
+.app-header .inventory-tab-meta small { display: inline; background: transparent; padding: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width:1100px) {
+ .app-header { grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "title toolbar" "center center"; }
+ .header-center { width: 100%; max-width: 900px; justify-self: center; }
+}
+@media (max-width:620px) {
+ .header-center { flex-wrap: wrap; gap: .4rem; }
+ .header-center .inventory-nav { width: 100%; justify-content: center; }
+ .header-center .global-search-wrap { flex-basis: 100%; max-width: none; }
+ .app-header .inventory-tab { flex: 1 1 0; padding-inline: .2rem; gap: .2rem; }
+ .app-header .inventory-tab-label { font-size: .62rem; }
+}

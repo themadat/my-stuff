@@ -1,3 +1,11 @@
+## Latest update — centered header and supplied category symbols (0.0.1.32)
+
+The header nests inventory navigation and global search in one centered group between the app identity and Notes/Settings. Tabs use two lines: symbol/label, then a distinct keycap and count. H/W/R/D behavior is unchanged. Want/Research remain unimplemented and show zero with explanatory count titles. Counts remain visible on mobile; the centered group wraps below identity/actions on narrower screens, with search below tabs on phones.
+
+Systems, Tech, Brands, Category Presets, Objects and Custom/Custom Tags use the six supplied SVGs through the shared category-symbol registry. Existing individual tag symbols remain unchanged.
+
+All 93 automated model/parser/static/queue checks pass, including script syntax, asset paths and aligned version/cache/manifests/workflow surfaces at 0.0.1.32. Browser/desktop/mobile/offline visual validation remains pending under the recorded preview-server approval restriction. No server launched. Source checkout was clean at d5ca764 (0.0.1.31). Before-copies: /private/tmp/my-stuff-header-baseline. Transfer uses baseline equality guards and byte verification. No commit or push performed.
+
 ## Latest update — Seller, Brand and Company (0.0.1.31)
 
 Smart Complete treats a prefix before a spaced dash as Seller and a known brand at the beginning of the remaining product text as Brand. A known brand used as Seller supplies Brand only when no product brand is found; known retailers never supply this fallback. Explicit Seller/Brand annotations and mapped bulk fields retain precedence, as do existing manual-edit protections. Seller aliases canonicalize Amazon Marketplace/Mktplace to Amazon; USB-C remains intact.
