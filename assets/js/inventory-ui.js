@@ -5,7 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
-  let editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
+  let categorySlots = new Map(), hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
@@ -24,25 +24,25 @@
   function init() {
     $("#inventoryWorkspace").innerHTML = `
       <nav class="inventory-nav" aria-label="Your stuff">
-        <button class="inventory-tab" type="button" data-inventory-view="have" aria-current="page">${icon("inventoryBox")}<span>Stuff I Have</span><small id="haveCount">0</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="want">${icon("inventoryWant")}<span>Stuff I Want</span><small>Later</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="research">${icon("inventoryResearch")}<span>Research</span><small>Later</small></button>
-        <button class="inventory-tab" type="button" data-inventory-view="previous">${icon("inventoryArchive")}<span>Stuff I Had</span><small id="previousCount">0</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="have" aria-keyshortcuts="H" title="Have (H)" aria-current="page">${icon("inventoryBox")}<span>Stuff I Have</span><kbd>H</kbd><small id="haveCount">0</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="want" aria-keyshortcuts="W" title="Want (W)">${icon("inventoryWant")}<span>Stuff I Want</span><kbd>W</kbd><small>Later</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="research" aria-keyshortcuts="R" title="Research (R)">${icon("inventoryResearch")}<span>Research</span><kbd>R</kbd><small>Later</small></button>
+        <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span>Stuff I Had</span><kbd>D</kbd><small id="previousCount">0</small></button>
       </nav>
       <header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
             ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}
             <input type="hidden" id="inventoryOwnerFilter" value="">
             ${select("inventoryRoomFilter", "Location", '<option value="">All Rooms</option>')}
             ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
-          </div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" class="button" type="button" hidden>${icon("inventoryClear")}<span>Clear Filters</span></button><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")}<span>Add Item</span></button></header>
+          </div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
-      <div id="inventoryBody" class="inventory-body">
+      <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><h2 id="roomOverviewTitle">Around the House</h2><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
-          <div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div>
+          <div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div>
           <div class="inventory-list-heading"><span id="inventoryResultCount" role="status" aria-live="polite"></span></div>
           <div id="inventoryList"></div>
         </section>
-        <aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><div class="room-overview-heading">${icon("inventoryHome")}<h2 id="roomOverviewTitle">Around the House</h2></div><p>All current items, grouped by room and who they belong to.</p><div id="roomStats"></div><p class="inventory-footnote">Values are estimates. Items without a value are counted, but excluded from value totals.</p><p class="inventory-footnote">All values and prices are in USD.</p></aside>
+
       </div>`;
     document.body.insertAdjacentHTML("beforeend", '<datalist id="inventoryCableEnds">' + options(App.config.inventory.cableEnds) + '</datalist>');
     document.body.insertAdjacentHTML("beforeend", `
@@ -117,8 +117,47 @@
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
     $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
-    $('#categoryCards').addEventListener('click', function (event) { const button = event.target.closest('[data-category-filter]'); if (button) { const el = $('#inventoryCategoryFilter'); const selected = button.dataset.categoryFilter; el.value = el.value === selected ? '' : selected; renderList(); $$('#categoryCards [data-category-filter]').find(function (entry) { return entry.dataset.categoryFilter === selected; })?.focus({preventScroll:true}); } });
-    $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
+    function showCategory(event) {
+      const card = event.target.closest('[data-category-group]');
+      if (card) { hoveredCategory = card.dataset.categoryGroup; renderCategoryTags(); }
+    }
+    $('#categoryCards').addEventListener('pointerover', showCategory);
+    $('#categoryCards').addEventListener('focusin', showCategory);
+    $('#categoryCards').addEventListener('click', function (event) {
+      const card = event.target.closest('[data-category-filter]');
+      if (card) { const group=card.dataset.categoryGroup; $('#inventoryCategoryFilter').value = card.dataset.categoryFilter; hoveredCategory = group; renderList(); $$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===group; })?.focus({preventScroll:true}); }
+    });
+    $('#categoryTags').addEventListener('click', function (event) {
+      const tag = event.target.closest('[data-category-tag]'); if (!tag) return;
+      categorySlots.set(hoveredCategory,tag.dataset.categoryTag);
+      $('#inventoryCategoryFilter').value = tag.dataset.categoryTag;
+      const group = hoveredCategory; hoveredCategory = ''; renderList();
+      $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup === group; })?.focus({preventScroll:true});
+      hoveredCategory = ''; renderCategoryTags();
+    });
+    $('.category-quick-controls').addEventListener('focusout', function (event) { if (!this.contains(event.relatedTarget)) { hoveredCategory = ''; renderCategoryTags(); } });
+    $('.category-quick-controls').addEventListener('pointerleave', function () { hoveredCategory = ''; renderCategoryTags(); });
+    $('.category-quick-controls').addEventListener('keydown', function (event) { if (event.key === 'Escape') { hoveredCategory = ''; renderCategoryTags(); event.stopPropagation(); } });
+    $('#roomStats').addEventListener('click', function (event) {
+      const link = event.target.closest('[data-location-jump]'); if (!link) return;
+      const target = document.getElementById(link.dataset.locationJump);
+      if (target) { target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'}); target.focus({preventScroll:true}); }
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.target.isContentEditable || event.target.closest('input,textarea,select')) || document.querySelector('dialog[open]')) return;
+      const target = {h:'have',w:'want',r:'research',d:'previous'}[event.key.toLowerCase()];
+      if (target) { event.preventDefault(); view=target; render(); $('#inventoryTitle').focus({preventScroll:true}); }
+    });
+    const divider = $('#locationDivider'); let resizing = false;
+    function setSidebarWidth(width) { width = Math.round(Math.max(160,Math.min(420,width))); $('#inventoryBody').style.setProperty('--location-sidebar-width',width+'px'); divider.setAttribute('aria-valuenow',width); }
+    divider.addEventListener('pointerdown', function (event) { resizing=true; divider.setPointerCapture(event.pointerId); event.preventDefault(); });
+    divider.addEventListener('pointermove', function (event) { if (resizing) setSidebarWidth(event.clientX-$('#inventoryBody').getBoundingClientRect().left); });
+    divider.addEventListener('pointerup', function () { resizing=false; });
+    divider.addEventListener('pointercancel', function () { resizing=false; });
+    divider.addEventListener('keydown', function (event) { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); setSidebarWidth(event.key==='Home'?160:event.key==='End'?420:Number(divider.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?10:-10)); } });
+    const updateHeaderHeight = function () { document.documentElement.style.setProperty('--inventory-header-height', Math.ceil($('.app-header').getBoundingClientRect().height)+'px'); };
+    new ResizeObserver(updateHeaderHeight).observe($('.app-header')); updateHeaderHeight();
+    $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); categorySlots.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
     $("#addColorButton").addEventListener("click", function () {
@@ -424,7 +463,7 @@
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
     if ($("#bulkEntryButton")) $("#bulkEntryButton").hidden = view !== "have";
     $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = false;
-    $("#roomOverview").hidden = view !== "have"; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
+    $("#roomOverview").hidden = !active; $("#locationDivider").hidden = !active; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
     $(".inventory-filterbar").hidden = !active;
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
@@ -432,8 +471,6 @@
       return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
 
     }).join("");
-    const assignedRooms = stats.rooms.filter(function (room) { return room.name !== "Unassigned"; });
-    $("#roomStats").innerHTML = assignedRooms.length ? '<table class="room-stats-table"><caption class="visually-hidden">Object counts and known values per room</caption><thead><tr><th scope="col">Room</th><th scope="col">House</th><th scope="col">Me</th></tr></thead><tbody>' + assignedRooms.map(function (room) { return '<tr><th scope="row">' + filterButton('room',room.name,room.name) + '</th>' + ["house", "me"].map(function (owner) { const total = room[owner]; return '<td>' + filterButton('roomOwner',[room.name,owner],total.count + ' · ' + money(total.valueCents / 100,true)) + (total.unknown ? '<small>' + total.unknown + ' not valued</small>' : '') + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table>' : '<p class="room-empty">Your rooms will appear as you add items. Both house and personal belongings can share the same room.</p>';
     renderLocationFilter();
     renderCategoryFilter();
     $("#copyRoomOptions").innerHTML = options(unique(App.config.inventory.locations.map(function (l) { return l.room; })));
@@ -469,12 +506,36 @@
     if (filter.startsWith('space:')) { const path = JSON.parse(filter.slice(6)); return (item.room || '') === path[0] && property('space') === path[1]; }
     return (item.room || 'Unassigned') === filter;
   }
+  function renderCategoryTags() {
+    const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags');
+    root.hidden = !group;
+    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.map(function (tag) { return '<button type="button" class="button small" data-category-tag="'+esc(tag)+'">'+esc(tag)+'</button>'; }).join('') : '';
+  }
   function renderCategoryCards(items) {
-    const selected = $('#inventoryCategoryFilter').value, old = $('#categoryCards').scrollLeft;
-    $('#categoryCards').innerHTML = Array.from($('#inventoryCategoryFilter').options).filter(function (option,index,all) { return all.findIndex(function (entry) { return entry.value === option.value; }) === index; }).map(function (option) {
-      const name = option.value, count = items.filter(function (item) { return matchesCategory(item,name); }).length;
-      return '<button type="button" class="category-card" title="' + esc(name.startsWith('group:') ? name.slice(6) : name || 'All Categories') + '" data-category-filter="' + esc(name) + '" aria-pressed="' + (selected === name) + '">' + App.icons.category(name) + '<span>' + esc(name.startsWith('group:') ? name.slice(6) : name || 'All Categories') + '</span><small>' + count + '</small></button>';
-    }).join(''); $('#categoryCards').scrollLeft = old;
+    const selected = $('#inventoryCategoryFilter').value;
+    $('#categoryCards').innerHTML = Array.from(categoryGroups).map(function (entry) {
+      const group=entry[0], values=entry[1].values, saved=categorySlots.get(group);
+      if (saved && !values.includes(saved)) categorySlots.delete(group);
+      const value=categorySlots.get(group) || group, label=value.startsWith('group:')?value.slice(6):value;
+      return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(value)+'" aria-pressed="'+(selected===value)+'" title="'+esc(group.slice(6))+' — Show Tags">'+App.icons.category(value)+'<span>'+esc(label)+'</span><small>'+items.filter(function (item) { return matchesCategory(item,value); }).length+'</small></button>';
+    }).join(''); renderCategoryTags();
+  }
+  function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
+  function renderLocationNavigation(sections) {
+    const nodes = new Map();
+    sections.forEach(function (section) {
+      section.path.forEach(function (name,index) {
+        if (!name) return;
+        const path=section.path.slice(0,index+1), key=JSON.stringify(path);
+        if (!nodes.has(key)) nodes.set(key,{path:path,name:name,count:0});
+        nodes.get(key).count += section.items.length;
+      });
+    });
+    $('#roomStats').innerHTML = nodes.size ? '<nav aria-label="Inventory locations">'+Array.from(nodes.values()).map(function (node) { return '<button type="button" class="location-jump" style="--location-depth:'+(node.path.length-1)+'" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span><small>'+node.count+'</small></button>'; }).join('')+'</nav>' : '<p>No locations in these results.</p>';
+  }
+  function locationHeadings(path, previous) {
+    let changed=false;
+    return path.map(function (name,index) { changed = changed || name !== previous?.[index]; return changed && name ? '<tr class="location-section-heading" data-location-level="'+index+'"><th colspan="6" id="'+esc(locationAnchor(path.slice(0,index+1)))+'" tabindex="-1">'+esc(name)+'</th></tr>' : ''; }).join('');
   }
   function fillMissingAmount() {
     const price = $('#itemPrice'), value = $('#itemValue');
@@ -503,24 +564,25 @@
     }).sort(function (a, b) { return view === "previous" ? b.archive.date.localeCompare(a.archive.date) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name); });
     $("#inventoryResultCount").textContent = "";
     $(".inventory-list-heading").hidden = !instantFilters.size;
-    $("#clearInventoryFilters").hidden = !(search || owner || room || category || instantFilters.size);
+    $("#clearInventoryFilters").disabled = !(search || owner || room || category || instantFilters.size || categorySlots.size);
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
     ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').innerHTML = '<span>Filtered</span><span class="stat-count">' + filtered[key].count + '</span><span class="stat-money">' + esc(money(filtered[key].valueCents/100,true)) + '</span>'; });
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
+    const sections = m.locationSections(items); renderLocationNavigation(sections);
     if (!items.length) {
       $("#inventoryList").innerHTML = '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryAdd") + ' Add Item</button>' : '') + '</div>'; return;
     }
-    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th>Zone / Room / Space</th><th>Count</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + m.groupRows(items).map(function (members) {
+    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th>Zone / Room / Space</th><th>Count</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return locationHeadings(section.path,sections[sectionIndex-1]?.path) + m.groupRows(section.items).map(function (members) {
       const item = members[0], distinct = function (values) { return Array.from(new Map(values.map(function (value) { return [JSON.stringify(value),value]; })).values()); };
       const properties = distinct(members.flatMap(function (entry) { return entry.properties; })), descriptions = distinct(members.map(function (entry) { return entry.description; }));
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
       const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
       const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || '',room:entry.room || '',space:property('space')}; };
-      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '</div><div class="object-details">' + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,tag); }).join('') + filterButton('owner',item.owner,item.owner==='house'?'House':'Me') + '</span></div></td><td class="item-location">' + distinct(members.map(location)).map(function (l) { return '<div class="location-path">' + filterButton('catalog',{kind:'zone',value:l.zone,label:l.zone},l.zone) + '<span class="location-room-space">' + filterButton('catalog',{kind:'room',value:l.room,zone:l.zone,label:l.room},l.room) + (l.space ? filterButton('catalog',{kind:'space',value:l.space,room:l.room,zone:l.zone,label:l.space},l.space) : '') + '</span></div>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
-    }).join('') + '</tbody></table></div>';
+      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-location">' + distinct(members.map(location)).map(function (l) { return '<div class="location-path">' + filterButton('catalog',{kind:'zone',value:l.zone,label:l.zone},l.zone) + '<span class="location-room-space">' + filterButton('catalog',{kind:'room',value:l.room,zone:l.zone,label:l.room},l.room) + (l.space ? filterButton('catalog',{kind:'space',value:l.space,room:l.room,zone:l.zone,label:l.space},l.space) : '') + '</span></div>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+    }).join(''); }).join('') + '</tbody></table></div>';
   }
 
-  function formSignature(selector) { return JSON.stringify($$("input, textarea, select", $(selector)).map(function (el) { return el.type === "radio" ? [el.value, el.checked] : el.value; })); }
+  function formSignature(selector) { return JSON.stringify($$("input, textarea, select", $(selector)).map(function (el) { return ["radio","checkbox"].includes(el.type) ? [el.value, el.checked] : el.value; })); }
   function formError(selector, message) { const el = $(selector); el.textContent = message; el.hidden = false; el.focus(); }
   function addProperty(property, focus) {
     if ($$(".item-property").length >= 40) return formError("#itemFormError", "Use up to 40 properties per item.");
@@ -553,17 +615,20 @@
     $('[data-copy-space]',row).value = $('#itemSpace').value;
     $('[data-copy-zone]',row).value = $('#itemZone').value;
   }
-  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value, notes: $('[data-copy-shared-notes]',row)?.checked === false ? $('[data-copy-notes]',row).value : null }; }); }
+  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value, color: $('[data-copy-shared-color]',row)?.checked === false ? $('[data-copy-color]',row).value : null, notes: $('[data-copy-shared-notes]',row)?.checked === false ? $('[data-copy-notes]',row).value : null }; }); }
   function renderCopyLocations(saved) {
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
     root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
-    root.innerHTML = '<p>' + (editingId ? 'Edit each copy’s room and space. Blank fields clear an existing location; new copies use the location above.' : 'Set each copy’s location below. Blank locations use the shared location above. Copies use shared Notes unless you enter separate notes; all copies save together.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      return '<div data-copy-location><strong>Copy ' + (index+1) + (editingCopies[index]?.id === editingId ? ' · This Item' : '') + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + (App.bulkEntry?.current() ? '<div class="copy-notes"><label><input type="checkbox" data-copy-shared-notes checked> Use Shared Notes</label><label class="field"><span>Copy ' + (index+1) + ' Notes</span><textarea data-copy-notes rows="2" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>' : '') + '</div>';
+    root.innerHTML = '<p>' + (editingId ? 'Edit each copy’s location, Color and Notes/Description. Blank fields clear an existing location; new copies use the location above.' : 'Set each copy’s location below. Blank locations use the shared location above. Copies use shared Color and Notes/Description unless you set an override; all copies save together.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
+      return '<div data-copy-location><strong>Copy ' + (index+1) + (editingCopies[index]?.id === editingId ? ' · This Item' : '') + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><label><input type="checkbox" data-copy-shared-color checked> Use Shared Color</label><label class="field"><span>Copy ' + (index+1) + ' Color</span><input data-copy-color list="inventoryColorValues" maxlength="300" disabled placeholder="Color for this copy…"></label></div><div class="copy-notes"><label><input type="checkbox" data-copy-shared-notes checked> Use Shared Notes/Description</label><label class="field"><span>Copy ' + (index+1) + ' Notes/Description</span><textarea data-copy-notes rows="2" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
     }).join('') + '</div>';
     $$('[data-copy-location]').forEach(function (row,index) {
       ['Zone','Room','Space'].forEach(function (name) { const input = $('#copy'+index+name); input.setAttribute('data-copy-'+name.toLowerCase(),''); input.value = old[index]?.[name.toLowerCase()] || ''; });
       if (!$('[data-copy-zone]',row).value) $('[data-copy-zone]',row).value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === $('[data-copy-room]',row).value.toLowerCase(); })?.zone || '';
+      const sharedColor = $('[data-copy-shared-color]',row), color = $('[data-copy-color]',row);
+      sharedColor.checked = typeof old[index]?.color !== 'string'; color.value = old[index]?.color || ''; color.disabled = sharedColor.checked;
+      sharedColor.addEventListener('change', function () { color.disabled = this.checked; if (!this.checked) color.focus(); });
       const shared = $('[data-copy-shared-notes]',row), notes = $('[data-copy-notes]',row);
       if (shared) { shared.checked = typeof old[index]?.notes !== 'string'; notes.value = old[index]?.notes || ''; notes.disabled = shared.checked; shared.addEventListener('change', function () { notes.disabled = this.checked; if (!this.checked) notes.focus(); }); }
       ['Zone','Room','Space'].forEach(function (name) { initPicker('copy'+index+name,row,'item'+name); });
@@ -608,7 +673,7 @@
     $("#saveItemButton").textContent = draft ? "Save All Copies & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#deleteItemButton").hidden = !id;
-    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || ""}; }));
+    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || "", color:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || ''), notes:entry.description === item.description ? null : entry.description}; }));
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -672,10 +737,12 @@
         verifyCopies();
         const locations = copyLocations(), group = previous.copyGroup || u.uid('copies');
         const locationSignature = function (entry) { return JSON.stringify([entry.room, entry.properties.filter(function (p) { return ['zone','space'].includes(p.name.toLowerCase()); })]); };
-        if (locationSignature(next) !== locationSignature(previous)) locations[0] = {zone:next.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''};
+        if (locationSignature(next) !== locationSignature(previous)) locations[0] = Object.assign({},locations[0],{zone:next.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''});
         copies = Array.from({length:count}, function (_, index) {
           const existing = editingCopies[index], base = index === 0 || !existing ? next : existing;
           const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
+          if (location.notes == null) clean.description = next.description;
+          if (location.color == null) clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'color'; }).concat(next.properties.filter(function (p) { return p.name.toLowerCase() === 'color'; }));
           // Explicitly clearing an existing location must not inherit the old one.
           if (index < editingCopies.length) { clean.room = location.room || ''; clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'space' && (p.name.toLowerCase() !== 'zone' || clean.room === base.room); }); }
           const result = m.createCopies(clean, 1, [location])[0];

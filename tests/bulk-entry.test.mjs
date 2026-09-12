@@ -40,3 +40,11 @@ test('resume reconciles a batch already in inventory after interrupted persisten
  h.failSave(false);h.app.bulkEntry.testAdvance();assert.equal(h.homes,1);assert.equal(h.state.inventory.items.length,2);
  assert.ok(h.app.bulkEntry.testRows().every(row=>row.status==='saved'));
 });
+
+test('bulk copies retain different colors and descriptions in one save',()=>{
+ const h=setup(2);
+ h.app.bulkEntry.accept(h.item(),2,[{color:'Black',notes:'Travel'},{color:'Blue',notes:'Desk'}]);
+ assert.deepEqual(h.state.inventory.items.map(item=>item.properties.find(p=>p.name==='Color').value),['Black','Blue']);
+ assert.deepEqual(h.state.inventory.items.map(item=>item.description),['Travel','Desk']);
+ assert.equal(h.writes,1);assert.equal(h.homes,1);
+});

@@ -1051,3 +1051,33 @@ test('wide catalog links return to filtered Have; grouped categories and aligned
  assert.match(await page.locator('.object-title').textContent(),/USB cable/);
  await page.screenshot({path:'/private/tmp/my-stuff-20-compact.png'});
 });
+
+test('category drill-down, persistent Clear, location jumps and navigation shortcuts', {timeout:30000},async t=>{
+ const {page}=await fixture(t); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const app=window.LocalApp;
+  app.storage.mutate(state=>{state.inventory.items=[app.inventoryModel.normalizeItem({id:'navigation-fixture',name:'Desk Cable',owner:'house',room:'Office',categories:['Cables'],properties:[{name:'Space',value:'Desk'},{name:'Length',value:'2',unit:'m'}],description:'Desk notes',source:'Store'})];},{reason:'inventory-save'});
+ });
+ assert.equal(await page.locator('#clearInventoryFilters').isVisible(),true);
+ assert.equal(await page.locator('#clearInventoryFilters').isDisabled(),true);
+ const power=page.locator('[data-category-group="group:Power"]');
+ await power.hover(); await page.locator('[data-category-tag="Cables"]').click();
+ assert.equal(await power.locator('span').textContent(),'Cables');
+ assert.equal(await page.locator('#inventoryCategoryFilter').inputValue(),'Cables');
+ await page.locator('#clearInventoryFilters').click();
+ assert.equal(await power.locator('span').textContent(),'Power');
+ assert.equal(await page.locator('#clearInventoryFilters').isDisabled(),true);
+ const jump=page.locator('#roomStats button').filter({has:page.locator('span',{hasText:/^Desk$/})});
+ await jump.click();
+ assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Desk');
+ assert.equal(await page.locator('#inventoryRoomFilter').inputValue(),'');
+ const details=await page.locator('.object-details').textContent();
+ assert.ok(details.indexOf('Desk notes')<details.indexOf('Seller: Store'));
+ assert.ok(details.indexOf('Seller: Store')<details.indexOf('Length:'));
+ assert.ok(details.includes('#Cables')); assert.ok(!details.includes('House'));
+ await page.locator('#locationDivider').focus(); await page.keyboard.press('ArrowRight');
+ assert.equal(await page.locator('#locationDivider').getAttribute('aria-valuenow'),'240');
+ await page.keyboard.press('w'); assert.equal(await page.locator('[data-inventory-view="want"]').getAttribute('aria-current'),'page');
+ await page.keyboard.press('h'); await page.locator('#inventorySearch').fill('w');
+ assert.equal(await page.locator('[data-inventory-view="have"]').getAttribute('aria-current'),'page');
+});

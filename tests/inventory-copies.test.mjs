@@ -154,3 +154,27 @@ test('location normalization retains configured hierarchy and clears legacy loca
   assert.equal(bag.properties.find(p=>p.name==='Volume').unit,'L');
   assert.ok(!bag.properties.some(p=>p.name==='Capacity'));
 });
+
+test('copy color and notes overrides preserve shared defaults and allow explicit clearing', () => {
+ const source = {...item,description:'Shared notes'};
+ const copies = app.inventoryModel.createCopies(source,3,[{color:'Black',notes:'First copy'},{color:'',notes:''},{color:null,notes:null}]);
+ assert.equal(copies[0].properties.find(p=>p.name==='Color').value,'Black');
+ assert.equal(copies[0].description,'First copy');
+ assert.ok(!copies[1].properties.some(p=>p.name==='Color')); assert.equal(copies[1].description,'');
+ assert.equal(copies[2].properties.find(p=>p.name==='Color').value,'Blue'); assert.equal(copies[2].description,'Shared notes');
+ assert.equal(source.properties.find(p=>p.name==='Color').value,'Blue'); assert.equal(source.description,'Shared notes');
+ const roundTrip = app.inventoryModel.normalize({currency:'USD',items:JSON.parse(JSON.stringify(copies))});
+ assert.equal(roundTrip.items[0].properties.find(p=>p.name==='Color').value,'Black');
+ assert.equal(roundTrip.items[0].description,'First copy');
+});
+
+test('location sections separate spaces and repeated room-scoped space names', () => {
+ const make = (id,room,space) => app.inventoryModel.normalizeItem({...item,id,room,properties:[{name:'Space',value:space}]});
+ const records=[make('a','Office','Desk'),make('b','Office','Closet'),make('c','Primary Bedroom','Closet'),make('d','Office','Desk')];
+ const sections=app.inventoryModel.locationSections(records);
+ assert.equal(sections.length,3);
+ assert.equal(sections.reduce((total,section)=>total+section.items.length,0),4);
+ assert.equal(sections.find(section=>section.path[1]==='Office'&&section.path[2]==='Desk').items.length,2);
+ assert.equal(app.inventoryModel.groupRows(records).length,3);
+ assert.notEqual(JSON.stringify(sections[0].path),JSON.stringify(sections[1].path));
+});

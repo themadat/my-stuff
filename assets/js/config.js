@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.28",
-      buildId: "0.0.1.28",
+      version: "0.0.1.30",
+      buildId: "0.0.1.30",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -78,6 +78,14 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.30", date: "2026-09-12T00:00:00.000Z", title: "Location Navigation and Category Shortcuts",
+      summary: "Browse grouped locations with a resizable sticky sidebar and category-to-tag quick selections.",
+      features: ["H/W/R/D navigation shortcuts", "Persistent Clear, Bulk and Add controls"], improvements: ["Gray item details show Notes, Seller, Properties and category hashtags"], fixes: [], knownIssues: []
+    }, {
+      version: "0.0.1.29", date: "2026-09-11T00:00:00.000Z", title: "Individual Copy Colors and Notes",
+      summary: "Set separate Color and Notes/Description for copies when adding, editing or bulk reviewing.",
+      features: [], improvements: ["Shared values remain the default, with explicit per-copy overrides", "Copy details survive bulk pause and resume"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.28", date: "2026-09-11T00:00:00.000Z", title: "Tighter Inventory Controls",
       summary: "Reduced spacing and moved Clear Filters beside Bulk Add with its supplied symbol.",
       features: [], improvements: ["Removed the duplicate object-count line", "Output Ports has no unit control"], fixes: [], knownIssues: []
@@ -299,9 +307,10 @@
       { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs inventory and Notes. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting item or Notes edits require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing inventory and Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
       { id: "offline", title: "Install and Offline Updates", section: "Application", keywords: "install pwa offline update refresh", html: "<p>When served over HTTPS, My Stuff can be installed and keeps its shell available offline. Use Force refresh when an update notice appears.</p>" },
       { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Inventory and Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },
-      { id: "shortcuts", title: "Keyboard Shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Press <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }
+      { id: "shortcuts", title: "Keyboard Shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Press <kbd>H</kbd> for Have, <kbd>W</kbd> for Want, <kbd>R</kbd> for Research, <kbd>D</kbd> for Had, and <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }
     ],
     shortcuts: [
+      { key: "H / W / R / D", label: "Stuff I Have / Want / Research / Had", group: "Inventory" },
       { group: "Application", key: "/", label: "Focus Search" },
       { group: "Application", key: "N", label: "Open Notes" },
       { group: "Application", key: ",", label: "Open Settings" },

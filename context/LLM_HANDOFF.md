@@ -1,3 +1,23 @@
+## Latest update — location navigator and category shortcuts (0.0.1.30)
+
+Clear/Bulk/Add use short visible labels. Clear stays visible and disabled/dimmed when no filters or category-card replacements need clearing. Top-bar H/W/R/D shortcuts select Have/Want/Research/Had, with visible key hints and Help/shortcut entries; editable controls, modified keys and open dialogs are excluded.
+
+Quick cards show category groups only. Hover/focus reveals the group’s tags below; selecting one replaces that group’s card until Clear. Existing favorite-only Brands filtering remains. One active category filter still applies, with per-group visual selections retained until Clear. Touch can click a group to reveal its choices; Escape and focus/pointer departure close the tray.
+
+Around the House is a left sticky, independently scrollable location navigator, without its former icon. A pointer- and keyboard-operable divider sizes it from 160–420px. Location buttons jump/focus matching visible zone/room/space headings without adding filters. Narrow screens use a compact sidebar above the list. Inventory groups by zone, room and space; copies in different spaces no longer merge into one displayed row. Existing name order (or archived departure order) remains within each location section. Items lacking a location remain visible. Sidebar counts reflect filtered results.
+
+Second-line details are gray and ordered Notes/Description, Seller, Properties, then category hashtags. Visible House/Me tags are removed; ownership remains available to screen readers and amber styling denotes House. Per-copy Color/Notes from 0.0.1.29 are preserved; form dirty checks now include checkbox state so explicit blank overrides trigger discard protection.
+
+All 89 model/parser/static/queue checks pass, including space-specific grouping. Added a browser regression for category selection/Clear, location jumps, divider keyboard resizing, detail ordering and navigation shortcuts; browser/desktop/mobile/offline review remains unrun under the recorded preview-server approval restriction. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.30 (2026-09-12). Source checkout HEAD c7f9055 has the prior 0.0.1.29 work uncommitted; preserve/include it in the eventual commit. Before-copies: /private/tmp/my-stuff-navigator-baseline. Transfer uses exact baseline equality guards and byte verification. No preview server, commit or push performed.
+
+## Latest update — per-copy Color and Notes/Description (0.0.1.29)
+
+Copy controls now offer Color (searchable existing color suggestions) and Notes/Description for normal Add, saved-copy editing and bulk review. Each has a Use Shared checkbox enabled by default; unchecked controls accept separate values, including explicit empty values. Existing differing values are prefilled as overrides on edit; matching values follow the shared item fields. Bulk grouping seeds color differences alongside notes, and copy draft capture retains both through pause/resume. Location changes preserve detail overrides.
+
+createCopies applies explicit color overrides to the existing Color property and notes overrides to description. No schema/storage/sync-format changes. Saved-copy editing uses the primary item’s Color/Notes for shared rows while preserving explicit overrides and unrelated fields on other copies. Existing grouped list rendering already displays differing properties/descriptions.
+
+All 88 automated model/parser/static/queue checks pass, including mixed colors and notes in one bulk save, shared defaults, explicit clearing, unchanged source item and normalization round trips. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.29. Browser/desktop/mobile/offline visual review remains pending under the recorded preview-server approval restriction; no server launched. Before-copies are /private/tmp/my-stuff-copy-details-baseline. Source checkout remains at 23fd1c0 with the prior 0.0.1.28 update uncommitted; preserve and include its required Clear Filters symbol in the eventual commit. Transfer uses baseline equality guards and byte verification. No commit or push performed.
+
 ## Latest update — tighter inventory controls (0.0.1.28)
 
 Reduced main top padding, toolbar vertical padding/gaps and quick-card padding. Removed the duplicate current/previous object-count text; active detail-filter chips remain, and their row is hidden when empty. Clear Filters now appears immediately left of Bulk Add, with the supplied square-X SVG above its words and the same height/style as Add controls. Existing clear behavior and conditional visibility remain intact. Output Ports now uses the unitless property layout and clears its unit in the editor, like End A/End B.

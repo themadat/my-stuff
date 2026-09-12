@@ -796,3 +796,37 @@ main { padding-top: .25rem; }
 #clearInventoryFilters { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; height: var(--inventory-control-height); min-height: var(--inventory-control-height); gap: .2rem; padding: .2rem .7rem; }
 #clearInventoryFilters .sf-symbol { width: 1.5rem; height: 1.5rem; }
 #clearInventoryFilters > span { font-size: .7rem; line-height: 1.15; }
+
+.copy-color { grid-column: 2; }
+.copy-color > label { display: flex; align-items: center; gap: .35rem; font-size: .75rem; }
+.copy-color input[type="checkbox"] { width: auto; }
+.copy-color + .copy-notes { grid-column: 3 / -1; }
+@media(max-width:620px) { .copy-color, .copy-color + .copy-notes { grid-column: 1 / -1; } }
+
+/* Location navigator and grouped inventory. */
+.inventory-body, .inventory-body.previous-view { --location-sidebar-width: 230px; display: grid; grid-template-columns: var(--location-sidebar-width) 8px minmax(0,1fr); gap: 0; align-items: start; }
+#roomOverview { grid-column: 1; width: auto; position: sticky; top: calc(var(--inventory-header-height, 80px) + .3rem); height: calc(100dvh - var(--inventory-header-height, 80px) - .6rem); max-height: none; box-sizing: border-box; overflow-y: auto; padding: .6rem; border: 0; border-radius: 0; }
+#roomOverview h2 { margin: 0 0 .6rem; font-size: .95rem; }
+#locationDivider { grid-column: 2; align-self: stretch; position: sticky; top: var(--inventory-header-height,80px); height: calc(100dvh - var(--inventory-header-height,80px)); border-inline: 1px solid var(--line); cursor: col-resize; touch-action: none; }
+#locationDivider:hover, #locationDivider:focus-visible { background: var(--surface-2); outline: 2px solid var(--focus); }
+.inventory-collection { grid-column: 3; padding-left: .55rem; }
+.location-jump { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: .3rem; padding: .3rem .25rem .3rem calc(.25rem + var(--location-depth)*.7rem); border: 0; background: transparent; color: var(--text); text-align: left; font: inherit; font-size: .8rem; }
+.location-jump:hover { background: var(--surface-2); color: var(--accent); }
+.location-jump small { color: var(--muted); }
+.location-section-heading th { text-align: left; padding: .4rem .5rem; background: var(--surface-2); color: var(--text); scroll-margin-top: calc(var(--inventory-header-height,80px) + .5rem); }
+.location-section-heading[data-location-level="1"] th { padding-left: 1rem; font-size: .8rem; }
+.location-section-heading[data-location-level="2"] th { padding-left: 1.5rem; font-size: .75rem; }
+.object-details { color: var(--muted); }
+.object-details .item-tags { color: inherit; }
+#clearInventoryFilters:disabled { opacity: .4; cursor: default; }
+.inventory-tab kbd { font-size: .65rem; color: var(--muted); }
+.category-tags { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: .25rem 0; }
+.category-tag-heading { font-size: .75rem; color: var(--muted); padding-right: .3rem; }
+@media(max-width:700px) {
+ .inventory-body, .inventory-body.previous-view { grid-template-columns: minmax(0,1fr); }
+ #roomOverview { position: static; grid-column: 1; height: auto; max-height: 30vh; padding: .4rem 0; border-bottom: 1px solid var(--line); }
+ #locationDivider { display: none; }
+ .inventory-collection { grid-column: 1; padding-left: 0; }
+ .inventory-table tr.location-section-heading { display: block; padding: 0; }
+ .inventory-table tr.location-section-heading th { display: block; }
+}

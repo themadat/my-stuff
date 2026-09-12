@@ -116,6 +116,11 @@
         const resolvedZone = parent?.zone || zone;
         if (resolvedZone) { item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'zone'; }); item.properties.push({name:'Zone',value:resolvedZone,unit:''}); }
       }
+      if (typeof override?.color === 'string') {
+        item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'color'; });
+        const color = u.cleanLine(override.color,300);
+        if (color) item.properties.push({name:'Color',value:color,unit:''});
+      }
       if (typeof override?.notes === 'string') item.description = override.notes;
       return normalizeItem(item);
     });
@@ -138,10 +143,26 @@
     return JSON.stringify([item.name.trim().toLowerCase(),brand.trim().toLowerCase(),item.owner]);
   }
   function sameObject(a,b) { return objectKey(a) === objectKey(b); }
+  function itemLocation(item) {
+    const prop = function (key) { return item.properties.find(function (p) { return p.name.toLowerCase() === key; })?.value || ''; };
+    return [prop('zone'), item.room || '', prop('space')];
+  }
+  function locationSections(items) {
+    const sections = new Map();
+    items.forEach(function (item) {
+      const path = itemLocation(item), key = JSON.stringify(path);
+      if (!sections.has(key)) sections.set(key,{path:path,items:[]});
+      sections.get(key).items.push(item);
+    });
+    return Array.from(sections.values()).sort(function (a,b) {
+      for (let i=0;i<3;i++) { const order = (a.path[i] || '\uffff').localeCompare(b.path[i] || '\uffff'); if (order) return order; }
+      return 0;
+    });
+  }
   function groupRows(items) {
     const groups = new Map();
     items.forEach(function (item) {
-      const key = JSON.stringify([objectKey(item),item.room.trim().toLowerCase(),item.archive ? item.id : null]);
+      const key = JSON.stringify([objectKey(item),itemLocation(item).map(function (value) { return value.toLowerCase(); }),item.archive ? item.id : null]);
       if (!groups.has(key)) groups.set(key,[]); groups.get(key).push(item);
     });
     return Array.from(groups.values());
@@ -188,5 +209,5 @@
     });
     return normalize({ currency: local.currency, items: Array.from(items.values()) });
   }
-  App.inventoryModel = { cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();
