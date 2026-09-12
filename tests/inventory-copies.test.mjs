@@ -178,3 +178,16 @@ test('location sections separate spaces and repeated room-scoped space names', (
  assert.equal(app.inventoryModel.groupRows(records).length,3);
  assert.notEqual(JSON.stringify(sections[0].path),JSON.stringify(sections[1].path));
 });
+
+test('company filtering includes parent and child brands but never the seller alone', () => {
+ const make = (brand,source='Amazon') => app.inventoryModel.normalizeItem({...item,source,properties:[{name:'Brand',value:brand}]});
+ assert.equal(app.inventoryCatalog.companyFor('Beats'),'Apple');
+ assert.equal(app.inventoryCatalog.matches(make('Beats'),{kind:'company',value:'Apple'}),true);
+ assert.equal(app.inventoryCatalog.matches(make('Apple'),{kind:'company',value:'Apple'}),true);
+ assert.equal(app.inventoryCatalog.matches(make('OXO','Apple'),{kind:'company',value:'Apple'}),false);
+ assert.equal(app.inventoryCatalog.matches(make('Beats'),{kind:'tags',values:['Apple'],brands:true}),false);
+ assert.equal(app.inventoryCatalog.matches(make('Beats'),{kind:'tags',values:['Beats'],brands:true}),true);
+ const explicit=make('Beats');explicit.properties.push({name:'Company',value:'Other Company',unit:''});
+ assert.equal(app.inventoryCatalog.matches(explicit,{kind:'company',value:'Apple'}),false);
+ assert.equal(app.inventoryCatalog.matches(explicit,{kind:'company',value:'Other Company'}),true);
+});

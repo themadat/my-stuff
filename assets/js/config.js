@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.30",
-      buildId: "0.0.1.30",
+      version: "0.0.1.31",
+      buildId: "0.0.1.31",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -30,7 +30,10 @@
       currencies: ["USD"],
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": []}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling Bag"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
       tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footware", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Cables", "Powerbank", "Coax", "Ethernet", "Extension", "Charger"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Water", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Barware", "Glassware", "Dishware", "Appliances", "Tools"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
-      brands: ["Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
+      brands: ["Beats", "Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
+      brandCompanies: { Beats: "Apple" },
+      retailers: ["Amazon", "Target", "Walmart", "Costco", "IKEA", "eBay", "Best Buy"],
+      sellerAliases: { "Amazon Mktplace": "Amazon", "Amazon Marketplace": "Amazon" },
       rooms: ["Yard", "Shed", "Nest", "Patio", "Garage", "Attic", "Crawl", "Foyer", "Hallway", "Game Room", "Kitchen", "Nook", "Den", "Doge’s Den", "Mud Room", "Powder Room", "Primary Bedroom", "Primary Bathroom", "Loft", "Office", "Utility Room", "Guest Room", "J&J Bathroom"],
       bulkSuggestions: [
         { match: "whiskey|whisky|cocktail|decanter|barware", tags: ["Barware", "Glassware"], room: "Den", space: "Bar" },
@@ -78,6 +81,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.31", date: "2026-09-12T00:00:00.000Z", title: "Seller, Brand and Company",
+      summary: "Smart Complete separates the store from the product brand, with company relationships in the catalog.",
+      features: ["Beats is cataloged under Apple; company filters include its brands"], improvements: ["Explicit seller/brand annotations override inference", "Known stores never become the fallback brand"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.30", date: "2026-09-12T00:00:00.000Z", title: "Location Navigation and Category Shortcuts",
       summary: "Browse grouped locations with a resizable sticky sidebar and category-to-tag quick selections.",
       features: ["H/W/R/D navigation shortcuts", "Persistent Clear, Bulk and Add controls"], improvements: ["Gray item details show Notes, Seller, Properties and category hashtags"], fixes: [], knownIssues: []
@@ -306,6 +313,7 @@
       { id: "backup", title: "Backup and Restore", section: "Data", keywords: "backup export import json recovery reset", html: "<p>Export a JSON backup before major changes. Import validates the file and saves a recovery copy before replacement.</p>" },
       { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs inventory and Notes. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting item or Notes edits require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing inventory and Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
       { id: "offline", title: "Install and Offline Updates", section: "Application", keywords: "install pwa offline update refresh", html: "<p>When served over HTTPS, My Stuff can be installed and keeps its shell available offline. Use Force refresh when an update notice appears.</p>" },
+      { id: "seller-brand-company", title: "Seller, Brand and Company", section: "Inventory", keywords: "seller store brand company Beats Apple Amazon smart complete", html: "<p>Text before a spaced dash is Seller. A known brand at the start of the product name is Brand. Otherwise, a known brand used as Seller can fill Brand too; known stores cannot. For exceptions, use seller: Amazon; brand: Beats; Studio Pro. Manual edits stay protected.</p><p>Company relationships live in the catalog: Beats belongs to Apple. In Settings Inventory, choose Apple under Companies to include Apple and Beats, or choose a specific brand. Company is optional; a custom Company property overrides the catalog relationship for company filtering.</p>" },
       { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Inventory and Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },
       { id: "shortcuts", title: "Keyboard Shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Press <kbd>H</kbd> for Have, <kbd>W</kbd> for Want, <kbd>R</kbd> for Research, <kbd>D</kbd> for Had, and <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }
     ],

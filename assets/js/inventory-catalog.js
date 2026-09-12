@@ -4,7 +4,16 @@
   const unique = function (values) { const seen = new Set(); return values.filter(function (value) { const key = value.toLowerCase(); if (!value || seen.has(key)) return false; seen.add(key); return true; }).sort(function (a, b) { return a.localeCompare(b); }); };
   function isFavorite(name) { return (App.storage.getState().preferences.favoriteBrands || []).some(function (brand) { return brand.toLowerCase() === name.toLowerCase(); }); }
   function sortBrands(values) { return unique(values).sort(function (a,b) { return Number(isFavorite(b))-Number(isFavorite(a)) || a.localeCompare(b); }); }
-  function brands(items) { return sortBrands(App.config.inventory.brands.concat(App.config.inventory.tagGroups.find(function (g) { return g.name === 'Brands'; })?.tags || [], items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }).map(function (p) { return p.value; }); }),App.storage.getState().preferences.favoriteBrands || [])); }
+  function brands(items) { return sortBrands(App.config.inventory.brands.concat(Object.keys(App.config.inventory.brandCompanies || {}),Object.values(App.config.inventory.brandCompanies || {}),App.config.inventory.tagGroups.find(function (g) { return g.name === 'Brands'; })?.tags || [], items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }).map(function (p) { return p.value; }); }),App.storage.getState().preferences.favoriteBrands || [])); }
+  function companyFor(brand) {
+    const relations = App.config.inventory.brandCompanies || {}, name = Object.keys(relations).find(function (key) { return key.toLowerCase() === String(brand || '').toLowerCase(); });
+    return name ? relations[name] : Object.values(relations).find(function (company) { return company.toLowerCase() === String(brand || '').toLowerCase(); }) || '';
+  }
+  function companyBrands(company) {
+    const result = [company], relations = App.config.inventory.brandCompanies || {}; let changed = true;
+    while (changed) { changed=false; Object.keys(relations).forEach(function (brand) { if (!result.some(function (name) { return name.toLowerCase()===brand.toLowerCase(); }) && result.some(function (name) { return name.toLowerCase()===relations[brand].toLowerCase(); })) { result.push(brand); changed=true; } }); }
+    return result;
+  }
   function data(items) {
     const config = App.config.inventory, zones = new Map();
     function location(zone, room, spaces) {
@@ -28,7 +37,7 @@
       if (!properties.has(key)) properties.set(key, { name: p.name, units: [], values: [] });
       const entry = properties.get(key); entry.units = unique(entry.units.concat(p.unit || [])); entry.values = unique(entry.values.concat(p.values || [], p.value || []));
     }
-    const propertyGroups = [{ name: "Common Properties", properties: config.commonProperties }, { name: "Identity and Location", properties: [{ name: "Brand", values: config.brands }, { name: "Zone" }, { name: "Space" }] }].concat(config.categories.map(function (c) { return { name: c.name, properties: c.properties }; }));
+    const propertyGroups = [{ name: "Common Properties", properties: config.commonProperties }, { name: "Identity and Location", properties: [{ name: "Brand", values: config.brands }, { name: "Company", values: unique(Object.values(config.brandCompanies || {})) }, { name: "Zone" }, { name: "Space" }] }].concat(config.categories.map(function (c) { return { name: c.name, properties: c.properties }; }));
     propertyGroups.forEach(function (g) { g.properties.forEach(addProperty); });
     const knownProperties = Array.from(properties.keys());
     items.forEach(function (item) { item.properties.forEach(addProperty); });
@@ -44,6 +53,7 @@
   function matches(item, filter) {
     const property = function (name) { return item.properties.find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); })?.value || ''; };
     const zone = property('Zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || '';
+    if (filter.kind === 'company') return property('Company') ? property('Company').toLowerCase() === filter.value.toLowerCase() : companyBrands(filter.value).some(function (brand) { return brand.toLowerCase()===property('Brand').toLowerCase(); });
     if (filter.kind === 'zone') return zone === filter.value;
     if (filter.kind === 'room') return (item.room || '') === filter.value && (!filter.zone || zone === filter.zone);
     if (filter.kind === 'space') return property('Space') === filter.value && (item.room || '') === filter.room && zone === filter.zone;
@@ -72,13 +82,17 @@
       const all = g.name === 'Brands' ? brands(App.storage.getState().inventory.items) : g.tags, values = all.filter(function (tag) { return matchesQuery([g.name,tag]); });
       return values.length ? '<section class="catalog-group"><h4>' + filterButton(g.name,{kind:'tags',values:all,brands:g.name==='Brands'}) + '</h4>' + chips(values,function (value) { return g.name === 'Brands' ? {kind:'tags',values:[value],brands:true} : {kind:'tag',value:value}; },g.name==='Brands') + '</section>' : '';
     }).join('');
+    const companyNames = unique(Object.values(App.config.inventory.brandCompanies || {}).concat(App.storage.getState().inventory.items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase()==='company'; }).map(function (p) { return p.value; }); })));
+    const companies = companyNames.filter(function (company) { return matchesQuery([company].concat(companyBrands(company))); }).map(function (company) {
+      return '<section class="catalog-group"><h4>'+filterButton(company,{kind:'company',value:company,label:company+' — All Brands'})+'</h4>'+chips(companyBrands(company),function (brand) { return {kind:'tags',values:[brand],brands:true}; },true)+'</section>';
+    }).join('');
     const groups = catalog.propertyGroups.map(function (g) {
       const values = g.properties.filter(function (p) { return matchesQuery([g.name,p.name].concat(p.units,p.values)); });
       return values.length ? '<section class="catalog-group"><h4>' + filterButton(g.name,{kind:'properties',values:g.properties.map(function (p) { return p.name.toLowerCase(); })}) + '</h4>' + values.map(function (p) {
         return '<div class="catalog-property"><strong>' + filterButton(p.name,{kind:'property',name:p.name}) + '</strong>' + (p.units.length ? ' <small>' + esc(p.units.join(' / ')) + '</small>' : '') + chips(p.values,function (value) { return {kind:'property',name:p.name,value:value}; },p.name.toLowerCase()==='brand') + '</div>';
       }).join('') + '</section>' : '';
     }).join('');
-    root.innerHTML = [ ["Zones, Rooms & Spaces", locations], ["Tag Groups", tags], ["Property Groups & Values", groups] ].map(function (entry) { return '<section class="catalog-section"><h3>' + entry[0] + '</h3><div class="catalog-grid">' + (entry[1] || '<p>No Matching Options</p>') + '</div></section>'; }).join("");
+    root.innerHTML = [ ["Zones, Rooms & Spaces", locations], ["Tag Groups", tags + (companies ? '<h3>Companies</h3>' + companies : '')], ["Property Groups & Values", groups] ].map(function (entry) { return '<section class="catalog-section"><h3>' + entry[0] + '</h3><div class="catalog-grid">' + (entry[1] || '<p>No Matching Options</p>') + '</div></section>'; }).join("");
     const names = document.querySelector("#inventoryPropertyNames"), colors = document.querySelector("#inventoryColorValues");
     if (names) names.innerHTML = unique(catalog.properties.map(function (p) { return p.name; })).map(function (name) { return '<option value="' + esc(name) + '"></option>'; }).join("");
     if (colors) colors.innerHTML = (catalog.properties.find(function (p) { return p.name.toLowerCase() === "color"; })?.values || []).map(function (value) { return '<option value="' + esc(value) + '"></option>'; }).join("");
@@ -95,5 +109,5 @@
     });
     document.querySelector("#inventoryCatalogSearch").addEventListener("input", render); render();
   }
-  App.inventoryCatalog = { matches: matches, brands: brands, isFavorite: isFavorite, init: init, render: render, data: data };
+  App.inventoryCatalog = { companyFor:companyFor, companyBrands:companyBrands, matches: matches, brands: brands, isFavorite: isFavorite, init: init, render: render, data: data };
 })();

@@ -57,7 +57,7 @@
           <div class="item-form-grid compact-item-grid">
             <div class="full item-identity-row">
               ${field("itemSource", "Seller", 'type="text" maxlength="240" placeholder="Seller"')}
-              ${picker("itemBrand", "Brand", "Brand")}
+              <div>${picker("itemBrand", "Brand", "Brand")}<small id="itemBrandCompany" hidden></small></div>
               <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required maxlength="160" placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
             <div class="full item-purchase-row">
@@ -178,7 +178,7 @@
     });
     $("#archiveForm").addEventListener("submit", saveArchive);
     $("#addPropertyButton").addEventListener("click", function () { addProperty({ name: "", value: "", unit: "" }, true); });
-    $("#itemProperties").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-property]"); if (button) { button.closest(".item-property").remove(); renderPresets(); $("#addPropertyButton").focus(); } });
+    $("#itemProperties").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-property]"); if (button) { button.closest(".item-property").remove(); renderPresets(); renderBrandCompany(); $("#addPropertyButton").focus(); } });
     $("#categoryPresets").addEventListener("click", function (event) {
       const button = event.target.closest("[data-category-preset]"); if (!button) return;
       const preset = App.config.inventory.categories[Number(button.dataset.categoryPreset)];
@@ -281,6 +281,7 @@
     } finally { mirror.remove(); }
   }
   function markObjectWordEdit() {
+    renderBrandCompany();
     ["name", "brand"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); });
     if ($("#itemSmartEntry").value) completeSmart(true);
   }
@@ -334,7 +335,13 @@
       }
     });
   }
+  function renderBrandCompany() {
+    const override=$$('[data-property-name]').find(function (input) { return input.value.trim().toLowerCase()==='company'; });
+    const company=(override ? $('[data-property-value]',override.closest('.item-property')).value.trim() : '') || App.inventoryCatalog.companyFor($('#itemBrand').value), hint=$('#itemBrandCompany');
+    hint.textContent=company ? 'Company: '+company : ''; hint.hidden=!company;
+  }
   function renderTags() {
+    renderBrandCompany();
     renderPresets();
     $("#selectedItemTags").toggleAttribute('data-smart-field', $("#itemCategories").hasAttribute('data-smart-field'));
     $("#selectedItemTags").innerHTML = m.tags($("#itemCategories").value).map(function (tag) { return '<button type="button" class="tag-chip" data-remove-tag="' + esc(tag) + '" aria-label="Remove ' + esc(tag) + '">' + esc(tag) + ' ' + icon("close") + '</button>'; }).join("");
@@ -354,7 +361,7 @@
       const selected = m.tags($("#itemCategories").value).map(function (tag) { return tag.toLowerCase(); });
       return config.tagGroups.flatMap(function (group) { return group.tags.map(function (tag) { return { value: tag, detail: group.name }; }); }).concat(config.categories.map(function (category) { return { value: category.name, detail: "Preset" }; }), items.flatMap(function (item) { return item.categories.map(function (tag) { return { value: tag, detail: "Your Tags" }; }); })).filter(function (option) { return !selected.includes(option.value.toLowerCase()); });
     }
-    if (id === 'itemBrand') return App.inventoryCatalog.brands(items).map(function (brand) { return {value:brand,detail:App.inventoryCatalog.isFavorite(brand) ? 'Favorite Brand' : 'Brand'}; });
+    if (id === 'itemBrand') return App.inventoryCatalog.brands(items).map(function (brand) { return {value:brand,detail:(App.inventoryCatalog.isFavorite(brand) ? 'Favorite Brand' : 'Brand') + (App.inventoryCatalog.companyFor(brand) ? ' · Company: '+App.inventoryCatalog.companyFor(brand) : '')}; });
     if (id === "itemZone") return unique(config.locations.map(function (l) { return l.zone; })).map(function (zone) { return { value: zone, detail: "Zone" }; });
     if (id === "itemRoom") return App.inventoryCatalog.data(items).locations.flatMap(function (zone) { return [{value:zone.name,kind:'zone',detail:'Zone',zone:zone.name}].concat(zone.rooms.flatMap(function (room) { return [{value:room.name,kind:'room',level:1,detail:zone.name,zone:zone.name}].concat(room.spaces.map(function (space) { return {value:space,kind:'space',level:2,detail:zone.name+' / '+room.name,room:room.name,zone:zone.name}; })); })); });
     return config.locations.flatMap(function (l) { return l.spaces.map(function (space) { return { value: space, detail: l.zone + " / " + l.room, room: l.room, zone: l.zone }; }); });
@@ -373,6 +380,7 @@
         syncCopyToPrimary(copyRow); close(); input.focus(); close(); return;
       }
       input.value = option.value;
+      if (id === 'itemBrand') renderBrandCompany();
       (id === 'itemBrand' ? ['brand'] : ['zone','room','space','categories']).forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
       if (id === "itemRoom") { $('#itemZone').value = option.zone || ''; $('#itemSpace').value = option.kind === 'space' ? option.value : ''; input.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; }
@@ -433,12 +441,14 @@
       if (!this.checked) input.focus();
     });
     $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
+    $('#itemBrand').addEventListener('input',renderBrandCompany);
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
     $("#itemForm").addEventListener('input', function (event) {
       event.target.removeAttribute('data-smart-field');
       if (event.target.matches('[data-property-name]')) renderPresets();
+      if (event.target.matches('[data-property-name],[data-property-value]')) renderBrandCompany();
       if (event.target.matches('[data-property-value], [data-property-unit]') && $('[data-property-name]', event.target.closest('.item-property')).value.toLowerCase() === 'volume') smartManual.add('volume');
     });
     $("#itemForm").addEventListener("change", function (event) {

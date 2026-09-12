@@ -61,3 +61,22 @@ test('inventory spreadsheet columns extract leading space, tags, date, price, br
   assert.equal(parse('Office\tCable\t09/22/24\t$10\tUSB extension').fields.room, 'Office');
   assert.equal(parse('Closet\tWater\tBottle').fields.room, undefined, 'ambiguous spaces are not assigned an arbitrary parent');
 });
+
+test('seller prefix and product brand are distinct with retailer-safe fallback', () => {
+ assert.deepEqual(parse('Apple - Magic Mouse').fields,{source:'Apple',brand:'Apple',name:'Magic Mouse'});
+ assert.deepEqual(parse('Amazon - Beats Studio Pro').fields,{source:'Amazon',brand:'Beats',name:'Studio Pro'});
+ assert.deepEqual(parse('Apple - Beats Studio Pro').fields,{source:'Apple',brand:'Beats',name:'Studio Pro'});
+ assert.deepEqual(parse('Beats - Studio Pro').fields,{source:'Beats',brand:'Beats',name:'Studio Pro'});
+ assert.deepEqual(parse('Amazon - USB-C cable').fields,{source:'Amazon',name:'USB-C cable'});
+ assert.deepEqual(parse('Local Shop - Handmade Bowl').fields,{source:'Local Shop',name:'Handmade Bowl'});
+ assert.deepEqual(parse('Amazon Marketplace - Apple Magic Mouse').fields,{source:'Amazon',brand:'Apple',name:'Magic Mouse'});
+});
+test('explicit Seller and Brand override prefix and brand guesses without overlapping highlights', () => {
+ const result=parse('seller: Amazon; brand: Beats; Apple - Studio Pro');
+ assert.deepEqual(result.fields,{source:'Amazon',brand:'Beats',name:'Studio Pro'});
+ for(let i=1;i<result.spans.length;i++)assert.ok(result.spans[i].start>=result.spans[i-1].end);
+ const unknown=parse('seller: Local Shop; brand: Acme; Widget');
+ assert.equal(unknown.fields.source,'Local Shop');assert.equal(unknown.fields.brand,'Acme');assert.equal(unknown.fields.name,'Widget');
+ const oldStore=JSON.parse(JSON.stringify(app.smartEntry.parse('Amazon - Cable',['Amazon'])));
+ assert.equal(oldStore.fields.brand,undefined);
+});

@@ -82,13 +82,32 @@
     if (match) { const lead = match[0].length - match[0].trimStart().length; take(match.index + lead, match[0].length - lead, null); }
     for (const found of rest.join("").matchAll(/\[[^\]]*\]/g)) take(found.index, found[0].length, null);
     let remaining = rest.join("");
-    match = /\b(Amazon(?:\s+(?:Mktplace|Marketplace))?|Target|Walmart|Costco|IKEA|eBay)\s*[-–—:]?\s*/i.exec(remaining);
-    if (match && !fields.source) take(match.index, match[0].length, "source", /^amazon/i.test(match[1]) ? "Amazon" : match[1]);
+    const config = App.config.inventory;
+    const brands = Array.from(new Set([...(knownBrands || config.brands), ...Object.keys(config.brandCompanies || {}), ...Object.values(config.brandCompanies || {})].filter(Boolean))).sort(function (a,b) { return b.length-a.length; });
+    function canonicalSeller(value) {
+      const alias = Object.keys(config.sellerAliases).find(function (name) { return name.toLowerCase() === value.toLowerCase(); });
+      return alias ? config.sellerAliases[alias] : config.retailers.find(function (name) { return name.toLowerCase() === value.toLowerCase(); }) || brands.find(function (name) { return name.toLowerCase() === value.toLowerCase(); }) || value;
+    }
+    // A spaced dash separates the seller from the product; hyphenated product words do not.
+    match = /^\s*([^\t\n;]+?)\s+[-–—]\s*/.exec(remaining);
+    if (match) {
+      const prefix = match[1].trim(), start = match[0].indexOf(prefix);
+      take(start,match[0].length-start,'source',fields.source || canonicalSeller(prefix));
+    } else {
+      const start = remaining.search(/\S/), stores = config.retailers.concat(Object.keys(config.sellerAliases)).sort(function (a,b) { return b.length-a.length; });
+      const seller = start < 0 ? null : stores.find(function (name) { return remaining.slice(start,start+name.length).toLowerCase()===name.toLowerCase() && /[\s:–—-]|$/.test(remaining[start+name.length] || ''); });
+      if (seller) {
+        const suffix = /^[\s:–—-]*/.exec(remaining.slice(start+seller.length))[0];
+        take(start,seller.length+suffix.length,'source',fields.source || canonicalSeller(seller));
+      }
+    }
     remaining = rest.join("");
     const start = remaining.search(/\S/);
-    if (start >= 0 && !fields.brand) {
-      const brand = Array.from(new Set((knownBrands || App.config.inventory.brands).filter(Boolean))).sort(function (a, b) { return b.length - a.length; }).find(function (value) { return remaining.slice(start, start + value.length).toLowerCase() === value.toLowerCase() && /\s|$/.test(remaining[start + value.length] || ""); });
-      if (brand) take(start, brand.length, "brand", brand);
+    const productBrand = start < 0 ? null : brands.find(function (value) { return remaining.slice(start,start+value.length).toLowerCase()===value.toLowerCase() && /\s|$/.test(remaining[start+value.length] || ''); });
+    if (productBrand && (!fields.brand || fields.brand.toLowerCase()===productBrand.toLowerCase())) take(start,productBrand.length,'brand',fields.brand || productBrand);
+    if (!fields.brand && fields.source && !config.retailers.some(function (store) { return store.toLowerCase()===canonicalSeller(fields.source).toLowerCase(); })) {
+      const sellerBrand = brands.find(function (brand) { return brand.toLowerCase()===fields.source.toLowerCase(); });
+      if (sellerBrand) fields.brand = sellerBrand;
     }
     remaining = rest.join("");
     const name = remaining.replace(/\s+/g, " ").replace(/,\s*,/g, ",").replace(/^[,;\s]+|[,;\s]+$/g, "").trim();

@@ -62,3 +62,11 @@ test('unknown or unparsed mapped dates override inferred dates without inventing
  const noDate = bulk.prepare([['Object'],['Lamp']],true,['name'],[])[0];
  assert.equal(noDate.draft.obtainedDate, '');
 });
+
+test('bulk rows use separate Seller and Brand with explicit column precedence', () => {
+ const rows=[['Object','Seller','Brand'],['Apple - Magic Mouse','Amazon','Beats']];
+ const draft=bulk.prepare(rows,true,bulk.mapping(rows[0]),[])[0].draft;
+ assert.equal(draft.source,'Amazon');assert.equal(draft.properties.find(p=>p.name==='Brand').value,'Beats');
+ const inferred=bulk.prepare([['Amazon - Beats Studio Pro']],false,[],[])[0].draft;
+ assert.equal(inferred.source,'Amazon');assert.equal(inferred.properties.find(p=>p.name==='Brand').value,'Beats');
+});

@@ -1,3 +1,11 @@
+## Latest update — Seller, Brand and Company (0.0.1.31)
+
+Smart Complete treats a prefix before a spaced dash as Seller and a known brand at the beginning of the remaining product text as Brand. A known brand used as Seller supplies Brand only when no product brand is found; known retailers never supply this fallback. Explicit Seller/Brand annotations and mapped bulk fields retain precedence, as do existing manual-edit protections. Seller aliases canonicalize Amazon Marketplace/Mktplace to Amazon; USB-C remains intact.
+
+Central catalog metadata relates Beats to Apple. Company filters include the parent brand and its brands while exact Brand filters remain exact, independent of Seller. The catalog adds a Companies section and optional Company property suggestions. Brand suggestions and the editor show the related company; an explicit Company property overrides the inferred relationship for filtering and the editor hint. No required item schema or storage changes.
+
+All 93 model/parser/static/queue checks pass, including seller/brand inference, explicit overrides, non-overlapping parser spans, bulk import and company-vs-brand filtering. Version/build/cache/manifests/HTML/workflow/release align at 0.0.1.31. Browser/desktop/mobile/offline review remains unrun under the recorded preview-server approval restriction; no server launched. Source checkout was clean at 72c226a (0.0.1.30). Before-copies: /private/tmp/my-stuff-brand-seller-baseline. Transfer uses baseline equality guards and byte verification. No commit or push performed.
+
 ## Latest update — location navigator and category shortcuts (0.0.1.30)
 
 Clear/Bulk/Add use short visible labels. Clear stays visible and disabled/dimmed when no filters or category-card replacements need clearing. Top-bar H/W/R/D shortcuts select Have/Want/Research/Had, with visible key hints and Help/shortcut entries; editable controls, modified keys and open dialogs are excluded.
