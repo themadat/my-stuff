@@ -1,3 +1,9 @@
+## Latest update — Research tab artwork (0.0.1.41)
+
+The Research tab uses the supplied filled document/magnifying-glass SVG. Geometry and mask are preserved, with a tab-specific mask ID to avoid collisions with other document symbols. The dedicated shared-registry symbol is used only by the top-bar tab.
+
+SVG XML validation and all 103 automated checks pass. Version/cache/manifests/workflow align at 0.0.1.41. Browser visual validation remains pending. Before-copies: /private/tmp/my-stuff-research-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — per-item tag ordering and favorite-brand tags (0.0.1.40)
 
 Selected tags in Add/Edit can be dragged or moved with earlier/later arrow buttons usable by keyboard and touch. Reordering marks the categories field as manually edited and saves the order in each item's existing categories array. Brand tags sort first, regular tags retain their chosen order, and Float sorts last; list text/icons use that same ordering. Editing one saved copy does not overwrite other copies' category arrays.
