@@ -1,3 +1,9 @@
+## Latest update — floating quick-tag menu (0.0.1.39)
+
+Moved the quick-tag menu to document.body with its own fixed-position overlay styling, outside the scrolling toolbar and its stacking context. It anchors to the hovered category and clamps its width/height to the viewport. Pointer transitions between the category and menu remain open, with a short departure grace period. Focus transitions recognize both surfaces; Arrow Down enters the menu and Escape returns to the category. Outside clicks, toolbar/page scrolling and resize close the menu. Tag selection and category replacement behavior remain intact.
+
+All 100 automated checks pass, including script syntax and aligned release/cache/manifest/workflow versions. Browser hover/click validation remains pending. Before-copies: /private/tmp/my-stuff-hover-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — consistent ownership text and Unknown first (0.0.1.38)
 
 Removed Me-specific text-color overrides in light/dark modes so all ownership cards use the same label/count/value styling. Ownership background/border colors remain. Unknown Location now sorts ahead of known locations in the shared section list, so both inventory and navigator put it first; known-location ordering and within-section brand ordering remain intact.

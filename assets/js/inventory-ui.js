@@ -119,7 +119,7 @@
     $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
     function showCategory(event) {
       const card = event.target.closest('[data-category-group]');
-      if (card) { hoveredCategory = card.dataset.categoryGroup; renderCategoryTags(); }
+      if (card) { cancelTagClose(); hoveredCategory = card.dataset.categoryGroup; renderCategoryTags(); }
     }
     $('#categoryCards').addEventListener('pointerover', showCategory);
     $('#categoryCards').addEventListener('focusin', showCategory);
@@ -135,9 +135,22 @@
       $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup === group; })?.focus({preventScroll:true});
       hoveredCategory = ''; renderCategoryTags();
     });
-    $('.category-quick-controls').addEventListener('focusout', function (event) { if (!this.contains(event.relatedTarget)) { hoveredCategory = ''; renderCategoryTags(); } });
-    $('.category-quick-controls').addEventListener('pointerleave', function () { hoveredCategory = ''; renderCategoryTags(); });
-    $('.category-quick-controls').addEventListener('keydown', function (event) { if (event.key === 'Escape') { hoveredCategory = ''; renderCategoryTags(); event.stopPropagation(); } });
+    const quickControls=$('.category-quick-controls'), tagMenu=$('#categoryTags');
+    document.body.append(tagMenu);
+    let tagCloseTimer;
+    function cancelTagClose() { clearTimeout(tagCloseTimer); }
+    function closeTagMenu() { hoveredCategory=''; renderCategoryTags(); }
+    function insideTags(target) { return target && (quickControls.contains(target) || tagMenu.contains(target)); }
+    [quickControls,tagMenu].forEach(function (surface) {
+      surface.addEventListener('pointerenter',cancelTagClose);
+      surface.addEventListener('pointerleave',function (event) { if (!insideTags(event.relatedTarget)) { cancelTagClose(); tagCloseTimer=setTimeout(closeTagMenu,180); } });
+      surface.addEventListener('focusout',function (event) { if (!insideTags(event.relatedTarget)) closeTagMenu(); });
+      surface.addEventListener('keydown',function (event) {
+        if (event.key==='Escape') { const group=hoveredCategory; closeTagMenu(); $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup===group; })?.focus(); closeTagMenu(); event.stopPropagation(); }
+        if (event.key==='ArrowDown' && surface===quickControls && !tagMenu.hidden) { event.preventDefault(); tagMenu.querySelector('button')?.focus(); }
+      });
+    });
+    document.addEventListener('pointerdown',function (event) { if (!insideTags(event.target)) closeTagMenu(); });
     $('#roomStats').addEventListener('click', function (event) {
       const link = event.target.closest('[data-location-jump]'); if (!link) return;
       const target = document.getElementById(link.dataset.locationJump);
@@ -153,7 +166,8 @@
       if (target) { event.preventDefault(); view=target; render(); $('#inventoryTitle').focus({preventScroll:true}); }
     });
     $('.inventory-toolbar-scroll').addEventListener('scroll',function () { hoveredCategory=''; renderCategoryTags(); });
-    window.addEventListener('scroll',function () { if (hoveredCategory) renderCategoryTags(); },{passive:true});
+    window.addEventListener('scroll',function () { closeTagMenu(); },{passive:true});
+    window.addEventListener('resize',closeTagMenu);
     const divider = $('#locationDivider'); let resizing = false;
     function setSidebarWidth(width) { width = Math.round(Math.max(160,Math.min(420,width))); $('#inventoryBody').style.setProperty('--location-sidebar-width',width+'px'); divider.setAttribute('aria-valuenow',width); }
     divider.addEventListener('pointerdown', function (event) { resizing=true; divider.setPointerCapture(event.pointerId); event.preventDefault(); });
@@ -543,7 +557,7 @@
   function renderCategoryTags() {
     const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags');
     root.hidden = !group;
-    if (group) { const bounds=$('.category-quick-controls').getBoundingClientRect(); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-328))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=Math.min(500,innerWidth-16)+'px'; }
+    if (group) { const card=$$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===hoveredCategory; }), bounds=(card || $('.category-quick-controls')).getBoundingClientRect(), width=Math.min(500,innerWidth-16); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=width+'px'; root.style.maxHeight=Math.max(80,innerHeight-bounds.bottom-8)+'px'; }
     root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.map(function (tag) { return '<button type="button" class="button small" title="'+esc(App.inventoryCatalog.presetDescription(tag))+'" data-category-tag="'+esc(tag)+'">'+esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' <span class="preset-indicator" aria-hidden="true">◇</span>':'')+'</button>'; }).join('') : '';
   }
   function renderCategoryCards(items) {

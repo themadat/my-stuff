@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.38",
-      buildId: "0.0.1.38",
+      version: "0.0.1.39",
+      buildId: "0.0.1.39",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -82,6 +82,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.39", date: "2026-09-13T00:00:00.000Z", title: "Floating Quick Tags",
+      summary: "Quick category tags float above the page and remain selectable when moving into the menu.",
+      features: [], improvements: ["Arrow Down enters the tag menu; Escape closes it"], fixes: ["Move the menu outside the scrolling toolbar"], knownIssues: []
+    }, {
       version: "0.0.1.38", date: "2026-09-13T00:00:00.000Z", title: "Consistent Ownership Text and Unknown First",
       summary: "Ownership cards share text styling and Unknown Location appears first.",
       features: [], improvements: ["Unknown locations lead the list and navigator"], fixes: ["Remove Me-only text color overrides"], knownIssues: []
