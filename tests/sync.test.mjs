@@ -649,3 +649,13 @@ test('favorite brands survive device-state normalization without entering the in
  assert.deepEqual(Array.from(App.stateModel.normalize(JSON.parse(JSON.stringify(normalized))).preferences.favoriteBrands),['Ryobi','OXO']);
  assert.equal(JSON.stringify(App.stateModel.syncPayload(normalized)).includes('favoriteBrands'),false);
 });
+
+test('favorite brands tag matching records on normalization and tag order survives sync payloads', () => {
+ const {App}=harness(); const state=App.stateModel.createDefaultState();
+ state.preferences.favoriteBrands=['Apple'];
+ state.inventory.items=[{id:'tag-order',name:'Watch',owner:'me',categories:['Float','Tools','Books'],properties:[{name:'Brand',value:'Apple'}]}];
+ const normalized=App.stateModel.normalize(state);
+ assert.deepEqual(Array.from(normalized.inventory.items[0].categories),['Apple','Tools','Books','Float']);
+ assert.deepEqual(Array.from(App.stateModel.normalize(normalized).inventory.items[0].categories),['Apple','Tools','Books','Float']);
+ assert.ok(JSON.stringify(App.stateModel.syncPayload(normalized)).includes('Apple'));
+});

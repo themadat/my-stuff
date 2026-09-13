@@ -246,3 +246,20 @@ test('unknown location comes before known location sections without reordering t
  assert.equal(sections[0].items[0].id,'unknown');
  assert.equal(sections[1].items[0].id,known.id);
 });
+
+test('per-item tag order is stable with brand tags first and Float last', () => {
+ const a=app.inventoryModel.normalizeItem({...item,categories:['Float','Tools','Apple','Books','OXO']});
+ const b=app.inventoryModel.normalizeItem({...item,id:'other',categories:['Books','Tools']});
+ assert.deepEqual(Array.from(a.categories),['Apple','OXO','Tools','Books','Float']);
+ assert.deepEqual(Array.from(app.inventoryModel.normalizeItem(a).categories),Array.from(a.categories));
+ assert.deepEqual(Array.from(b.categories),['Books','Tools']);
+ assert.deepEqual(Array.from(app.inventoryModel.orderTags(['Float','Books','Tools','Apple'])),['Apple','Books','Tools','Float']);
+});
+test('favorite brand tags match Brand rather than Seller and are idempotent', () => {
+ const branded={...item,source:'Amazon',categories:['Books','Float'],properties:[{name:'Brand',value:'Apple'}]};
+ const tagged=app.inventoryModel.favoriteTag(branded,['Apple','Amazon']);
+ assert.deepEqual(Array.from(tagged.categories),['Apple','Books','Float']);
+ assert.deepEqual(Array.from(app.inventoryModel.favoriteTag(tagged,['Apple']).categories),Array.from(tagged.categories));
+ assert.deepEqual(Array.from(app.inventoryModel.favoriteTag(tagged,[]).categories),Array.from(tagged.categories));
+ assert.deepEqual(branded.categories,['Books','Float']);
+});

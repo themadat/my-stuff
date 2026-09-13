@@ -31,6 +31,18 @@
       seen.add(tag.toLowerCase()); return true;
     }).slice(0, 30);
   }
+  function orderTags(value, extraBrands) {
+    const brands=new Set(App.config.inventory.brands.concat(extraBrands || []).map(function (name) { return name.toLowerCase(); }));
+    const rank=function (tag) { return tag.toLowerCase()==='float' ? 2 : brands.has(tag.toLowerCase()) ? 0 : 1; };
+    return tags(value).sort(function (a,b) { return rank(a)-rank(b); });
+  }
+  function favoriteTag(item, favorites) {
+    const brand=item.properties.find(function (p) { return p.name.toLowerCase()==='brand'; })?.value || '';
+    const favorite=(favorites || []).find(function (name) { return name.toLowerCase()===brand.toLowerCase(); });
+    const current=tags(item.categories);
+    if (favorite && !current.some(function (tag) { return tag.toLowerCase()===favorite.toLowerCase(); }) && current.length<30) current.push(favorite);
+    return Object.assign({},item,{categories:orderTags(current,[brand].concat(favorites || []))});
+  }
   function normalizeItem(input) {
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("An inventory item is invalid.");
     const id = u.cleanLine(input.id, 100), name = u.cleanLine(input.name, 160);
@@ -78,7 +90,7 @@
     cleanProperties.forEach(function (p) { if (p.name.toLowerCase() === "size") p.unit = ""; });
     return {
       id: id, name: name, description: u.cleanText(input.description, 4000), owner: input.owner,
-      room: room?.room || '', categories: tags(tags(input.categories).concat(knownSpace === "Floating" ? ["Float"] : [])), obtainedDate: obtainedDate,
+      room: room?.room || '', categories: orderTags(tags(input.categories).concat(knownSpace === "Floating" ? ["Float"] : []),properties.filter(function (p) { return p.name.toLowerCase()==="brand"; }).map(function (p) { return p.value; })), obtainedDate: obtainedDate,
       obtainedHow: methods.includes(input.obtainedHow) ? input.obtainedHow : "",
       source: u.cleanLine(input.source, 240), value: amount(input.value) ?? amount(input.price), price: amount(input.price) ?? amount(input.value),
       properties: cleanProperties, archive: archive,
@@ -131,11 +143,11 @@
       return normalizeItem(item);
     });
   }
-  function normalize(input) {
+  function normalize(input, favorites) {
     if (input === undefined) return { currency: App.config.inventory.defaultCurrency, items: [] };
     if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.items) || input.items.length > 5000) throw new Error("Inventory must contain a list of up to 5,000 items.");
     if (!["USD", "CAD", "EUR", "GBP", "AUD", "NZD", "JPY", "CHF"].includes(input.currency)) throw new Error("The inventory currency is not supported.");
-    const items = input.items.map(normalizeItem);
+    const items = input.items.map(function (item) { return favoriteTag(normalizeItem(item),favorites); });
     if (new Set(items.map(function (item) { return item.id; })).size !== items.length) throw new Error("Inventory contains duplicate item IDs.");
     // Earlier copies offered other labels without converting amounts. Keep amounts intact.
     return { currency: App.config.inventory.defaultCurrency, items: items };
@@ -221,5 +233,5 @@
     });
     return normalize({ currency: local.currency, items: Array.from(items.values()) });
   }
-  App.inventoryModel = { compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

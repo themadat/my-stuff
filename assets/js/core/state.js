@@ -95,7 +95,7 @@
         text: u.cleanText(notes.text, config.controls.maxTextLength),
         updatedAt: u.ensureIso(notes.updatedAt, meta.updatedAt || now)
       },
-      inventory: App.inventoryModel.normalize(source.inventory),
+      inventory: App.inventoryModel.normalize(source.inventory, Array.isArray(preferences.favoriteBrands) ? preferences.favoriteBrands.filter(function (name) { return typeof name === "string"; }) : []),
       preferences: {
         appearance: {
           mode: ["system", "light", "dark"].includes(appearance.mode) ? appearance.mode : "system",

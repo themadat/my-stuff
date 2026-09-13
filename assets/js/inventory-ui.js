@@ -69,7 +69,7 @@
             </div>
             <div class="full item-location-row">
               ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Unknown location")}${picker("itemSpace", "Space", "Search spaces…")}
-              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div></div>
+              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><small>Drag tags or use their arrows to reorder. Brand tags stay first; Float stays last.</small><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div>
             </div>
           </div>
           <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
@@ -371,7 +371,11 @@
     renderBrandCompany();
     renderPresets();
     $("#selectedItemTags").toggleAttribute('data-smart-field', $("#itemCategories").hasAttribute('data-smart-field'));
-    $("#selectedItemTags").innerHTML = m.tags($("#itemCategories").value).map(function (tag) { return '<button type="button" class="tag-chip" data-remove-tag="' + esc(tag) + '" aria-label="Remove ' + esc(tag) + '">' + esc(tag) + ' ' + icon("close") + '</button>'; }).join("");
+    const ordered=m.favoriteTag({categories:m.tags($('#itemCategories').value),properties:[{name:'Brand',value:$('#itemBrand').value}]},App.storage.getState().preferences.favoriteBrands).categories;
+    $('#itemCategories').value=ordered.join(', ');
+    const brand=$('#itemBrand').value.trim();
+    if (brand && App.inventoryCatalog.isFavorite(brand) && !ordered.some(function (tag) { return tag.toLowerCase()===brand.toLowerCase(); })) $('#tagOrderStatus').textContent='Remove a tag to make room for the favorited brand (30-tag limit).';
+    $('#selectedItemTags').innerHTML=ordered.map(function (tag) { return '<span class="ordered-tag" draggable="true" data-order-tag="'+esc(tag)+'"><span>'+esc(tag)+'</span><button type="button" data-move-tag="-1" aria-label="Move '+esc(tag)+' earlier">‹</button><button type="button" data-move-tag="1" aria-label="Move '+esc(tag)+' later">›</button><button type="button" data-remove-tag="'+esc(tag)+'" aria-label="Remove '+esc(tag)+'">'+icon('close')+'</button></span>'; }).join('');
   }
   function commitTags() {
     const value = $("#itemTagSearch").value.trim();
@@ -416,7 +420,7 @@
         syncCopyToPrimary(copyRow); close(); input.focus(); close(); return;
       }
       input.value = option.value;
-      if (id === 'itemBrand') renderBrandCompany();
+      if (id === 'itemBrand') renderTags();
       (id === 'itemBrand' ? ['brand'] : ['zone','room','space','categories']).forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute('data-smart-field'); });
       if (id === "itemZone") { ["room","space"].forEach(function (key) { smartManual.add(key); smartField(key).removeAttribute("data-smart-field"); }); $("#itemRoom").value = ""; $("#itemSpace").value = ""; }
       if (id === "itemRoom") { $('#itemZone').value = option.zone || ''; $('#itemSpace').value = option.kind === 'space' ? option.value : ''; input.value = option.kind === 'zone' ? '' : option.kind === 'space' ? option.room : option.value; }
@@ -477,7 +481,7 @@
       if (!this.checked) input.focus();
     });
     $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
-    $('#itemBrand').addEventListener('input',renderBrandCompany);
+    $('#itemBrand').addEventListener('input',renderTags);
     $("#itemSmartEntry").addEventListener("input", completeSmart);
     $("#smartExample").addEventListener("click", function () { $("#itemSmartEntry").value = App.smartEntry.example; completeSmart(); });
     Object.keys(smartLabels).forEach(function (key) { smartField(key)?.addEventListener("input", function () { smartManual.add(key); this.removeAttribute("data-smart-field"); if ($("#itemSmartEntry").value) completeSmart(true); }); });
@@ -492,6 +496,20 @@
       const id = event.target.name.replace(/Choice$/, ""), el = $("#" + id); el.value = event.target.value; el.dispatchEvent(new Event("input"));
     });
     $("#smartDestinations").addEventListener("click", function (event) { const button = event.target.closest("[data-smart-target]"); if (button) { const el = smartField(button.dataset.smartTarget); if (el.closest("details")) el.closest("details").open = true; if (button.dataset.smartTarget === "categories") $("#itemTagSearch").focus(); else if (el.type === "hidden") $('input[name="' + el.id + 'Choice"]:checked').focus(); else el.focus(); } });
+    const tagRoot=$('#selectedItemTags'); let draggedTag='';
+    function reorderTag(tag,target) {
+      const current=m.tags($('#itemCategories').value), from=current.indexOf(tag);
+      if (from<0) return;
+      current.splice(from,1); current.splice(Math.max(0,Math.min(current.length,target)),0,tag);
+      $('#itemCategories').value=current.join(', '); smartManual.add('categories'); $('#itemCategories').removeAttribute('data-smart-field'); renderTags();
+      $('#tagOrderStatus').textContent='Tag order: '+$('#itemCategories').value;
+      $$('#selectedItemTags [data-order-tag]').find(function (entry) { return entry.dataset.orderTag===tag; })?.querySelector('button')?.focus();
+    }
+    tagRoot.addEventListener('dragstart',function (event) { const chip=event.target.closest('[data-order-tag]'); if (!chip) return; draggedTag=chip.dataset.orderTag; event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain',draggedTag); });
+    tagRoot.addEventListener('dragover',function (event) { if (draggedTag && event.target.closest('[data-order-tag]')) { event.preventDefault(); event.dataTransfer.dropEffect='move'; } });
+    tagRoot.addEventListener('drop',function (event) { const chip=event.target.closest('[data-order-tag]'); if (!draggedTag || !chip) return; event.preventDefault(); reorderTag(draggedTag,m.tags($('#itemCategories').value).indexOf(chip.dataset.orderTag)); draggedTag=''; });
+    tagRoot.addEventListener('dragend',function () { draggedTag=''; });
+    tagRoot.addEventListener('click',function (event) { const button=event.target.closest('[data-move-tag]'); if (!button) return; const tag=button.closest('[data-order-tag]').dataset.orderTag; reorderTag(tag,m.tags($('#itemCategories').value).indexOf(tag)+Number(button.dataset.moveTag)); });
     $("#selectedItemTags").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-tag]"); if (button) { smartManual.add("categories"); $("#itemCategories").removeAttribute("data-smart-field"); $("#itemCategories").value = m.tags($("#itemCategories").value).filter(function (tag) { return tag !== button.dataset.removeTag; }).join(", "); renderTags(); ($("#selectedItemTags button") || $("#itemTagSearch")).focus(); } });
   }
   function refreshOptions(selector, values, label) { const el = $(selector), value = el.value; el.innerHTML = options(values, label); el.value = values.includes(value) ? value : ""; }
@@ -628,7 +646,7 @@
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
       const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
       const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || '',room:entry.room || '',space:property('space')}; };
-      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + distinct(members.flatMap(function (entry) { return entry.categories; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join(''); }).join('') + '</tbody></table></div>';
   }
 
@@ -779,7 +797,7 @@
         const value = $("#item" + key).value.trim(), old = previous?.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); });
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
-      const next = m.normalizeItem(item);
+      const next = m.favoriteTag(m.normalizeItem(item),App.storage.getState().preferences.favoriteBrands);
       if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, copyLocations()); return; }
       let copies;
       if (previous && !previous.archive) {

@@ -107,7 +107,7 @@
       const filter = event.target.closest('[data-catalog-filter]'); if (filter) { App.components.closeDialog('#supportDialog'); App.inventoryUI.fromCatalog(JSON.parse(filter.dataset.catalogFilter)); return; }
       const button = event.target.closest('[data-favorite-brand]'); if (!button) return;
       const name = button.dataset.favoriteBrand, active = isFavorite(name);
-      App.storage.mutate(function (state) { const values = state.preferences.favoriteBrands || []; state.preferences.favoriteBrands = active ? values.filter(function (value) { return value.toLowerCase() !== name.toLowerCase(); }) : values.concat(name); }, {reason:'favorite-brand'});
+      App.storage.mutate(function (state) { const values = state.preferences.favoriteBrands || []; state.preferences.favoriteBrands = active ? values.filter(function (value) { return value.toLowerCase() !== name.toLowerCase(); }) : values.concat(name); state.inventory.items=state.inventory.items.map(function (item) { return App.inventoryModel.favoriteTag(item,state.preferences.favoriteBrands); }); }, {reason:'favorite-brand'});
       App.storage.saveNow(); render();
       Array.from(document.querySelectorAll('[data-favorite-brand]')).find(function (entry) { return entry.dataset.favoriteBrand === name; })?.focus();
     });

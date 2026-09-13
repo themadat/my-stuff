@@ -1,3 +1,11 @@
+## Latest update — per-item tag ordering and favorite-brand tags (0.0.1.40)
+
+Selected tags in Add/Edit can be dragged or moved with earlier/later arrow buttons usable by keyboard and touch. Reordering marks the categories field as manually edited and saves the order in each item's existing categories array. Brand tags sort first, regular tags retain their chosen order, and Float sorts last; list text/icons use that same ordering. Editing one saved copy does not overwrite other copies' category arrays.
+
+Favoriting a brand adds its tag to records whose Brand property matches, including existing/archived records. New edits, bulk saves and state normalization apply current favorites too. Seller does not determine the tag. Matching is case-insensitive and deduplicated. Unfavoriting retains tags already added. No schema change; tags/order travel with normal inventory backup/sync while favorite preferences remain device-local. The existing 30-tag cap is preserved: full records keep their existing tags, and the editor announces that a slot is needed for the automatic brand tag.
+
+All 103 automated checks pass, including stable per-item ordering, brand-first/Float-last constraints, idempotent matching and state/sync preservation. Version/build/cache/manifests/workflow align at 0.0.1.40. Browser drag/drop, keyboard and touch validation remains pending. Source was clean at 11485be (0.0.1.39). Before-copies: /private/tmp/my-stuff-tag-order-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — floating quick-tag menu (0.0.1.39)
 
 Moved the quick-tag menu to document.body with its own fixed-position overlay styling, outside the scrolling toolbar and its stacking context. It anchors to the hovered category and clamps its width/height to the viewport. Pointer transitions between the category and menu remain open, with a short departure grace period. Focus transitions recognize both surfaces; Arrow Down enters the menu and Escape returns to the category. Outside clicks, toolbar/page scrolling and resize close the menu. Tag selection and category replacement behavior remain intact.

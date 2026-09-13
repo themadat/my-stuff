@@ -974,3 +974,8 @@ main { padding-top: .25rem; }
 
 /* Portal the tag menu outside the scrolling toolbar and its stacking context. */
 body > #categoryTags { position: fixed; z-index: 100; box-sizing: border-box; overflow-y: auto; margin: 0; padding: .5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); box-shadow: var(--shadow); }
+
+.ordered-tag { display: inline-flex; align-items: center; gap: .2rem; padding: .2rem .3rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); cursor: grab; }
+.ordered-tag button { display: inline-grid; place-items: center; min-width: 24px; min-height: 28px; padding: .15rem; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
+.ordered-tag button:hover { background: var(--surface); }
+.ordered-tag .sf-symbol { width: .8rem; height: .8rem; }
