@@ -1,3 +1,9 @@
+## Latest update — consistent ownership text and Unknown first (0.0.1.38)
+
+Removed Me-specific text-color overrides in light/dark modes so all ownership cards use the same label/count/value styling. Ownership background/border colors remain. Unknown Location now sorts ahead of known locations in the shared section list, so both inventory and navigator put it first; known-location ordering and within-section brand ordering remain intact.
+
+All 100 automated checks pass, including unknown-first grouping, script syntax and aligned version/cache/manifest/workflow surfaces. Browser visual validation remains pending. Source was clean at 691b201 (0.0.1.37). Before-copies: /private/tmp/my-stuff-ownership-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — supplied brand symbols (0.0.1.37)
 
 Added the supplied Nespresso, PopChart, Fracture, OXO and Ryobi SVGs to the shared symbol registry, with case-insensitive category/brand-name mappings. Existing Popchart spelling resolves to the supplied PopChart artwork. Favorite-brand selection behavior is unchanged.

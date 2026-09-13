@@ -237,3 +237,12 @@ test('brand sorting is alphabetical, then object name, with unknown brands last'
  const sorted=[make('Unknown',''),make('Studio','Beats'),make('Watch','apple'),make('AirPods','Apple')].sort(app.inventoryModel.compareBrand);
  assert.deepEqual(sorted.map(i=>i.name),['AirPods','Watch','Studio','Unknown']);
 });
+
+test('unknown location comes before known location sections without reordering their items', () => {
+ const known=app.inventoryModel.normalizeItem(item);
+ const unknown=app.inventoryModel.normalizeItem({...item,id:'unknown',room:'',properties:[]});
+ const sections=app.inventoryModel.locationSections([known,unknown]);
+ assert.ok(sections[0].path.every(value=>!value));
+ assert.equal(sections[0].items[0].id,'unknown');
+ assert.equal(sections[1].items[0].id,known.id);
+});

@@ -165,6 +165,8 @@
       sections.get(key).items.push(item);
     });
     return Array.from(sections.values()).sort(function (a,b) {
+      const known = Number(a.path.some(Boolean)) - Number(b.path.some(Boolean));
+      if (known) return known;
       for (let i=0;i<3;i++) { const order = (a.path[i] || '\uffff').localeCompare(b.path[i] || '\uffff'); if (order) return order; }
       return 0;
     });
