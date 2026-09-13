@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.36",
-      buildId: "0.0.1.36",
+      version: "0.0.1.37",
+      buildId: "0.0.1.37",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -82,6 +82,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.37", date: "2026-09-12T00:00:00.000Z", title: "Brand Symbols",
+      summary: "Supplied symbols identify Nespresso, PopChart, Fracture, OXO and Ryobi.",
+      features: [], improvements: ["Brand lookups use the shared SVG registry"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.36", date: "2026-09-12T00:00:00.000Z", title: "Unified Toolbar and Tag Groups",
       summary: "A single-line toolbar, larger centered tab icons and alphabetical brand sorting within locations.",
       features: ["Headphones in Tech", "Preset tags show property tooltips"], improvements: ["Merged duplicate tags", "Supplied Float, Apple, Headphones and Charger symbols"], fixes: ["Size the nested tab SVG wrapper"], knownIssues: []

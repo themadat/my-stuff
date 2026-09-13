@@ -1,3 +1,9 @@
+## Latest update — supplied brand symbols (0.0.1.37)
+
+Added the supplied Nespresso, PopChart, Fracture, OXO and Ryobi SVGs to the shared symbol registry, with case-insensitive category/brand-name mappings. Existing Popchart spelling resolves to the supplied PopChart artwork. Favorite-brand selection behavior is unchanged.
+
+All five source SVGs pass XML validation and all 99 automated checks pass, including script syntax and aligned version/cache/manifest/workflow assets at 0.0.1.37. Browser visual validation remains pending. Source was clean at 70b3182 (0.0.1.36). Before-copies: /private/tmp/my-stuff-brand-icons-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — unified toolbar and merged tag groups (0.0.1.36)
 
 Find/location/category fields, quick categories, All/House/Me and Clear/Bulk/Add stay on a single horizontal line. The sticky toolbar scrolls horizontally on narrow screens. Ownership cards use the same fixed label and shared numeric column sizes, reserving at least four count characters and ten amount characters for 100+ objects and six-figure values. The filter-height observer measures the scroll wrapper, including its scrollbar. The quick tag tray uses viewport positioning outside the toolbar clipping area.
