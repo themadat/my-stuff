@@ -207,3 +207,19 @@ test('legacy category labels normalize to renamed tags without duplicate tags or
  assert.equal(renamed.properties.find(p=>p.name==='Color').value,'Blue');
  assert.ok(app.inventoryCatalog.data([renamed]).tagGroups.some(g=>g.name==='Categories'));
 });
+
+test('Floating adds Float once while preserving other tags', () => {
+ const floating=app.inventoryModel.normalizeItem({...item,room:'Nook',categories:['Books'],properties:[{name:'Space',value:'Floating',unit:''}]});
+ assert.deepEqual(Array.from(floating.categories),['Books','Float']);
+ assert.deepEqual(Array.from(app.inventoryModel.normalizeItem(floating).categories),['Books','Float']);
+ assert.ok(!app.inventoryModel.normalizeItem(item).categories.includes('Float'));
+});
+test('Size is unitless and copies support shared, different and cleared sizes', () => {
+ const sized={...item,properties:[...item.properties,{name:'Size',value:'M',unit:'cm'}]};
+ const copies=app.inventoryModel.createCopies(sized,3,[{}, {size:'L'}, {size:''}]);
+ assert.equal(copies[0].properties.find(p=>p.name==='Size').value,'M');
+ assert.equal(copies[0].properties.find(p=>p.name==='Size').unit,'');
+ assert.equal(copies[1].properties.find(p=>p.name==='Size').value,'L');
+ assert.ok(!copies[2].properties.some(p=>p.name==='Size'));
+ assert.equal(sized.properties.at(-1).unit,'cm');
+});

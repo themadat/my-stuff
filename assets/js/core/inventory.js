@@ -75,9 +75,10 @@
       const capacity = cleanProperties.find(function (p) { return p.name.toLowerCase() === 'capacity'; });
       if (capacity && !cleanProperties.some(function (p) { return p.name.toLowerCase() === 'volume'; })) capacity.name = 'Volume';
     }
+    cleanProperties.forEach(function (p) { if (p.name.toLowerCase() === "size") p.unit = ""; });
     return {
       id: id, name: name, description: u.cleanText(input.description, 4000), owner: input.owner,
-      room: room?.room || '', categories: tags(input.categories), obtainedDate: obtainedDate,
+      room: room?.room || '', categories: tags(tags(input.categories).concat(knownSpace === "Floating" ? ["Float"] : [])), obtainedDate: obtainedDate,
       obtainedHow: methods.includes(input.obtainedHow) ? input.obtainedHow : "",
       source: u.cleanLine(input.source, 240), value: amount(input.value) ?? amount(input.price), price: amount(input.price) ?? amount(input.value),
       properties: cleanProperties, archive: archive,
@@ -120,6 +121,11 @@
         item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'color'; });
         const color = u.cleanLine(override.color,300);
         if (color) item.properties.push({name:'Color',value:color,unit:''});
+      }
+      if (typeof override?.size === 'string') {
+        item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'size'; });
+        const size = u.cleanLine(override.size,300);
+        if (size) item.properties.push({name:'Size',value:size,unit:''});
       }
       if (typeof override?.notes === 'string') item.description = override.notes;
       return normalizeItem(item);

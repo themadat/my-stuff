@@ -23,7 +23,7 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
   assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 17);
   assert.equal(c.tagGroups.length, 8);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 59);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 60);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 
@@ -52,7 +52,7 @@ test('inventory spreadsheet columns extract leading space, tags, date, price, br
   const text = 'Floating\tWater\t09/22/24\t$12\t\tAmazon - Vapur Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, 23 Ounce, Fire, Pack of 2 [24], Float';
   const result = parse(text);
   assert.equal(result.fields.room, 'Nook'); assert.equal(result.fields.zone, 'Main Level'); assert.equal(result.fields.space, 'Floating');
-  assert.equal(result.fields.categories, 'Water Bottles'); assert.equal(result.fields.obtainedDate, '2024-09-22');
+  assert.equal(result.fields.categories, 'Water Bottles, Float'); assert.equal(result.fields.obtainedDate, '2024-09-22');
   assert.equal(result.fields.price, '12'); assert.equal(result.fields.value, '24'); assert.equal(result.fields.brand, 'Vapur'); assert.equal(result.fields.source, 'Amazon');
   assert.equal(result.fields.volume, '23'); assert.equal(result.fields.volumeUnit, 'oz');
   assert.equal(result.fields.name, 'Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, Fire, Pack of 2');

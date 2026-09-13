@@ -75,7 +75,7 @@
       draft._copies = members.length;
       draft._copyLocations = members.map(function (entry) {
         const prop = function (name) { return entry.draft.properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
-        return {zone:prop('zone'),room:entry.draft.room,space:prop('space'),color:prop('color') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : prop('color'),notes:entry.draft.description === current.draft.description ? null : entry.draft.description};
+        return {zone:prop('zone'),room:entry.draft.room,space:prop('space'),color:prop('color') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : prop('color'),size:prop('size') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : prop('size'),notes:entry.draft.description === current.draft.description ? null : entry.draft.description};
       });
     }
     App.inventoryUI.openDraft(draft, $('#bulkEntryButton'));
@@ -153,7 +153,7 @@
     } catch (e) { error(e.message); }
   }
   function init() {
-    $('#addItemButton').insertAdjacentHTML('beforebegin', '<button id="bulkEntryButton" class="button" type="button" aria-label="Bulk Add" title="Bulk Add">' + App.icons.markup('inventoryBulkAdd') + '<span>Bulk</span></button>');
+    $('#addItemButton').insertAdjacentHTML('beforebegin', '<button id="bulkEntryButton" data-shortcut="B" class="button" type="button" aria-label="Bulk Add" title="Bulk Add">' + App.icons.markup('inventoryBulkAdd') + '<span>Bulk</span></button>');
     document.body.insertAdjacentHTML('beforeend', `<dialog id="bulkDialog" class="app-dialog" aria-labelledby="bulkTitle"><div class="dialog-shell"><header class="dialog-header"><h2 id="bulkTitle">Bulk Entry</h2><button type="button" class="icon-button" data-close-dialog="bulkDialog" aria-label="Close Bulk Entry">${App.icons.markup('close')}</button></header><div class="dialog-body">
       <p id="bulkQueueStatus" role="status"></p><div class="button-row"><button id="resumeBulkButton" class="button primary" type="button" hidden>Resume Review</button><button id="reviewSkippedButton" class="button" type="button" hidden>Review Skipped</button></div>
       <p id="bulkError" class="inventory-error" role="alert" hidden></p>

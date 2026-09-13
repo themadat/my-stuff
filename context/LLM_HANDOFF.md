@@ -1,3 +1,11 @@
+## Latest update — item details, Size and Float (0.0.1.35)
+
+Inventory details show Notes, Properties, Seller, then hashtags. An accessible tag-icon filter column appears immediately before Count. Personally owned object titles use fire red; Me card text is gray while its red-tinted container remains. Tab symbols fill the 44px controls with vertical buffer. Search/location/category inputs span a wider first filter row, with quick categories below and ownership anchored beside Clear/Bulk/Add. Ownership columns share content-sized count/amount widths and do not wrap. Add/Bulk/Clear expose A/B/C data-shortcut hint badges using the existing hint preference/modifier behavior.
+
+Floating is the configured space under Nook: normalization adds Float once to objects at that location, preserving other tags. Float is now a known Other tag and recognized in Smart Complete. Existing Float tags remain if an object later moves. Size is a common unitless property with a dedicated add button, editable size suggestions and shared/per-copy values beside Color. Copy editing and bulk drafts retain size differences; explicit blank overrides clear Size. Stored Size units normalize to empty while values remain unchanged.
+
+All 97 automated model/parser/static/queue checks pass, including Float tagging/deduplication and shared/different/cleared Size copies. Version/build/cache/manifests/workflow align at 0.0.1.35. Browser/desktop/mobile/offline visual review remains pending under the recorded preview-server restriction; no server launched. Source was clean at 9a53e84 (0.0.1.34). Before-copies: /private/tmp/my-stuff-details-baseline. Transfer uses equality guards and byte verification. No commit or push performed.
+
 ## Latest update — sticky filters and compact navigation (0.0.1.34)
 
 Category Presets is now Categories. Its tags use Shoes, Backpacking Gear (an uncountable noun), Cables, Powerbanks, Chargers, Bags and Water Bottles. Central aliases normalize legacy singular/lowercase names and deduplicate old/new labels, including imports and Smart Complete. Associated property presets and symbols remain connected.
