@@ -29,12 +29,12 @@
         <button class="inventory-tab" type="button" data-inventory-view="research" aria-keyshortcuts="R" title="Research (R)">${icon("inventoryResearch")}<span class="inventory-tab-label"><u>R</u>esearch</span><span class="inventory-tab-meta"><small title="Research tracking is coming later">0</small></span></button>
         <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span class="inventory-tab-label">Ha<u>d</u></span><span class="inventory-tab-meta"><small id="previousCount">0</small></span></button>
       </nav>
-      <header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
+      <div class="inventory-toolbar-scroll"><header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
             ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}
             <input type="hidden" id="inventoryOwnerFilter" value="">
             ${select("inventoryRoomFilter", "Location", '<option value="">All Rooms</option>')}
             ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
-          </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header>
+          </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header></div>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><h2 id="roomOverviewTitle">Around the House</h2><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
@@ -152,6 +152,8 @@
       const target = {h:'have',w:'want',r:'research',d:'previous'}[event.key.toLowerCase()];
       if (target) { event.preventDefault(); view=target; render(); $('#inventoryTitle').focus({preventScroll:true}); }
     });
+    $('.inventory-toolbar-scroll').addEventListener('scroll',function () { hoveredCategory=''; renderCategoryTags(); });
+    window.addEventListener('scroll',function () { if (hoveredCategory) renderCategoryTags(); },{passive:true});
     const divider = $('#locationDivider'); let resizing = false;
     function setSidebarWidth(width) { width = Math.round(Math.max(160,Math.min(420,width))); $('#inventoryBody').style.setProperty('--location-sidebar-width',width+'px'); divider.setAttribute('aria-valuenow',width); }
     divider.addEventListener('pointerdown', function (event) { resizing=true; divider.setPointerCapture(event.pointerId); event.preventDefault(); });
@@ -161,8 +163,8 @@
     divider.addEventListener('keydown', function (event) { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); setSidebarWidth(event.key==='Home'?160:event.key==='End'?420:Number(divider.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?10:-10)); } });
     const updateHeaderHeight = function () { document.documentElement.style.setProperty('--inventory-header-height', Math.ceil($('.app-header').getBoundingClientRect().height)+'px'); };
     new ResizeObserver(updateHeaderHeight).observe($('.app-header')); updateHeaderHeight();
-    const updateFilterHeight = function () { document.documentElement.style.setProperty('--inventory-filter-height',Math.ceil($('.inventory-heading').getBoundingClientRect().height)+'px'); };
-    new ResizeObserver(updateFilterHeight).observe($('.inventory-heading')); updateFilterHeight();
+    const updateFilterHeight = function () { document.documentElement.style.setProperty('--inventory-filter-height',Math.ceil($('.inventory-toolbar-scroll').getBoundingClientRect().height)+'px'); };
+    new ResizeObserver(updateFilterHeight).observe($('.inventory-toolbar-scroll')); updateFilterHeight();
     $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); categorySlots.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
@@ -514,7 +516,7 @@
     const groups = App.inventoryCatalog.data(inventory().items).tagGroups.map(function (g) { return g.name === 'Brands' ? {name:g.name,tags:App.inventoryCatalog.brands(inventory().items).filter(App.inventoryCatalog.isFavorite)} : g; }).filter(function (g) { return g.name !== 'Brands' || g.tags.length; });
     categoryGroups = new Map(groups.map(function (g) { return ['group:'+g.name,{kind:'tags',values:g.tags,brands:g.name==='Brands'}]; }));
     el.innerHTML = '<option value="">All Categories</option>' + groups.map(function (g) {
-      return '<optgroup label="' + esc(g.name) + '"><option value="' + esc('group:'+g.name) + '">' + esc(g.name+' — All') + '</option>' + g.tags.map(function (tag) { return '<option value="' + esc(tag) + '">　' + esc(tag) + '</option>'; }).join('') + '</optgroup>';
+      return '<optgroup label="' + esc(g.name) + '"><option value="' + esc('group:'+g.name) + '">' + esc(g.name+' — All') + '</option>' + g.tags.map(function (tag) { return '<option value="' + esc(tag) + '">　' + esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' ◇':'') + '</option>'; }).join('') + '</optgroup>';
     }).join('');
     el.value = Array.from(el.options).some(function (option) { return option.value===old; }) ? old : '';
   }
@@ -541,7 +543,8 @@
   function renderCategoryTags() {
     const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags');
     root.hidden = !group;
-    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.map(function (tag) { return '<button type="button" class="button small" data-category-tag="'+esc(tag)+'">'+esc(tag)+'</button>'; }).join('') : '';
+    if (group) { const bounds=$('.category-quick-controls').getBoundingClientRect(); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-328))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=Math.min(500,innerWidth-16)+'px'; }
+    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.map(function (tag) { return '<button type="button" class="button small" title="'+esc(App.inventoryCatalog.presetDescription(tag))+'" data-category-tag="'+esc(tag)+'">'+esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' <span class="preset-indicator" aria-hidden="true">◇</span>':'')+'</button>'; }).join('') : '';
   }
   function renderCategoryCards(items) {
     const selected = $('#inventoryCategoryFilter').value;
@@ -549,7 +552,7 @@
       const group=entry[0], values=entry[1].values, saved=categorySlots.get(group);
       if (saved && !values.includes(saved)) categorySlots.delete(group);
       const value=categorySlots.get(group) || group, label=value.startsWith('group:')?value.slice(6):value;
-      return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(value)+'" aria-pressed="'+(selected===value)+'" title="'+esc(group.slice(6))+' — Show Tags">'+App.icons.category(value)+'<span>'+esc(label)+'</span><small>'+items.filter(function (item) { return matchesCategory(item,value); }).length+'</small></button>';
+      return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(value)+'" aria-pressed="'+(selected===value)+'" title="'+esc(group.slice(6))+' — Show Tags'+(App.inventoryCatalog.presetDescription(value)?' · '+esc(App.inventoryCatalog.presetDescription(value)):'')+'">'+App.icons.category(value)+'<span>'+esc(label)+(App.inventoryCatalog.presetDescription(value)?' ◇':'')+'</span><small>'+items.filter(function (item) { return matchesCategory(item,value); }).length+'</small></button>';
     }).join(''); renderCategoryTags();
   }
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
@@ -593,7 +596,7 @@
     renderCategoryCards(all);
     const items = all.filter(function (item) {
       return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && matchesCategory(item,category) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
-    }).sort(function (a, b) { return view === "previous" ? b.archive.date.localeCompare(a.archive.date) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name); });
+    }).sort(function (a, b) { return m.compareBrand(a,b); });
     $("#inventoryResultCount").textContent = "";
     $(".inventory-list-heading").hidden = !instantFilters.size;
     $("#clearInventoryFilters").disabled = !(search || owner || room || category || instantFilters.size || categorySlots.size);
@@ -633,7 +636,7 @@
       const preset = App.config.inventory.categories[Number(button.dataset.categoryPreset)], active = m.tags($('#itemCategories').value).some(function (tag) { return tag.toLowerCase() === preset.name.toLowerCase(); }) && preset.properties.every(function (p) { return names.includes(p.name.toLowerCase()); });
       button.setAttribute('aria-pressed', String(active)); button.classList.toggle('preset-applied', active);
       button.innerHTML = icon(active ? 'close' : 'inventoryPlus') + ' ' + esc(preset.name);
-      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set');
+      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set'); button.title=App.inventoryCatalog.presetDescription(preset.name);
     });
   }
   function suggestProperties() {

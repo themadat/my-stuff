@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.35",
-      buildId: "0.0.1.35",
+      version: "0.0.1.36",
+      buildId: "0.0.1.36",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -29,7 +29,7 @@
       defaultCurrency: "USD",
       currencies: ["USD"],
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": []}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling Bag"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
-      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footware", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Cables", "Powerbanks", "Coax", "Ethernet", "Extension", "Chargers"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Water Bottles", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
+      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footwear", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Coax", "Ethernet", "Extension"]}, {"name": "Systems", "tags": ["Fan", "Fire", "Fixture", "HVAC", "Temperature", "Switch"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "LED", "Night", "String"]}, {"name": "Tech", "tags": ["Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools", "Water Bottles"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
       brands: ["Beats", "Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
       brandCompanies: { Beats: "Apple" },
       retailers: ["Amazon", "Target", "Walmart", "Costco", "IKEA", "eBay", "Best Buy"],
@@ -40,8 +40,8 @@
         { match: "tasting glass|wine glass|tumbler|glassware", tags: ["Glassware"], room: "Kitchen" },
         { match: "frying pan|saucepan|skillet|plate|dinnerware|bowl|dishware|mug", tags: ["Dishware"], room: "Kitchen" },
         { match: "nespresso|coffee maker|toaster|blender|air fryer", tags: ["Appliances"], room: "Kitchen" },
-        { match: "shoe|sneaker|boot|sandal", tags: ["Shoes", "Footware"], room: "Primary Bedroom", space: "Closet" },
-        { match: "backpack|sleeping bag|tent|trekking", tags: ["Backpacking Gear", "Backpacking", "Bags"] },
+        { match: "shoe|sneaker|boot|sandal", tags: ["Footwear", "Footwear"], room: "Primary Bedroom", space: "Closet" },
+        { match: "backpack|sleeping bag|tent|trekking", tags: ["Backpacking", "Backpacking", "Bags"] },
         { match: "pickleball|pickle ball", tags: ["Pickleball", "Paddles"], room: "Patio", space: "Pickle Bag" },
         { match: "usb|cable|extension cord|ethernet", tags: ["Cables"] },
         { match: "power ?bank|portable charger", tags: ["Powerbanks"] },
@@ -51,10 +51,10 @@
       ],
       cableEnds: ["USB-C", "USB-A", "USB-B", "Micro-USB", "Mini-USB", "Lightning", "HDMI", "Mini HDMI", "Micro HDMI", "DisplayPort", "Mini DisplayPort", "Thunderbolt", "Ethernet (RJ45)", "Coax (F-type)", "3.5 mm", "6.35 mm", "RCA", "XLR", "Optical (TOSLINK)", "DC Barrel", "AC Plug", "IEC C7", "IEC C13"],
       commonProperties: [{ name: "Size", unit: "", values: ["XS", "S", "M", "L", "XL", "XXL"] },{ name: "Color", unit: "", values: ["Black", "White", "Gray", "Silver", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Brown", "Beige", "Clear", "Multicolor"] }],
-      tagAliases: { "backpacking gear": "Backpacking Gear", "powerbank": "Powerbanks", "charger": "Chargers", "water": "Water Bottles" },
+      tagAliases: { "backpacking gear": "Backpacking", "shoes": "Footwear", "footware": "Footwear", "water bottle": "Water Bottles", "powerbank": "Powerbanks", "charger": "Chargers", "water": "Water Bottles" },
       categories: [
-        { name: "Shoes", properties: [{ name: "Size", unit: "" }, { name: "Color", unit: "" }, { name: "Weight", unit: "g" }] },
-        { name: "Backpacking Gear", properties: [{ name: "Weight", unit: "g" }] },
+        { name: "Footwear", properties: [{ name: "Size", unit: "" }, { name: "Color", unit: "" }, { name: "Weight", unit: "g" }] },
+        { name: "Backpacking", properties: [{ name: "Weight", unit: "g" }] },
         { name: "Cables", properties: [{ name: "Length", unit: "cm" }, { name: "End A", unit: "" }, { name: "End B", unit: "" }] },
         { name: "Powerbanks", properties: [{ name: "Battery Capacity", unit: "mAh" }] },
         { name: "Chargers", properties: [{ name: "Charge Capacity", unit: "W" }, { name: "Output Ports", unit: "" }] },
@@ -82,6 +82,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.36", date: "2026-09-12T00:00:00.000Z", title: "Unified Toolbar and Tag Groups",
+      summary: "A single-line toolbar, larger centered tab icons and alphabetical brand sorting within locations.",
+      features: ["Headphones in Tech", "Preset tags show property tooltips"], improvements: ["Merged duplicate tags", "Supplied Float, Apple, Headphones and Charger symbols"], fixes: ["Size the nested tab SVG wrapper"], knownIssues: []
+    }, {
       version: "0.0.1.35", date: "2026-09-12T00:00:00.000Z", title: "Item Details, Size and Float",
       summary: "Roomier filters, aligned ownership totals, tag icons and Seller after properties.",
       features: ["Unitless Size with per-copy overrides", "Floating location automatically adds Float"], improvements: ["Add/Bulk/Clear shortcut hint badges", "Personal object titles use fire red"], fixes: [], knownIssues: []

@@ -33,7 +33,7 @@ test('settings catalog preserves hierarchy, all tag groups, category property gr
   assert.equal(catalog.tagGroups.find(g => g.name === 'Custom Tags').tags[0], 'Handmade');
   for (const group of app.config.inventory.tagGroups) assert.equal(catalog.tagGroups.find(g => g.name === group.name).tags.length, group.tags.length);
   assert.ok(catalog.propertyGroups.find(g => g.name === 'Common Properties').properties.find(p => p.name === 'Color').values.includes('Teal'));
-  assert.ok(catalog.propertyGroups.find(g => g.name === 'Shoes').properties.some(p => p.name === 'Weight'));
+  assert.ok(catalog.propertyGroups.find(g => g.name === 'Footwear').properties.some(p => p.name === 'Weight'));
   assert.equal(catalog.propertyGroups.find(g => g.name === 'Custom Properties').properties[0].name, 'Finish');
 });
 
@@ -130,8 +130,8 @@ test('Tech offers the requested device tags and Bags offers volume in liters', (
   assert.equal(bags.properties[0].unit, 'L');
 });
 
-test('Power includes Charger and the requested electrical property presets', () => {
-  assert.ok(app.config.inventory.tagGroups.find(g => g.name === 'Power').tags.includes('Chargers'));
+test('Tech includes Chargers and the requested electrical property presets', () => {
+  assert.ok(app.config.inventory.tagGroups.find(g => g.name === 'Tech').tags.includes('Chargers'));
   const presets = app.config.inventory.categories;
   assert.equal(presets.find(p => p.name === 'Powerbanks').properties[0].name, 'Battery Capacity');
   assert.equal(presets.find(p => p.name === 'Powerbanks').properties[0].unit, 'mAh');
@@ -203,9 +203,9 @@ test('explicit Unknown copy location clears shared hierarchy and survives normal
 
 test('legacy category labels normalize to renamed tags without duplicate tags or lost properties', () => {
  const renamed=app.inventoryModel.normalizeItem({...item,categories:['water','Water Bottles','Powerbank','Charger','backpacking gear']});
- assert.deepEqual(Array.from(renamed.categories),['Water Bottles','Powerbanks','Chargers','Backpacking Gear']);
+ assert.deepEqual(Array.from(renamed.categories),['Water Bottles','Powerbanks','Chargers','Backpacking']);
  assert.equal(renamed.properties.find(p=>p.name==='Color').value,'Blue');
- assert.ok(app.inventoryCatalog.data([renamed]).tagGroups.some(g=>g.name==='Categories'));
+ assert.ok(!app.inventoryCatalog.data([renamed]).tagGroups.some(g=>g.name==='Categories'));
 });
 
 test('Floating adds Float once while preserving other tags', () => {
@@ -222,4 +222,18 @@ test('Size is unitless and copies support shared, different and cleared sizes', 
  assert.equal(copies[1].properties.find(p=>p.name==='Size').value,'L');
  assert.ok(!copies[2].properties.some(p=>p.name==='Size'));
  assert.equal(sized.properties.at(-1).unit,'cm');
+});
+
+test('preset tags occur in one category and merged aliases retain preset properties', () => {
+ const groups=app.inventoryCatalog.data([]).tagGroups;
+ for (const preset of app.config.inventory.categories) assert.equal(groups.filter(g=>g.tags.includes(preset.name)).length,1,preset.name);
+ assert.deepEqual(Array.from(app.inventoryModel.tags(['Shoes','Footware','Footwear','Backpacking gear','Backpacking'])),['Footwear','Backpacking']);
+ assert.ok(groups.find(g=>g.name==='Tech').tags.includes('Headphones'));
+ assert.match(app.inventoryCatalog.presetDescription('Shoes'),/Size.*Color.*Weight/);
+ assert.equal(app.inventoryCatalog.presetDescription('Headphones'),'');
+});
+test('brand sorting is alphabetical, then object name, with unknown brands last', () => {
+ const make=(name,brand)=>({...item,name,properties:brand?[{name:'Brand',value:brand}]:[]});
+ const sorted=[make('Unknown',''),make('Studio','Beats'),make('Watch','apple'),make('AirPods','Apple')].sort(app.inventoryModel.compareBrand);
+ assert.deepEqual(sorted.map(i=>i.name),['AirPods','Watch','Studio','Unknown']);
 });

@@ -27,7 +27,6 @@
     }
     config.locations.forEach(function (l) { location(l.zone, l.room, l.spaces); });
     const tagGroups = config.tagGroups.map(function (g) { return { name: g.name, tags: g.tags.slice() }; });
-    tagGroups.push({ name: "Categories", tags: config.categories.map(function (c) { return c.name; }) });
     const knownTags = tagGroups.flatMap(function (g) { return g.tags.map(function (tag) { return tag.toLowerCase(); }); });
     const customTags = unique(items.flatMap(function (item) { return item.categories; }).filter(function (tag) { return !knownTags.includes(tag.toLowerCase()); }));
     if (customTags.length) tagGroups.push({ name: "Custom Tags", tags: customTags });
@@ -50,6 +49,11 @@
       properties: Array.from(properties.values())
     };
   }
+  function presetDescription(tag) {
+    const preset=App.config.inventory.categories.find(function (entry) { return entry.name===App.inventoryModel.tags([tag])[0]; });
+    return preset ? 'Preset properties: '+preset.properties.map(function (p) { return p.name+(p.unit?' ('+p.unit+')':''); }).join(', ') : '';
+  }
+  function presetBadge(tag) { const description=presetDescription(tag); return description ? '<span class="preset-indicator" tabindex="0" title="'+esc(description)+'" aria-label="'+esc(description)+'">◇</span>' : ''; }
   function matches(item, filter) {
     const property = function (name) { return item.properties.find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); })?.value || ''; };
     const zone = property('Zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || '';
@@ -69,7 +73,7 @@
     const catalog = data(App.storage.getState().inventory.items), query = document.querySelector("#inventoryCatalogSearch").value.trim().toLowerCase();
     const matchesQuery = function (parts) { return parts.join(" ").toLowerCase().includes(query); };
     const chips = function (values, makeFilter, brandList) { return '<div class="catalog-chips">' + (brandList ? sortBrands(values) : values).map(function (value) {
-      return '<span class="catalog-chip">' + filterButton(value,makeFilter(value)) + (brandList ? '<button type="button" class="favorite-brand" data-favorite-brand="' + esc(value) + '" aria-pressed="' + isFavorite(value) + '" aria-label="' + (isFavorite(value) ? 'Unfavorite ' : 'Favorite ') + esc(value) + '">' + App.icons.markup('favoriteBrand') + '</button>' : '') + '</span>';
+      return '<span class="catalog-chip">' + filterButton(value,makeFilter(value)) + presetBadge(value) + (brandList ? '<button type="button" class="favorite-brand" data-favorite-brand="' + esc(value) + '" aria-pressed="' + isFavorite(value) + '" aria-label="' + (isFavorite(value) ? 'Unfavorite ' : 'Favorite ') + esc(value) + '">' + App.icons.markup('favoriteBrand') + '</button>' : '') + '</span>';
     }).join('') + '</div>'; };
     const locations = catalog.locations.map(function (zone) {
       const rooms = zone.rooms.filter(function (room) { return matchesQuery([zone.name,room.name].concat(room.spaces)); });
@@ -109,5 +113,5 @@
     });
     document.querySelector("#inventoryCatalogSearch").addEventListener("input", render); render();
   }
-  App.inventoryCatalog = { companyFor:companyFor, companyBrands:companyBrands, matches: matches, brands: brands, isFavorite: isFavorite, init: init, render: render, data: data };
+  App.inventoryCatalog = { presetDescription:presetDescription, presetBadge:presetBadge, companyFor:companyFor, companyBrands:companyBrands, matches: matches, brands: brands, isFavorite: isFavorite, init: init, render: render, data: data };
 })();

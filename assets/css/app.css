@@ -953,3 +953,26 @@ main { padding-top: .25rem; }
 }
 
 .inventory-heading .stat-row { grid-template-columns: 5.2em var(--stat-count-width,3ch) var(--stat-money-width,7ch); }
+
+/* The SVG is nested inside the tab's leading span. */
+.app-header .inventory-tab { grid-template-columns: 38px auto; grid-template-rows: 1fr 1fr; height: 46px; padding: 3px .4rem; }
+.app-header .inventory-tab > span:first-child { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; align-self: stretch; }
+.app-header .inventory-tab > span:first-child .sf-symbol { width: 38px; height: 38px; }
+.app-header .inventory-tab-label { grid-column: 2; align-self: end; }
+.app-header .inventory-tab-meta { grid-column: 2; align-self: start; }
+.inventory-toolbar-scroll { position: sticky; top: var(--inventory-header-height,60px); z-index: 20; overflow-x: auto; background: var(--bg); scrollbar-width: thin; }
+.inventory-toolbar-scroll .inventory-heading { position: static; display: grid; grid-template-columns: minmax(260px,1fr) minmax(390px,1.5fr) auto repeat(3,44px); min-width: 1290px; gap: .3rem; }
+.inventory-toolbar-scroll .inventory-heading > .inventory-filterbar { grid-column: 1; grid-row: 1; grid-template-columns: minmax(100px,1.3fr) repeat(2,minmax(75px,1fr)); }
+.inventory-toolbar-scroll .inventory-heading > .category-quick-controls { grid-column: 2; grid-row: 1; }
+.inventory-toolbar-scroll .inventory-heading > #inventoryStats { grid-column: 3; grid-row: 1; overflow: visible; }
+.inventory-toolbar-scroll #clearInventoryFilters { grid-column: 4; grid-row: 1; }
+.inventory-toolbar-scroll #bulkEntryButton { grid-column: 5; grid-row: 1; }
+.inventory-toolbar-scroll #addItemButton { grid-column: 6; grid-row: 1; }
+.inventory-toolbar-scroll .inventory-heading .category-tags { position: fixed; right: auto; z-index: 40; }
+.inventory-heading .inventory-stat { width: max-content; min-width: 174px; }
+.inventory-heading .stat-row { grid-template-columns: 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)); }
+.inventory-heading .category-card { flex-basis: 46px; width: 46px; }
+.preset-indicator { color: var(--accent-strong); font-weight: 800; cursor: help; }
+
+.inventory-heading .inventory-stat { display: grid; grid-template-columns: 32px auto; }
+.inventory-heading .inventory-stat-label { width: 32px; min-width: 0; }

@@ -1,3 +1,13 @@
+## Latest update — unified toolbar and merged tag groups (0.0.1.36)
+
+Find/location/category fields, quick categories, All/House/Me and Clear/Bulk/Add stay on a single horizontal line. The sticky toolbar scrolls horizontally on narrow screens. Ownership cards use the same fixed label and shared numeric column sizes, reserving at least four count characters and ten amount characters for 100+ objects and six-figure values. The filter-height observer measures the scroll wrapper, including its scrollbar. The quick tag tray uses viewport positioning outside the toolbar clipping area.
+
+Corrected the tab icon selector to target the SVG inside its leading span; that wrapper spans both tab rows and centers a 38px symbol in a 46px tab. Inventory sorts alphabetically by Brand, then object name within each existing location group; unknown brands sort last, including archived views.
+
+Removed the duplicate Categories group. Shoes/Footware normalize to Footwear under Apparel; Backpacking Gear merges into Backpacking under Activity. Cables, Powerbanks and Chargers move to Tech, alongside new Headphones. Water Bottles and Bags are in Other. Legacy aliases preserve imported/saved tags, deduplicate merged values and retain their property presets. Preset tags show a diamond marker with property-list hover text in the quick tray/catalog and a marker in dropdowns. Editor preset controls retain their application/removal behavior. Applied the supplied Float, Headphones and Charger SVGs; Apple uses the identical supplied Apple artwork already in the registry.
+
+All 99 automated model/parser/static/queue checks pass, including one-group-per-preset, merged aliases, preserved preset descriptions and alphabetical brand sorting. Version/build/cache/manifests/workflow align at 0.0.1.36. Browser/desktop/mobile/offline visual validation remains pending under the recorded preview-server restriction. Source was clean at efb4c79 (0.0.1.35). Before-copies: /private/tmp/my-stuff-tags-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — item details, Size and Float (0.0.1.35)
 
 Inventory details show Notes, Properties, Seller, then hashtags. An accessible tag-icon filter column appears immediately before Count. Personally owned object titles use fire red; Me card text is gray while its red-tinted container remains. Tab symbols fill the 44px controls with vertical buffer. Search/location/category inputs span a wider first filter row, with quick categories below and ownership anchored beside Clear/Bulk/Add. Ownership columns share content-sized count/amount widths and do not wrap. Add/Bulk/Clear expose A/B/C data-shortcut hint badges using the existing hint preference/modifier behavior.

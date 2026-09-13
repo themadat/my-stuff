@@ -80,7 +80,7 @@ test('inventory totals distinguish ownership, rooms, unknown values, zero values
 test('item normalization preserves custom categories and properties and rejects invalid dates, prices, or duplicates', () => {
   const h = harness(), m = h.App.inventoryModel;
   const item = inventoryItem(h, { categories: ['Shoes', 'shoes', ' My custom tag '], value: '', price: '0', properties: [{ name: 'Color', value: '<script>literal</script>', unit: '' }] });
-  assert.equal(item.categories.join(','), 'Shoes,My custom tag');
+  assert.equal(item.categories.join(','), 'Footwear,My custom tag');
   assert.equal(item.value, 0); assert.equal(item.price, 0);
   assert.equal(item.properties[0].value, '<script>literal</script>');
   for (const overrides of [{ value: -1 }, { price: Infinity }, { value: {} }, { obtainedDate: '2025-02-29' }, { owner: 'unknown' }, { name: ' ' }, { properties: [{ name: 'Weight' }, { name: 'weight' }] }, { archive: { date: '2023-01-01', reason: 'Lost' } }, { archive: { date: '2026-01-01', reason: '' } }]) assert.throws(() => inventoryItem(h, overrides));
