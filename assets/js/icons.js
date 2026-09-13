@@ -127,6 +127,7 @@
   }
 
   const CATEGORY_SYMBOLS = Object.freeze({
+  "categories": "groupCategoryPresets", "water bottles": "categoryWater", "powerbanks": "categoryPowerbank", "chargers": "categoryPowercord",
   "systems": "groupSystems",
   "tech": "groupTech",
   "brands": "groupBrands",

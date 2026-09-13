@@ -92,7 +92,7 @@ test('copy overrides preserve configured parents and remove custom locations', (
 });
 
 test('catalog filters respect location parents, tag groups, properties and property values', () => {
- const entry=app.inventoryModel.normalizeItem({...item,room:'Nook',categories:['Water'],properties:[{name:'Space',value:'Sling Bag'},{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]});
+ const entry=app.inventoryModel.normalizeItem({...item,room:'Nook',categories:['Water Bottles'],properties:[{name:'Space',value:'Sling Bag'},{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]});
  const matches=app.inventoryCatalog.matches;
  assert.equal(matches(entry,{kind:'zone',value:'Main Level'}),true);
  assert.equal(matches(entry,{kind:'space',value:'Sling Bag',room:'Nook',zone:'Main Level'}),true);
@@ -131,12 +131,12 @@ test('Tech offers the requested device tags and Bags offers volume in liters', (
 });
 
 test('Power includes Charger and the requested electrical property presets', () => {
-  assert.ok(app.config.inventory.tagGroups.find(g => g.name === 'Power').tags.includes('Charger'));
+  assert.ok(app.config.inventory.tagGroups.find(g => g.name === 'Power').tags.includes('Chargers'));
   const presets = app.config.inventory.categories;
-  assert.equal(presets.find(p => p.name === 'Powerbank').properties[0].name, 'Battery Capacity');
-  assert.equal(presets.find(p => p.name === 'Powerbank').properties[0].unit, 'mAh');
-  assert.equal(presets.find(p => p.name === 'Charger').properties[0].name, 'Charge Capacity');
-  assert.equal(presets.find(p => p.name === 'Charger').properties[1].name, 'Output Ports');
+  assert.equal(presets.find(p => p.name === 'Powerbanks').properties[0].name, 'Battery Capacity');
+  assert.equal(presets.find(p => p.name === 'Powerbanks').properties[0].unit, 'mAh');
+  assert.equal(presets.find(p => p.name === 'Chargers').properties[0].name, 'Charge Capacity');
+  assert.equal(presets.find(p => p.name === 'Chargers').properties[1].name, 'Output Ports');
 });
 
 test('location normalization retains configured hierarchy and clears legacy locations', () => {
@@ -199,4 +199,11 @@ test('explicit Unknown copy location clears shared hierarchy and survives normal
   assert.equal(copies[1].room, 'Den');
   assert.equal(app.inventoryModel.normalizeItem(copies[0]).room, '');
   assert.equal(item.room, 'Den');
+});
+
+test('legacy category labels normalize to renamed tags without duplicate tags or lost properties', () => {
+ const renamed=app.inventoryModel.normalizeItem({...item,categories:['water','Water Bottles','Powerbank','Charger','backpacking gear']});
+ assert.deepEqual(Array.from(renamed.categories),['Water Bottles','Powerbanks','Chargers','Backpacking Gear']);
+ assert.equal(renamed.properties.find(p=>p.name==='Color').value,'Blue');
+ assert.ok(app.inventoryCatalog.data([renamed]).tagGroups.some(g=>g.name==='Categories'));
 });

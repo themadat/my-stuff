@@ -27,7 +27,7 @@
     }
     config.locations.forEach(function (l) { location(l.zone, l.room, l.spaces); });
     const tagGroups = config.tagGroups.map(function (g) { return { name: g.name, tags: g.tags.slice() }; });
-    tagGroups.push({ name: "Category Presets", tags: config.categories.map(function (c) { return c.name; }) });
+    tagGroups.push({ name: "Categories", tags: config.categories.map(function (c) { return c.name; }) });
     const knownTags = tagGroups.flatMap(function (g) { return g.tags.map(function (tag) { return tag.toLowerCase(); }); });
     const customTags = unique(items.flatMap(function (item) { return item.categories; }).filter(function (tag) { return !knownTags.includes(tag.toLowerCase()); }));
     if (customTags.length) tagGroups.push({ name: "Custom Tags", tags: customTags });
@@ -57,8 +57,8 @@
     if (filter.kind === 'zone') return zone === filter.value;
     if (filter.kind === 'room') return (item.room || '') === filter.value && (!filter.zone || zone === filter.zone);
     if (filter.kind === 'space') return property('Space') === filter.value && (item.room || '') === filter.room && zone === filter.zone;
-    if (filter.kind === 'tag') return item.categories.includes(filter.value);
-    if (filter.kind === 'tags') return filter.values.some(function (tag) { return item.categories.includes(tag) || (filter.brands && property('Brand').toLowerCase() === tag.toLowerCase()); });
+    if (filter.kind === 'tag') return item.categories.includes(App.inventoryModel.tags([filter.value])[0]);
+    if (filter.kind === 'tags') return filter.values.some(function (tag) { return item.categories.includes(App.inventoryModel.tags([tag])[0]) || (filter.brands && property('Brand').toLowerCase() === tag.toLowerCase()); });
     if (filter.kind === 'properties') return item.properties.some(function (p) { return filter.values.includes(p.name.toLowerCase()); });
     if (filter.kind === 'property') return item.properties.some(function (p) { return p.name.toLowerCase() === filter.name.toLowerCase() && (filter.value === undefined || p.value === filter.value); });
     return false;

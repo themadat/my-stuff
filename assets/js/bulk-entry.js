@@ -46,7 +46,8 @@
     const bulkLabel = pending ? 'Bulk Add (' + pending + ' awaiting review)' : 'Bulk Add';
     bulkButton.innerHTML = App.icons.markup('inventoryBulkAdd') + '<span>Bulk</span>';
     bulkButton.setAttribute('aria-label', bulkLabel);
-    bulkButton.title = bulkLabel;
+    bulkButton.title = bulkLabel + " (Control-Shift-Option-B)";
+    bulkButton.setAttribute("aria-keyshortcuts","Control+Shift+Alt+B");
   }
   function show() {
     reviewing = false; $('#bulkError').hidden = true; if (loadError) error(loadError);

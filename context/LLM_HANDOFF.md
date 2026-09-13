@@ -1,3 +1,13 @@
+## Latest update — sticky filters and compact navigation (0.0.1.34)
+
+Category Presets is now Categories. Its tags use Shoes, Backpacking Gear (an uncountable noun), Cables, Powerbanks, Chargers, Bags and Water Bottles. Central aliases normalize legacy singular/lowercase names and deduplicate old/new labels, including imports and Smart Complete. Associated property presets and symbols remain connected.
+
+Top navigation shows Have/Want/Research/Had with H/W/R/d underlined, counts below, and larger vertically centered symbols. Ownership controls fit their content; Me uses fire red with a lighter dark-theme text color. Quick category cards move into the filter toolbar before All; their tag tray opens beneath the cards. The toolbar sticks below the top bar, with a ResizeObserver maintaining its height offset. Location headings stick below both bars; each subsequent heading replaces the preceding one. Sidebar/jump offsets account for the toolbar. Removed table-wrapper overflow clipping to permit sticky headings.
+
+Control-Shift-Option A/B/C activate available Add/Bulk/Clear controls. Event.code handles Option-modified macOS key characters; repeats and open dialogs are excluded, and disabled/hidden controls remain inactive. Accessible shortcut metadata and Help describe the bindings.
+
+All 95 automated checks pass, including legacy tag aliases, retained properties, parser/bulk compatibility, script syntax and aligned 0.0.1.34 release/cache/manifest/workflow versions. Browser/desktop/mobile/offline visual validation remains pending under the recorded preview-server restriction. Source was clean at 4d2d8b6 (0.0.1.33). Before-copies: /private/tmp/my-stuff-sticky-baseline. Transfer uses baseline equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — compact header, copy rows and unknown location (0.0.1.33)
 
 Reduced header vertical padding and tab/action heights; tab SVGs span both text lines. Item editor widens to 1160px. Each copy heading spans above a single row of Zone, Room, Space, Color and Notes/Description fields, with shared-detail checkboxes underneath. Phones horizontally scroll the copy fields to retain one row. Removed the redundant location column and updated table widths/group-heading colspan.

@@ -12,7 +12,7 @@
     }
     // Spreadsheet cells retain offsets so extracted values stay highlighted in their original columns.
     const cells = Array.from(text.matchAll(/[^\t\n]+/g));
-    const vocabulary = App.config.inventory.tagGroups.flatMap(function (group) { return group.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; }));
+    const vocabulary = Object.keys(App.config.inventory.tagAliases || {}).concat(App.config.inventory.tagGroups.flatMap(function (group) { return group.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; })));
     const locations = App.config.inventory.locations;
     const first = cells[0];
     if (first) {
@@ -122,6 +122,7 @@
       fields.name = name;
     }
     const notes = spans.filter(function (span) { return !span.field; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(Boolean).join(" · ");
+    if (fields.categories) fields.categories = App.inventoryModel.tags(fields.categories).join(", ");
     if (notes) fields.description = notes;
     return { fields: fields, spans: spans.sort(function (a, b) { return a.start - b.start; }) };
   }

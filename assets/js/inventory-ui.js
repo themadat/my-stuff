@@ -24,21 +24,21 @@
   function init() {
     $("#inventoryWorkspace").innerHTML = `
       <nav class="inventory-nav" aria-label="Your stuff">
-        <button class="inventory-tab" type="button" data-inventory-view="have" aria-keyshortcuts="H" title="Have (H)" aria-current="page">${icon("inventoryBox")}<span class="inventory-tab-label">Stuff I Have</span><span class="inventory-tab-meta"><kbd aria-hidden="true">H</kbd><small id="haveCount">0</small></span></button>
-        <button class="inventory-tab" type="button" data-inventory-view="want" aria-keyshortcuts="W" title="Want (W)">${icon("inventoryWant")}<span class="inventory-tab-label">Stuff I Want</span><span class="inventory-tab-meta"><kbd aria-hidden="true">W</kbd><small title="Want tracking is coming later">0</small></span></button>
-        <button class="inventory-tab" type="button" data-inventory-view="research" aria-keyshortcuts="R" title="Research (R)">${icon("inventoryResearch")}<span class="inventory-tab-label">Research</span><span class="inventory-tab-meta"><kbd aria-hidden="true">R</kbd><small title="Research tracking is coming later">0</small></span></button>
-        <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span class="inventory-tab-label">Stuff I Had</span><span class="inventory-tab-meta"><kbd aria-hidden="true">D</kbd><small id="previousCount">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="have" aria-keyshortcuts="H" title="Have (H)" aria-current="page">${icon("inventoryBox")}<span class="inventory-tab-label"><u>H</u>ave</span><span class="inventory-tab-meta"><small id="haveCount">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="want" aria-keyshortcuts="W" title="Want (W)">${icon("inventoryWant")}<span class="inventory-tab-label"><u>W</u>ant</span><span class="inventory-tab-meta"><small title="Want tracking is coming later">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="research" aria-keyshortcuts="R" title="Research (R)">${icon("inventoryResearch")}<span class="inventory-tab-label"><u>R</u>esearch</span><span class="inventory-tab-meta"><small title="Research tracking is coming later">0</small></span></button>
+        <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span class="inventory-tab-label">Ha<u>d</u></span><span class="inventory-tab-meta"><small id="previousCount">0</small></span></button>
       </nav>
       <header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
             ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}
             <input type="hidden" id="inventoryOwnerFilter" value="">
             ${select("inventoryRoomFilter", "Location", '<option value="">All Rooms</option>')}
             ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
-          </div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header>
+          </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><h2 id="roomOverviewTitle">Around the House</h2><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
-          <div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div>
+
           <div class="inventory-list-heading"><span id="inventoryResultCount" role="status" aria-live="polite"></span></div>
           <div id="inventoryList"></div>
         </section>
@@ -76,7 +76,7 @@
           <details id="itemMoreDetails" class="item-more" open><summary>More Details <span id="itemMoreCount"></span></summary>
             <div class="item-more-content">
               <fieldset class="item-fieldset"><legend>Custom Properties</legend>
-                <div class="item-property-tools"><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><div id="categoryPresets" class="category-presets" aria-label="Category Presets">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
+                <div class="item-property-tools"><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><div id="categoryPresets" class="category-presets" aria-label="Categories">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
                 <div id="itemProperties"></div>
               </fieldset>
               <label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
@@ -144,6 +144,10 @@
       if (target) { target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'}); target.focus({preventScroll:true}); }
     });
     document.addEventListener('keydown', function (event) {
+      if (event.ctrlKey && event.shiftKey && event.altKey && !event.metaKey && !event.repeat && !event.defaultPrevented && !document.querySelector('dialog[open]')) {
+        const selector = {KeyA:'#addItemButton',KeyB:'#bulkEntryButton',KeyC:'#clearInventoryFilters'}[event.code];
+        if (selector) { const button=$(selector); if (button && !button.disabled && !button.hidden) { event.preventDefault(); button.click(); } return; }
+      }
       if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.target.isContentEditable || event.target.closest('input,textarea,select')) || document.querySelector('dialog[open]')) return;
       const target = {h:'have',w:'want',r:'research',d:'previous'}[event.key.toLowerCase()];
       if (target) { event.preventDefault(); view=target; render(); $('#inventoryTitle').focus({preventScroll:true}); }
@@ -157,6 +161,8 @@
     divider.addEventListener('keydown', function (event) { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); setSidebarWidth(event.key==='Home'?160:event.key==='End'?420:Number(divider.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?10:-10)); } });
     const updateHeaderHeight = function () { document.documentElement.style.setProperty('--inventory-header-height', Math.ceil($('.app-header').getBoundingClientRect().height)+'px'); };
     new ResizeObserver(updateHeaderHeight).observe($('.app-header')); updateHeaderHeight();
+    const updateFilterHeight = function () { document.documentElement.style.setProperty('--inventory-filter-height',Math.ceil($('.inventory-heading').getBoundingClientRect().height)+'px'); };
+    new ResizeObserver(updateFilterHeight).observe($('.inventory-heading')); updateFilterHeight();
     $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); categorySlots.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);

@@ -32,7 +32,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('[data-property-value]').nth(2).fill('300');
   await page.locator('[data-category-preset="1"]').click(); await page.locator('[data-category-preset="2"]').click();
   assert.equal(await page.locator('.item-property').count(), 6);
-  await page.getByRole('button', { name: 'Remove Backpacking gear', exact: true }).click(); await page.getByRole('button', { name: 'Remove Cables', exact: true }).click(); await page.locator('#itemTagSearch').fill('Everyday'); await page.locator('#itemTagSearch').press('Enter');
+  await page.getByRole('button', { name: 'Remove Backpacking Gear', exact: true }).click(); await page.getByRole('button', { name: 'Remove Cables', exact: true }).click(); await page.locator('#itemTagSearch').fill('Everyday'); await page.locator('#itemTagSearch').press('Enter');
   assert.equal(await page.locator('.item-property').count(), 6, 'removing a category must not erase properties');
   await page.locator('#saveItemButton').click();
   assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),false,await page.locator('#itemForm').evaluate(el=>JSON.stringify({error:el.querySelector('#itemFormError').textContent,invalid:Array.from(el.querySelectorAll(':invalid')).map(x=>[x.id,x.value,x.validationMessage])})));
@@ -631,7 +631,7 @@ test('inventory settings shows full hierarchy, grouped properties and custom val
   await page.locator('#settingsTab').focus(); await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#inventorySettingsTab').getAttribute('aria-selected'), 'true');
   const text = await page.locator('#inventoryCatalog').textContent();
-  for (const label of ['Upstairs', 'Main Level', 'Outside', 'Primary Bathroom', 'Water Closet', 'Pickle Bag', 'Tag Groups', 'Common Properties', 'Color', 'Shoes', 'Backpacking gear', 'Cables', 'Length']) assert.ok(text.includes(label), label);
+  for (const label of ['Upstairs', 'Main Level', 'Outside', 'Primary Bathroom', 'Water Closet', 'Pickle Bag', 'Tag Groups', 'Common Properties', 'Color', 'Shoes', 'Backpacking Gear', 'Cables', 'Length']) assert.ok(text.includes(label), label);
   await page.evaluate(() => window.LocalApp.storage.mutate(state => { state.inventory.items.push(window.LocalApp.inventoryModel.normalizeItem({ id: 'custom-catalog', name: 'Art', owner: 'me', room: 'Studio', categories: ['Unique Tag'], properties: [{ name: 'Zone', value: 'Annex' }, { name: 'Space', value: 'Shelf' }, { name: 'Color', value: 'Teal' }, { name: 'Finish', value: '<img src=x>' }] })); }));
   assert.match(await page.locator('#inventoryCatalog').textContent(), /Annex.*Studio.*Shelf/);
   assert.match(await page.locator('#inventoryCatalog').textContent(), /Unique Tag/);
@@ -828,7 +828,7 @@ test('bulk inventory Smart Complete highlights each row, protects corrections, a
   assert.match(await page.locator('#smartPreview').textContent(), /09\/23\/24/);
   const item = await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0]);
   assert.equal(item.properties.find(p=>p.name==='Volume').value, '24');
-  assert.deepEqual(item.categories, ['Water']);
+  assert.deepEqual(item.categories, ['Water Bottles']);
 });
 
 
@@ -844,7 +844,7 @@ test('property sets toggle with highlighted borders; manual text stays white; co
  assert.equal(await page.locator('[data-property-name]').inputValue(),'Volume');
  await water.click(); assert.equal(await water.getAttribute('aria-pressed'),'false');
  assert.equal(await page.locator('.item-property').count(),0);
- const shoes=page.locator('#categoryPresets button').filter({hasText:'Shoes'}), backpack=page.locator('#categoryPresets button').filter({hasText:'Backpacking gear'});
+ const shoes=page.locator('#categoryPresets button').filter({hasText:'Shoes'}), backpack=page.locator('#categoryPresets button').filter({hasText:'Backpacking Gear'});
  await shoes.click(); await backpack.click(); await shoes.click();
  assert.equal(await page.locator('[data-property-name]').inputValue(),'Weight', 'shared property remains with Backpacking');
  await backpack.click();
@@ -882,7 +882,7 @@ test('ownership chips, category cards and hierarchical location filters work acr
  const {page}=await fixture(t,{viewport:{width:1800,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
   {id:'a',name:'Cable one',owner:'me',room:'Nook',categories:['Cable'],price:12,properties:[{name:'Space',value:'Sling Bag'}]},
-  {id:'b',name:'Water bottle',owner:'house',room:'Office',categories:['Water'],value:20,properties:[{name:'Space',value:'Desk'}]}
+  {id:'b',name:'Water bottle',owner:'house',room:'Office',categories:['Water Bottles'],value:20,properties:[{name:'Space',value:'Desk'}]}
  ].map(window.LocalApp.inventoryModel.normalizeItem);}));
  assert.ok(await page.locator('#inventoryWorkspace').evaluate(el=>el.clientWidth>1700));
  await page.locator('[data-owner-filter="me"]').click(); assert.equal(await page.locator('[data-edit-item]').count(),1);
@@ -1025,7 +1025,7 @@ test('top navigation and global search reach current items, archived items, Note
 test('wide catalog links return to filtered Have; grouped categories and aligned totals share the compact layout', {timeout:30000}, async t => {
  const {page}=await fixture(t,{viewport:{width:1600,height:1000}});
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
- {id:'catalog-water',name:'Bottle',owner:'me',room:'Nook',value:12,source:'Amazon',description:'Trail bottle',categories:['Water'],properties:[{name:'Brand',value:'Vapur'},{name:'Space',value:'Sling Bag'},{name:'Volume',value:'23',unit:'oz'}]},
+ {id:'catalog-water',name:'Bottle',owner:'me',room:'Nook',value:12,source:'Amazon',description:'Trail bottle',categories:['Water Bottles'],properties:[{name:'Brand',value:'Vapur'},{name:'Space',value:'Sling Bag'},{name:'Volume',value:'23',unit:'oz'}]},
  {id:'catalog-cable',name:'USB cable',owner:'house',room:'Office',value:8,categories:['Cables'],properties:[{name:'Color',value:'Black'}]}
  ].map(window.LocalApp.inventoryModel.normalizeItem);}));
  await page.locator('#inventorySettingsTab').click();
