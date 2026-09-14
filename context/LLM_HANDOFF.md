@@ -1,3 +1,9 @@
+## Latest update — Update button (0.0.1.44)
+
+Added Update immediately left of Notes with the shared refresh symbol. It saves pending device state, checks the service-worker registration for updates, waits for an installing worker (up to 30 seconds), and invokes the existing skip-waiting/force-refresh URL flow. With no new worker it still reloads through a fresh URL. Offline, installation, or save failures show an error without refreshing; repeated clicks while checking are ignored. Existing storage/caches are not deleted.
+
+All 106 automated checks pass, including worker update/activation, cache-busting navigation and offline/save-failure no-refresh behavior, plus aligned release/cache/manifest/workflow assets. Installed-app/browser update validation remains pending. Source was clean at a0a4be5 (0.0.1.43). Before-copies: /private/tmp/my-stuff-update-button-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — location Last Updated Dates (0.0.1.43)
 
 Each displayed location in Around the House has a right-aligned Last Updated Date button immediately before the object count. It defaults to UNKNOWN. Clicking opens a labelled dialog with a date input and explicit UNKNOWN checkbox; Save persists the choice and Cancel leaves it unchanged. This is a manual contents-verification date, independent of inventory edits and scoped to the full zone/room/space path.

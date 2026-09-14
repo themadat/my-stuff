@@ -55,3 +55,19 @@ test('app artwork is preserved across themes and install PNGs have the declared 
     }
   }
 });
+
+test('Update checks the worker and refreshes only after saving; offline/save failures stay put', async () => {
+ for (const mode of ['update','offline','save-failure']) {
+  const messages=[],notices=[],timers=new Map(),navigations=[]; let checks=0,saves=0;
+  const registration={waiting:{postMessage:m=>messages.push(m)},update:async()=>{checks++;}};
+  const app={config:{},storage:{saveNow:()=>{saves++;return mode!=='save-failure';}},components:{toast:m=>notices.push(m)}};
+  const sandbox=vm.createContext({URL,Date,location:{href:'https://example.com/my-stuff/',protocol:'https:',replace:url=>navigations.push(url)},navigator:{onLine:mode!=='offline',serviceWorker:{getRegistration:async()=>registration}},window:{LocalApp:app,setTimeout:fn=>{const id=timers.size+1;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)}});
+  vm.runInContext(read('assets/js/core/pwa.js'),sandbox);
+  await app.pwa.checkForUpdates();
+  if (mode==='update') {
+   assert.equal(saves,1); assert.ok(checks>=1); assert.equal(messages[0].type,'SKIP_WAITING');
+   for (const callback of timers.values()) callback();
+   assert.ok(new URL(navigations[0]).searchParams.has('force-refresh'));
+  } else { assert.equal(checks,0); assert.equal(timers.size,0); assert.equal(notices.length,1); }
+ }
+});
