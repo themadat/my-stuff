@@ -1,3 +1,11 @@
+## Latest update — sidebar and toolbar spacing (0.0.1.45)
+
+Around the House heading sticks inside its scrolling module with an opaque background. Removed the obsolete 5.5rem bottom clearance for the former floating sync button; desktop sidebar/divider heights now also account for the small remaining main padding and safe area. Tab symbols shrink from 32px to 29px.
+
+All/House/Me measure their natural equal card width after numeric-column sizing and expand it by 20%, resetting before each calculation to prevent repeated growth. A ResizeObserver measures the sidebar's actual width and shares it with the Find an Item grid column, including divider resizing and responsive changes. The toolbar remains one horizontally scrollable line.
+
+All 106 automated checks pass, including script syntax and aligned release/cache/manifest/workflow assets. Browser visual and banner-dismissal layout validation remains pending. Before-copies: /private/tmp/my-stuff-sidebar-layout-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — Update button (0.0.1.44)
 
 Added Update immediately left of Notes with the shared refresh symbol. It saves pending device state, checks the service-worker registration for updates, waits for an installing worker (up to 30 seconds), and invokes the existing skip-waiting/force-refresh URL flow. With no new worker it still reloads through a fresh URL. Offline, installation, or save failures show an error without refreshing; repeated clicks while checking are ignored. Existing storage/caches are not deleted.

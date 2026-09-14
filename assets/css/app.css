@@ -1010,3 +1010,16 @@ body > #categoryTags { position: fixed; z-index: 100; box-sizing: border-box; ov
 .location-object-count { flex: 0 0 3ch; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .location-nav-row .location-jump span { overflow-wrap: anywhere; }
 @media(max-width:700px) { .location-review-date { min-height: 44px; } }
+
+/* Remove the old bottom-FAB clearance and align sidebar/search widths. */
+main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
+#roomOverview h2 { position: sticky; top: -.6rem; z-index: 2; margin: -.6rem -.6rem .3rem; padding: .6rem; background: var(--bg); }
+.app-header .inventory-tab { grid-template-columns: 29px auto; }
+.app-header .inventory-tab > span:first-child .sf-symbol { width: 29px; height: 29px; }
+.inventory-toolbar-scroll .inventory-heading { grid-template-columns: calc(var(--location-panel-width,230px) + 160px + .6rem) minmax(390px,1.5fr) auto repeat(3,44px); }
+.inventory-toolbar-scroll .inventory-heading > .inventory-filterbar { grid-template-columns: var(--location-panel-width,230px) repeat(2,80px); gap: .3rem; }
+#inventorySearch { width: 100%; }
+@media(min-width:701px) {
+ #roomOverview, #locationDivider { height: calc(100dvh - var(--inventory-header-height,60px) - var(--inventory-filter-height,60px) - .6rem - var(--safe-bottom)); }
+}
+@media(max-width:700px) { #roomOverview h2 { top: 0; margin: 0 0 .3rem; padding: .4rem 0; } }

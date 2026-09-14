@@ -201,6 +201,8 @@
     new ResizeObserver(updateHeaderHeight).observe($('.app-header')); updateHeaderHeight();
     const updateFilterHeight = function () { document.documentElement.style.setProperty('--inventory-filter-height',Math.ceil($('.inventory-toolbar-scroll').getBoundingClientRect().height)+'px'); };
     new ResizeObserver(updateFilterHeight).observe($('.inventory-toolbar-scroll')); updateFilterHeight();
+    const updateSearchWidth=function () { const width=$('#roomOverview').getBoundingClientRect().width; if (width>0) $('#inventoryWorkspace').style.setProperty('--location-panel-width',width+'px'); };
+    new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
     $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); categorySlots.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
@@ -662,6 +664,9 @@
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
     ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').innerHTML = '<span>Filtered</span><span class="stat-count">' + filtered[key].count + '</span><span class="stat-money">' + esc(money(filtered[key].valueCents/100,true)) + '</span>'; });
     ['count','money'].forEach(function (kind) { const width=Math.max(1,...$$('#inventoryStats .stat-'+kind).map(function (el) { return (el.firstChild?.textContent || '').length; })); $('#inventoryStats').style.setProperty('--stat-'+kind+'-width',(width+.5)+'ch'); });
+    const ownershipCards=$$('#inventoryStats .inventory-stat'); ownershipCards.forEach(function (card) { card.style.width=''; });
+    const ownershipWidth=Math.ceil(Math.max(0,...ownershipCards.map(function (card) { return card.getBoundingClientRect().width; }))*1.2);
+    ownershipCards.forEach(function (card) { card.style.width=ownershipWidth+'px'; });
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
     const sections = m.locationSections(items).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); renderLocationNavigation(sections);
     if (!items.length) {

@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.44",
-      buildId: "0.0.1.44",
+      version: "0.0.1.45",
+      buildId: "0.0.1.45",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -82,6 +82,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.45", date: "2026-09-13T00:00:00.000Z", title: "Sidebar and Toolbar Spacing",
+      summary: "Sticky sidebar heading, matched search width and 20% wider ownership cards.",
+      features: [], improvements: ["Slightly smaller tab symbols"], fixes: ["Remove obsolete bottom floating-button clearance"], knownIssues: []
+    }, {
       version: "0.0.1.44", date: "2026-09-13T00:00:00.000Z", title: "Update App Button",
       summary: "Update beside Notes checks for a new service worker and force-refreshes the app.",
       features: ["One-click update for installed web apps"], improvements: ["Save local changes before refreshing"], fixes: [], knownIssues: []
