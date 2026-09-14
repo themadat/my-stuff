@@ -1,3 +1,13 @@
+## Latest update — mobile rows, expandable ownership, room-first ordering (0.0.1.49)
+
+Mobile (700px and below) uses four inventory toolbar rows: Find an Item; location/category dropdowns; quick selections; All/House/Me plus Clear/Bulk/Add. The repeated “third line” in the request was interpreted as separate quick-selection and action rows, stated to the user. Quick selections scroll within their row. Expanded ownership details wrap the action area while retaining minimum 44px button widths. Desktop keeps its existing horizontal toolbar.
+
+All/House/Me default to condensed on mobile and expanded elsewhere. Clicking toggles that card and retains its ownership-filter action. Session-local explicit choices survive renders and breakpoint changes; untouched cards follow the current breakpoint. Buttons expose aria-expanded/controls and hidden details are excluded from the collapsed presentation. Totals keep existing desktop measurement/alignment. The shared action wrapper uses display:contents on desktop so Bulk insertion and existing controls retain their positions.
+
+Within a room, items without a space sort before named spaces. Existing zone/room ordering and Unknown Location behavior remain; no item data or schema changes. Help and version/cache/manifests/workflow align at 0.0.1.49.
+
+Verification: 109 non-browser automated checks and 3 targeted Chromium checks pass, covering 320/390px mobile row geometry, button widths, click/keyboard toggles, filter and re-render preservation, desktop/mobile defaults, room-only rows before space headings, and offline edit/reload. The older offline test now waits for editor focus and selects Nook from the current location picker rather than typing ambiguous Closet. Light/dark mobile condensed/expanded and desktop populated screenshots were reviewed. Preview server stopped before handoff. The pre-existing assets/js/icons.js edit was preserved and is excluded from task commit instructions. No commit, push, or live cloud write performed.
+
 ## Latest update — ownership spacing and top-bar-only updates (0.0.1.48)
 
 Removed the persistent bottom-center update-available toast. Service-worker availability still updates the red top-bar Update button and its accessible label; click-to-update and failure messages remain.

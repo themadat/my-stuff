@@ -5,7 +5,8 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
-  const collapsedLocations = new Set();
+  const collapsedLocations = new Set(), ownershipExpanded = new Map();
+  const mobileInventory = matchMedia("(max-width: 700px)");
   let categorySlots = new Map(), hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
@@ -108,6 +109,10 @@
     });
     $('.global-search-wrap').before($('.inventory-nav'));
     $('.inventory-nav').addEventListener('click', function (event) { const nav = event.target.closest('[data-inventory-view]'); if (nav) { view = nav.dataset.inventoryView; render(); $('#inventoryTitle').focus({preventScroll:true}); } });
+    const actions = document.createElement("div"); actions.className = "inventory-actions";
+    $("#inventoryStats").before(actions);
+    ["#inventoryStats", "#clearInventoryFilters", "#addItemButton"].forEach(function (selector) { actions.append($(selector)); });
+    mobileInventory.addEventListener("change", renderList);
     initSmartControls(); $("#itemBrand").maxLength = 300;
     ["#itemPrice","#itemValue"].forEach(function (id) { $(id).addEventListener("blur", function () { setTimeout(fillMissingAmount,0); }); });
     initObjectWords();
@@ -130,7 +135,7 @@
       if (add) openItem("", add);
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
-    $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
+    $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { ownershipExpanded.set(button.dataset.inventoryTotal, button.getAttribute('aria-expanded') !== 'true'); $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
     function showCategory(event) {
       const card = event.target.closest('[data-category-group]');
       if (card) { cancelTagClose(); hoveredCategory = card.dataset.categoryGroup; renderCategoryTags(); }
@@ -556,7 +561,7 @@
     $(".inventory-filterbar").hidden = !active;
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = stats[entry[0]];
-      return '<button type="button" class="inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
+      return '<button type="button" class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
 
     }).join("");
     renderLocationFilter();
@@ -664,9 +669,18 @@
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
     ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').innerHTML = '<span>Filtered</span><span class="stat-count">' + filtered[key].count + '</span><span class="stat-money">' + esc(money(filtered[key].valueCents/100,true)) + '</span>'; });
     ['count','money'].forEach(function (kind) { const width=Math.max(1,...$$('#inventoryStats .stat-'+kind).map(function (el) { return (el.firstChild?.textContent || '').length; })); $('#inventoryStats').style.setProperty('--stat-'+kind+'-width',(width+.5)+'ch'); });
-    const ownershipCards=$$('#inventoryStats .inventory-stat'); ownershipCards.forEach(function (card) { card.style.width=''; card.style.removeProperty('--ownership-gap'); });
-    const ownershipWidth=Math.ceil(Math.max(0,...ownershipCards.map(function (card) { return card.getBoundingClientRect().width; }))*1.2);
-    ownershipCards.forEach(function (card) { const style=getComputedStyle(card), columns=style.gridTemplateColumns.split(' ').reduce(function (sum,value) { return sum+parseFloat(value); },0), borders=parseFloat(style.borderLeftWidth)+parseFloat(style.borderRightWidth); card.style.setProperty('--ownership-gap',Math.max(0,(ownershipWidth-columns-borders)/5)+'px'); card.style.width=ownershipWidth+'px'; });
+    const ownershipCards=$$('#inventoryStats .inventory-stat');
+    ownershipCards.forEach(function (card) {
+      const key=card.dataset.inventoryTotal, expanded=ownershipExpanded.has(key)?ownershipExpanded.get(key):!mobileInventory.matches;
+      card.setAttribute('aria-expanded',String(expanded)); card.setAttribute('aria-controls','ownership-details-'+key);
+      card.querySelector('.stat-matrix').hidden=!expanded;
+      card.style.width=''; card.style.removeProperty('--ownership-gap');
+    });
+    const expandedCards=ownershipCards.filter(function (card) { return card.getAttribute('aria-expanded')==='true'; });
+    if (!mobileInventory.matches) {
+      const ownershipWidth=Math.ceil(Math.max(0,...expandedCards.map(function (card) { return card.getBoundingClientRect().width; }))*1.2);
+      expandedCards.forEach(function (card) { const style=getComputedStyle(card), columns=style.gridTemplateColumns.split(' ').reduce(function (sum,value) { return sum+parseFloat(value); },0), borders=parseFloat(style.borderLeftWidth)+parseFloat(style.borderRightWidth); card.style.setProperty('--ownership-gap',Math.max(0,(ownershipWidth-columns-borders)/5)+'px'); card.style.width=ownershipWidth+'px'; });
+    }
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
     const sections = m.locationSections(items).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); renderLocationNavigation(sections);
     if (!items.length) {

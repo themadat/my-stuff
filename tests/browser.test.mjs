@@ -383,7 +383,7 @@ test('JSON imports distinguish cloud content from full backups and preserve a re
 
 test('service worker caches this release and inventory and Notes remain available after offline reload', { timeout: 30000 }, async t => {
   const context = await browser.newContext(); t.after(() => context.close());
-  const page = await context.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
+  const page = await context.newPage(), errors = []; page.setDefaultTimeout(5000); page.on('pageerror', e => errors.push(e.message));
   await page.goto(base); await addInventoryItem(page, { name: 'Offline backpack' }); await page.locator('#notesButton').click();
   await page.locator('#notesTextarea').fill('Offline Notes');
   await page.evaluate(async () => { window.LocalApp.storage.saveNow(); await navigator.serviceWorker.ready; });
@@ -399,9 +399,12 @@ test('service worker caches this release and inventory and Notes remain availabl
   await page.locator('[data-close-dialog="notesDialog"]').click();
   assert.match(await page.locator('#inventoryList').textContent(), /Offline backpack/);
   await page.locator('[data-edit-item]').click();
-  await page.locator('#itemRoom').fill('Closet'); await page.locator('#saveItemButton').click();
+  await page.waitForFunction(()=>document.activeElement.id==='itemName');
+  await page.locator('#itemRoom').fill('Nook');
+  await page.locator('#itemRoomOptions [data-option]').filter({hasText:'Nook'}).first().click();
+  await page.locator('#saveItemButton').click();
   await page.reload();
-  assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Closet');
+  assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Nook');
   await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
   // Chromium can reset navigator.onLine on a worker-controlled navigation;
   // verify the transport is actually offline independently of that indicator.
@@ -1080,4 +1083,50 @@ test('category drill-down, persistent Clear, location jumps and navigation short
  await page.keyboard.press('w'); assert.equal(await page.locator('[data-inventory-view="want"]').getAttribute('aria-current'),'page');
  await page.keyboard.press('h'); await page.locator('#inventorySearch').fill('w');
  assert.equal(await page.locator('[data-inventory-view="have"]').getAttribute('aria-current'),'page');
+});
+
+test('mobile toolbar has ordered rows and ownership buttons expand without losing filters', { timeout:30000 }, async t=>{
+ for(const width of [320,390]) {
+  const {page}=await fixture(t,{viewport:{width,height:900},colorScheme:width===390?'dark':'light'});
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  const cards=page.locator('#inventoryStats .inventory-stat');
+  assert.deepEqual(await cards.evaluateAll(els=>els.map(el=>el.getAttribute('aria-expanded'))),['false','false','false']);
+  const bounds=await Promise.all(['#inventorySearch','#inventoryRoomFilter','#inventoryCategoryFilter','.category-quick-controls','[data-inventory-total="all"]','#clearInventoryFilters','#bulkEntryButton','#addItemButton'].map(selector=>page.locator(selector).boundingBox()));
+  assert.ok(bounds[0].y<bounds[1].y && bounds[1].y<bounds[3].y && bounds[3].y<bounds[4].y);
+  assert.equal(bounds[1].y,bounds[2].y);
+  assert.ok(bounds.slice(4).every(rect=>Math.abs(rect.y-bounds[4].y)<2));
+  assert.ok(bounds.every(rect=>rect.x>=0&&rect.x+rect.width<=width+1));
+  const house=page.locator('[data-inventory-total="house"]'); await house.click();
+  assert.equal(await house.getAttribute('aria-expanded'),'true');
+  assert.equal(await page.locator('#ownership-details-house').isVisible(),true);
+  assert.ok(await cards.evaluateAll(els=>els.every(el=>el.getBoundingClientRect().width>=44)));
+  await page.screenshot({path:'/private/tmp/my-stuff-expanded-toolbar-'+width+'.png'});
+  assert.equal(await page.locator('#inventoryOwnerFilter').inputValue(),'house');
+  await page.locator('#inventorySearch').fill('no result');
+  assert.equal(await house.getAttribute('aria-expanded'),'true');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await house.press('Enter'); assert.equal(await house.getAttribute('aria-expanded'),'false');
+  await page.locator('#clearInventoryFilters').click();
+  assert.equal(await page.locator('#inventoryOwnerFilter').inputValue(),'');
+  await page.screenshot({path:'/private/tmp/my-stuff-mobile-toolbar-'+width+'.png'});
+ }
+});
+
+test('desktop ownership defaults expand, toggles persist, and room-only rows precede space headings', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1800,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
+ assert.deepEqual(await page.locator('#inventoryStats .inventory-stat').evaluateAll(els=>els.map(el=>el.getAttribute('aria-expanded'))),['true','true','true']);
+ const all=page.locator('[data-inventory-total="all"]'); await all.click(); assert.equal(await all.getAttribute('aria-expanded'),'false');
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
+  {id:'desk',name:'Desk Object',space:'Desk'}, {id:'room',name:'Room Object',space:''}, {id:'closet',name:'Closet Object',space:'Closet'}
+ ].map(row=>window.LocalApp.inventoryModel.normalizeItem({id:row.id,name:row.name,owner:'me',room:'Office',properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:row.space}]}));}));
+ assert.equal(await all.getAttribute('aria-expanded'),'false');
+ const rows=await page.locator('#inventoryList tbody tr').allTextContents();
+ assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text==='Closet'));
+ assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text==='Desk'));
+ await page.setViewportSize({width:390,height:900});
+ await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('aria-expanded')==='false');
+ await page.setViewportSize({width:1800,height:1000});
+ await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('aria-expanded')==='true');
+ assert.equal(await all.getAttribute('aria-expanded'),'false');
+ await page.screenshot({path:'/private/tmp/my-stuff-desktop-ownership.png'});
 });

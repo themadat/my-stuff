@@ -276,3 +276,10 @@ test('location review dates preserve explicit UNKNOWN and remain independent of 
  assert.equal(app.inventoryModel.merge(remote,inventory).locationReviews[key].date,'');
  assert.ok(!Object.hasOwn(app.inventoryModel.normalize({currency:'USD',items:[]}), 'locationReviews'));
 });
+
+test('room-only objects precede spaces within the same room', () => {
+ const make=(id,room,space)=>app.inventoryModel.normalizeItem({...item,id,room,properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:space}]});
+ const sections=app.inventoryModel.locationSections([make('desk','Office','Desk'),make('loft','Loft','Closet'),make('room','Office',''),make('closet','Office','Closet')]);
+ assert.deepEqual(Array.from(sections.filter(section=>section.path[1]==='Office'),section=>section.path[2]),['','Closet','Desk']);
+ assert.equal(sections.flatMap(section=>section.items).length,4);
+});
