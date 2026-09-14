@@ -71,3 +71,17 @@ test('Update checks the worker and refreshes only after saving; offline/save fai
   } else { assert.equal(checks,0); assert.equal(timers.size,0); assert.equal(notices.length,1); }
  }
 });
+
+test('a waiting service worker changes Update artwork and activation clears the indicator', async () => {
+ const listeners={},attributes={},symbol={};
+ const button={dataset:{},querySelector:()=>symbol,setAttribute:(k,v)=>attributes[k]=v,addEventListener(){}};
+ const registration={waiting:{},addEventListener(){}};
+ const app={config,storage:{getState:()=>({preferences:{appearance:{mode:'light'}}})},icons:{set:(target,name)=>{target.name=name;}},components:{toast(){throw new Error("Update availability must not create a bottom notification");}}};
+ const sandbox=vm.createContext({location:{protocol:'https:'},navigator:{serviceWorker:{controller:{},register:async()=>registration,addEventListener:(name,fn)=>listeners[name]=fn}},document:{documentElement:{dataset:{}},querySelector:selector=>selector==='#updateAppButton'?button:null},window:{LocalApp:app,addEventListener(){},matchMedia:()=>({matches:false,addEventListener(){}})}});
+ vm.runInContext(read('assets/js/core/pwa.js'),sandbox); app.pwa.init();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(button.dataset.updateAvailable,'true'); assert.equal(symbol.name,'updateReady');
+ assert.match(attributes['aria-label'],/new version available/);
+ listeners.controllerchange();
+ assert.equal(button.dataset.updateAvailable,'false'); assert.equal(symbol.name,'updateApp');
+});

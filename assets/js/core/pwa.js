@@ -91,18 +91,18 @@
     }
   }
 
+  function renderUpdateReady(ready) {
+    const button=document.querySelector('#updateAppButton');
+    if (!button) return;
+    button.dataset.updateAvailable=String(ready);
+    button.title=ready ? 'Update available — install and refresh' : 'Check for updates and force refresh';
+    button.setAttribute('aria-label',ready ? 'Update — new version available' : 'Update — check for updates and force refresh');
+    App.icons.set(button.querySelector('.button-icon'),ready ? 'updateReady' : 'updateApp');
+  }
+
   function updateAvailable(worker) {
-    App.components.toast("A newer app version is ready. Force refresh to install it now.", {
-      title: "New version available",
-      kind: "info",
-      duration: 0,
-      context: "pwa-update",
-      actionLabel: "Force refresh",
-      actionSymbol: "arrowClockwise",
-      actionShortcut: "R",
-      closeShortcut: "X",
-      onAction: function () { forceRefresh(worker); }
-    });
+    renderUpdateReady(true);
+
   }
 
   async function registerServiceWorker() {
@@ -118,6 +118,7 @@
         });
       });
       navigator.serviceWorker.addEventListener("controllerchange", function () {
+        renderUpdateReady(false);
         if (refreshing) {
           window.clearTimeout(refreshFallbackTimer);
           location.replace(forceRefreshUrl());

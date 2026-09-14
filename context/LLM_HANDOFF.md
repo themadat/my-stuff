@@ -1,3 +1,17 @@
+## Latest update — ownership spacing and top-bar-only updates (0.0.1.48)
+
+Removed the persistent bottom-center update-available toast. Service-worker availability still updates the red top-bar Update button and its accessible label; click-to-update and failure messages remain.
+
+Ownership cards use a four-column, two-row grid with the icon/label left aligned and values right aligned. Measured spare width is divided evenly across the two edge paddings and three inter-column gaps. Existing equal card widths and 20% expansion remain. Location/category dropdowns double from 80px to 160px, with the toolbar track expanded accordingly; Find still matches the sidebar.
+
+All 108 automated checks pass, including an assertion that update availability does not create a toast. Version/cache/manifests/workflow align at 0.0.1.48. Browser visual validation remains pending. Before-copies: /private/tmp/my-stuff-card-spacing-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
+## Latest update — red update-ready indicator (0.0.1.47)
+
+When the service-worker flow detects a waiting/installed update, Update switches to the supplied filled symbol in red and receives an update-available title/accessibility label. Controller activation restores its ordinary symbol. The existing update toast and click-to-update behavior remain. Dark themes use a lighter red for visibility.
+
+All 108 automated checks pass across the existing suite and the new waiting-worker/activation indicator regression. SVG XML validation passes; version/cache/manifests/workflow align at 0.0.1.47. Browser visual validation remains pending. Before-copies: /private/tmp/my-stuff-update-ready-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — configurable banner timer and Update symbol (0.0.1.46)
 
 Settings includes What’s New dismissal (seconds), accepting integers from 1–300 with a 20-second default. It persists in device preferences; older state receives the new default. Changing the value restarts the visible banner countdown and its animation, while dismissed banners remain dismissed. Replaced the top-bar Update symbol with the supplied SVG through the shared registry.

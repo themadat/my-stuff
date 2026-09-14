@@ -1023,3 +1023,17 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
  #roomOverview, #locationDivider { height: calc(100dvh - var(--inventory-header-height,60px) - var(--inventory-filter-height,60px) - .6rem - var(--safe-bottom)); }
 }
 @media(max-width:700px) { #roomOverview h2 { top: 0; margin: 0 0 .3rem; padding: .4rem 0; } }
+
+#updateAppButton[data-update-available="true"] .button-icon { color: #d52c20; }
+[data-theme="dark"] #updateAppButton[data-update-available="true"] .button-icon { color: #ff7367; }
+@media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) #updateAppButton[data-update-available="true"] .button-icon { color: #ff7367; } }
+
+/* Equal spacing from each card edge through its four aligned content columns. */
+.inventory-heading .inventory-stat { --ownership-gap: .35rem; font-size: .62rem; grid-template-columns: 32px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)); grid-template-rows: repeat(2,auto); column-gap: var(--ownership-gap); row-gap: .1rem; padding-inline: var(--ownership-gap); }
+.inventory-heading .inventory-stat-label { grid-column: 1; grid-row: 1 / 3; align-items: flex-start; text-align: left; justify-self: start; }
+.inventory-heading .stat-matrix, .inventory-heading .stat-row { display: contents; }
+.inventory-heading .stat-row > span:first-child { grid-column: 2; text-align: left; }
+.inventory-heading .stat-count { grid-column: 3; text-align: right; }
+.inventory-heading .stat-money { grid-column: 4; text-align: right; justify-self: end; }
+.inventory-toolbar-scroll .inventory-heading { grid-template-columns: calc(var(--location-panel-width,230px) + 320px + .6rem) minmax(390px,1.5fr) auto repeat(3,44px); }
+.inventory-toolbar-scroll .inventory-heading > .inventory-filterbar { grid-template-columns: var(--location-panel-width,230px) repeat(2,160px); }

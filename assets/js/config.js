@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.46",
-      buildId: "0.0.1.46",
+      version: "0.0.1.48",
+      buildId: "0.0.1.48",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -82,6 +82,14 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.48", date: "2026-09-13T00:00:00.000Z", title: "Ownership Spacing and Update Indicator",
+      summary: "Updates use the top-bar button, with evenly spaced ownership totals and wider dropdowns.",
+      features: [], improvements: ["Location and category dropdowns doubled to 160px"], fixes: ["Remove the bottom update-available notification"], knownIssues: []
+    }, {
+      version: "0.0.1.47", date: "2026-09-13T00:00:00.000Z", title: "Update Available Indicator",
+      summary: "The Update button shows the supplied filled symbol in red when a new version is ready.",
+      features: [], improvements: ["Accessible update-available label"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.46", date: "2026-09-13T00:00:00.000Z", title: "Configurable Banner Timer",
       summary: "Set the What’s New dismissal time in Settings; the default is 20 seconds.",
       features: [], improvements: ["Supplied Update symbol"], fixes: [], knownIssues: []
