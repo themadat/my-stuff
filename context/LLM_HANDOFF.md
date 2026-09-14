@@ -1,3 +1,13 @@
+## Latest update — compact editor and smart units (0.0.1.51)
+
+Centered ownership symbols above their labels, removed the 20% width inflation, and tightened the spacing to the separate expansion chevrons. Filtering and expansion remain independent; mobile defaults and room-first ordering are unchanged.
+
+Add Item expands to 1380px when space permits. Date Obtained has an inline Unknown checkbox and a disabled date input when unknown. Tags and Notes share their own row; Custom Properties spans the editor. Copy numbers sit beside inputs, with short Shared checkboxes beside each field header and no This Item suffix. Small screens retain scrolling copy rows and stack the main fields.
+
+inventoryModel.measurement recognizes numeric/fractional values with common length, mass, volume, temperature and electrical suffixes. Editor change/save splits recognized suffixes into value/unit. Metric values remain metric; approximate US equivalents appear alongside in the editor and object list. Unitless and unrecognized inputs remain intact. This is display/editor behavior, with no schema change. Hover an object row and press E to edit or A to open the existing archive form; typing, open dialogs and modified keystrokes are excluded.
+
+Verification: 111 non-browser checks and 4 targeted Chromium checks passed, including desktop/mobile controls, compact copy and tag layout, metric save/reopen, hover shortcuts and offline edit/reload. Screenshots reviewed. Version, queries, cache, manifests and deployment workflow align at .51. The unrelated assets/js/icons.js edit is preserved. No commit or push performed.
+
 ## Latest update — local divider and separate ownership actions (0.0.1.50)
 
 The Around the House divider saves its percentage in device-only preferences.controls.locationSidebarPercent; sync payloads exclude it. Pointer drag and keyboard resizing save immediately; reload and viewport changes restore the proportion with the existing 160–420px limits. Mobile layout leaves the saved preference intact.

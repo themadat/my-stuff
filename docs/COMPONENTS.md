@@ -41,3 +41,9 @@ Seller, Brand, and Object use matching title/placeholder text. Object word actio
 At mobile widths (up to 700px), the inventory toolbar uses separate search, dropdown, quick-selection, and ownership/action rows. All/House/Me select ownership; separate chevron buttons toggle totals, with session-local expansion choices. They default to condensed on mobile and expanded elsewhere. Expanded mobile cards wrap with the actions, preserving 44px targets. Room-only item sections precede the named spaces in the same room.
 
 The sidebar divider saves a percentage in device-only preferences.controls.locationSidebarPercent. Desktop resizing restores the proportion with 160–420px bounds; mobile layout does not overwrite it.
+
+### Measurement and Compact Editor Controls
+
+The inventory model exposes `measurement(property)` to split recognized numeric unit suffixes and derive approximate US equivalents without replacing metric values. The editor commits value/unit on change and save; both editor and inventory list display the derived equivalent. Unitless and unrecognized content is preserved. Conversion previews are not stored.
+
+The item editor places Tags beside Notes, uses the full width for custom properties, and keeps copy labels and Shared controls inline. Date Unknown clears the date and disables its control. Hovered object rows accept E for Edit and A for the archive form, with input/dialog/modifier guards. Ownership symbols are centered and cards retain separate selection and expansion controls.

@@ -1028,7 +1028,7 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 [data-theme="dark"] #updateAppButton[data-update-available="true"] .button-icon { color: #ff7367; }
 @media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) #updateAppButton[data-update-available="true"] .button-icon { color: #ff7367; } }
 
-/* Equal spacing from each card edge through its four aligned content columns. */
+/* Aligned ownership totals and their separate expansion control. */
 .inventory-heading .inventory-stat { --ownership-gap: .35rem; font-size: .62rem; grid-template-columns: 32px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)) 24px; grid-template-rows: repeat(2,auto); column-gap: var(--ownership-gap); row-gap: .1rem; padding-inline: var(--ownership-gap); }
 .inventory-heading .inventory-stat-label { grid-column: 1; grid-row: 1 / 3; align-items: flex-start; text-align: left; justify-self: start; }
 .inventory-heading .stat-matrix, .inventory-heading .stat-row { display: contents; }
@@ -1063,3 +1063,41 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .ownership-toggle { grid-column: 5; grid-row: 1 / 3; align-self: stretch; min-width: 24px; min-height: 44px; font-size: 1rem; }
 .ownership-toggle[aria-expanded="true"] { transform: rotate(180deg); }
 @media(max-width:700px) { .inventory-stat[data-expanded="false"] { flex-direction: column; gap: 0; } .inventory-stat[data-expanded="false"] .ownership-toggle { min-height: 24px; width: 100%; } }
+
+/* Compact ownership and item editing. */
+.inventory-heading .inventory-stat { --ownership-gap: .2rem; grid-template-columns: 40px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)) 24px; }
+.inventory-heading .inventory-stat-label { width: 40px; }
+.inventory-heading .inventory-stat-label, .ownership-select { align-items: center; text-align: center; }
+.ownership-select { width: 100%; }
+.app-dialog.inventory-dialog { width: min(1380px, calc(100vw - 1.2rem)); }
+#itemDialog .dialog-body { gap: .6rem; }
+.compact-item-grid { gap: .55rem; }
+.item-location-row { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.item-tags-notes-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); gap: .65rem; align-items: start; }
+.item-tags-notes-row > * { min-width: 0; }
+.item-tags-notes-row textarea { min-height: var(--control-height); width: 100%; resize: vertical; }
+.date-heading, .copy-field-heading { display: flex; justify-content: space-between; align-items: center; gap: .35rem; font-size: .75rem; }
+.date-heading label, .copy-field-heading label { display: inline-flex; align-items: center; gap: .25rem; margin: 0; }
+.date-heading input, .copy-field-heading input { width: auto; min-height: 0; padding: 0; }
+.date-heading .unknown-date-choice { min-height: 0; font-size: inherit; }
+.item-more-content { grid-template-columns: minmax(0,1fr); }
+.item-property { margin-block: .4rem; }
+.property-equivalent { color: var(--muted); white-space: nowrap; margin-inline: .35rem; }
+.item-property > .property-equivalent { grid-column: 2 / 4; margin-top: -.4rem; }
+.copy-room-grid > [data-copy-location] { grid-template-columns: auto repeat(3,minmax(85px,1fr)) repeat(2,minmax(105px,1fr)) minmax(210px,1.6fr); gap: .4rem; padding: .4rem; }
+.copy-room-grid > [data-copy-location] > strong { grid-column: auto; align-self: end; padding-bottom: .6rem; white-space: nowrap; font-size: .75rem; }
+.copy-room-grid .copy-color > .field, .copy-room-grid .copy-size > .field, .copy-room-grid .copy-notes > .field { order: 0; }
+.copy-room-grid .field { margin-top: .25rem; }
+.copy-locations > p { margin-block: .35rem; }
+@media(max-width:700px) {
+ .item-tags-notes-row { grid-template-columns: minmax(0,1fr); }
+ .item-location-row { grid-template-columns: minmax(0,1fr); }
+ .copy-room-grid { min-width: 960px; }
+ .app-dialog.inventory-dialog { width: 100vw; }
+}
+
+@media(min-width:701px) {
+ .item-property:not(.unitless) { grid-template-columns: minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,.7fr) auto 38px; }
+ .item-property:not(.unitless) > button { grid-column: 5; grid-row: 1; }
+ .item-property:not(.unitless) > .property-equivalent { grid-column: 4; grid-row: 1; align-self: end; margin: 0 0 .65rem; }
+}

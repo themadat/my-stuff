@@ -252,5 +252,30 @@
     Object.entries(locationReviews(remote.locationReviews)).forEach(function (entry) { const key=entry[0], incoming=entry[1], current=reviews[key]; if (!current || incoming.updatedAt>current.updatedAt || (incoming.updatedAt===current.updatedAt && incoming.date>current.date)) reviews[key]=incoming; });
     return normalize({ currency: local.currency, items: Array.from(items.values()), locationReviews:reviews });
   }
-  App.inventoryModel = { orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  // Recognized suffixes only: free text and unitless properties remain untouched.
+  const measurementUnits = [
+    ['mm','millimeter millimeters millimetre millimetres',1/25.4,'in'], ['cm','centimeter centimeters centimetre centimetres',1/2.54,'in'],
+    ['m','meter meters metre metres',3.280839895,'ft'], ['km','kilometer kilometers kilometre kilometres',0.621371192,'mi'],
+    ['mg','milligram milligrams',1/28349.523125,'oz'], ['g','gram grams',1/28.349523125,'oz'], ['kg','kilogram kilograms',2.204622622,'lb'],
+    ['mL','ml milliliter milliliters millilitre millilitres',1/29.5735295625,'US fl oz'], ['L','l liter liters litre litres',33.814022702,'US fl oz'],
+    ['°C','c celsius',1.8,'°F',32], ['°F','f fahrenheit'], ['in','inch inches "'], ['ft',"foot feet '"], ['yd','yard yards'], ['mi','mile miles'],
+    ['oz','ounce ounces'], ['lb','lbs pound pounds'], ['fl oz','floz'], ['gal','gallon gallons'],
+    ['mAh','mah'], ['Ah','ah'], ['W','w watt watts'], ['kW','kw kilowatt kilowatts'], ['Wh','wh'], ['V','v volt volts'], ['A','a amp amps'], ['Hz','hz'], ['MHz','mhz'], ['GHz','ghz']
+  ];
+  function measurement(property) {
+    const result = {value:String(property.value ?? ''), unit:String(property.unit ?? ''), imperial:''};
+    if (['color','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
+    const match = result.value.trim().match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s+\d+\/\d+|\/\d+)?)\s*(.*?)$/);
+    if (!match) return result;
+    const suffix = (match[2] || result.unit).trim().toLowerCase();
+    const unit = measurementUnits.find(function (entry) { return entry[0].toLowerCase() === suffix || entry[1].split(' ').includes(suffix) || (entry[0]==='fl oz' && ['fluid ounce','fluid ounces','fl. oz.'].includes(suffix)); });
+    if (!unit) return result;
+    const parts=match[1].split(/\s+/), fraction=parts.at(-1).split('/');
+    const value=fraction.length===2 ? (parts.length===2 ? Number(parts[0]) : 0) + (match[1].startsWith('-') && parts.length===2 ? -1 : 1)*Number(fraction[0])/Number(fraction[1]) : Number(match[1]);
+    if (!Number.isFinite(value)) return result;
+    result.value=String(value); result.unit=unit[0];
+    if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
+    return result;
+  }
+  App.inventoryModel = { measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

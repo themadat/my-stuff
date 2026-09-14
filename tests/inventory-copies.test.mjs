@@ -283,3 +283,17 @@ test('room-only objects precede spaces within the same room', () => {
  assert.deepEqual(Array.from(sections.filter(section=>section.path[1]==='Office'),section=>section.path[2]),['','Closet','Desk']);
  assert.equal(sections.flatMap(section=>section.items).length,4);
 });
+
+test('measurement suffixes split safely and metric values retain US equivalents', () => {
+  const measure = (value, unit = '', name = 'Weight') => JSON.parse(JSON.stringify(app.inventoryModel.measurement({ name, value, unit })));
+  assert.deepEqual(measure('250g'), { value:'250', unit:'g', imperial:'≈ 8.818 oz' });
+  assert.deepEqual(measure('1.5 kilograms'), { value:'1.5', unit:'kg', imperial:'≈ 3.307 lb' });
+  assert.deepEqual(measure('25.4', 'mm'), { value:'25.4', unit:'mm', imperial:'≈ 1 in' });
+  assert.equal(measure('1L').imperial, '≈ 33.81 US fl oz');
+  assert.equal(measure('-40 °C').imperial, '≈ -40 °F');
+  assert.equal(measure('10000mAh').value, '10000');
+  assert.equal(measure('1 1/2 in').value, '1.5');
+  assert.equal(measure('1/2 in').value, '0.5');
+  for (const value of ['1/0 in', 'waterproof', '12 bananas', '2 x 3 cm', '1e999 kg']) assert.equal(measure(value).value, value);
+  assert.equal(measure('8.5 cm', '', 'Size').value, '8.5 cm');
+});

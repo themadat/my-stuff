@@ -65,13 +65,14 @@
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
               ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-              <div class="field obtained-date-field"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice"><input id="itemDateUnknown" type="checkbox" checked> Unknown</label><input id="itemObtainedDate" type="date" hidden></div>
+              <div class="field obtained-date-field"><div class="date-heading"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice">Unknown <input id="itemDateUnknown" type="checkbox" checked></label></div><input id="itemObtainedDate" type="date" disabled></div>
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
             </div>
             <div class="full item-location-row">
               ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Unknown location")}${picker("itemSpace", "Space", "Search spaces…")}
-              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><small>Drag tags or use their arrows to reorder. Brand tags stay first; Float stays last.</small><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div>
+            </div><div class="full item-tags-notes-row">
+              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><small>Drag tags or use their arrows to reorder. Brand tags stay first; Float stays last.</small><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div><label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
             </div>
           </div>
           <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
@@ -81,7 +82,6 @@
                 <div class="item-property-tools"><button id="addSizeButton" class="button small" type="button">${icon("inventoryPlus")} Size</button><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><div id="categoryPresets" class="category-presets" aria-label="Categories">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
                 <div id="itemProperties"></div>
               </fieldset>
-              <label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
             </div>
           </details>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
@@ -194,6 +194,8 @@
         if (selector) { const button=$(selector); if (button && !button.disabled && !button.hidden) { event.preventDefault(); button.click(); } return; }
       }
       if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.target.isContentEditable || event.target.closest('input,textarea,select')) || document.querySelector('dialog[open]')) return;
+      const row=$('#inventoryList tr:hover'), action={e:'[data-edit-item]',a:'[data-row-archive]'}[event.key.toLowerCase()];
+      if (row && action) { const button=row.querySelector(action); if (button) { event.preventDefault(); button.click(); return; } }
       const target = {h:'have',w:'want',r:'research',d:'previous'}[event.key.toLowerCase()];
       if (target) { event.preventDefault(); view=target; render(); $('#inventoryTitle').focus({preventScroll:true}); }
     });
@@ -294,7 +296,7 @@
   function syncDateUnknown() {
     const unknown = !$('#itemObtainedDate').value;
     $('#itemDateUnknown').checked = unknown;
-    $('#itemObtainedDate').hidden = unknown;
+    $('#itemObtainedDate').disabled = unknown;
   }
   function syncSegments() {
     ["itemOwner", "itemObtainedHow"].forEach(function (id) { $$('input[name="' + id + 'Choice"]').forEach(function (el) { el.checked = el.value === $("#" + id).value; }); });
@@ -524,7 +526,7 @@
     $('#itemDateUnknown').addEventListener('change', function () {
       const input = $('#itemObtainedDate');
       if (this.checked) { input.value = ''; smartManual.add('obtainedDate'); input.removeAttribute('data-smart-field'); delete smartApplied.obtainedDate; }
-      input.hidden = this.checked;
+      input.disabled = this.checked;
       if (!this.checked) input.focus();
     });
     $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
@@ -696,8 +698,8 @@
     });
     const expandedCards=ownershipCards.filter(function (card) { return card.dataset.expanded==='true'; });
     if (!mobileInventory.matches) {
-      const ownershipWidth=Math.ceil(Math.max(0,...expandedCards.map(function (card) { return card.getBoundingClientRect().width; }))*1.2);
-      expandedCards.forEach(function (card) { const style=getComputedStyle(card), columns=style.gridTemplateColumns.split(' ').reduce(function (sum,value) { return sum+parseFloat(value); },0), borders=parseFloat(style.borderLeftWidth)+parseFloat(style.borderRightWidth); card.style.setProperty('--ownership-gap',Math.max(0,(ownershipWidth-columns-borders)/6)+'px'); card.style.width=ownershipWidth+'px'; });
+      const ownershipWidth=Math.ceil(Math.max(0,...expandedCards.map(function (card) { return card.getBoundingClientRect().width; })));
+      expandedCards.forEach(function (card) { card.style.width=ownershipWidth+'px'; });
     }
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
     const sections = m.locationSections(items).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); renderLocationNavigation(sections);
@@ -710,20 +712,30 @@
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
       const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
       const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || '',room:entry.room || '',space:property('space')}; };
-      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')) + (m.measurement(p).imperial ? '<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>' : ''); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join(''); }).join('') + '</tbody></table></div>';
   }
 
   function formSignature(selector) { return JSON.stringify($$("input, textarea, select", $(selector)).map(function (el) { return ["radio","checkbox"].includes(el.type) ? [el.value, el.checked] : el.value; })); }
   function formError(selector, message) { const el = $(selector); el.textContent = message; el.hidden = false; el.focus(); }
+  function updateMeasurement(row, commit) {
+    const value=$('[data-property-value]',row), unit=$('[data-property-unit]',row);
+    const parsed=m.measurement({name:$('[data-property-name]',row).value,value:value.value,unit:unit.value});
+    if (commit) { value.value=parsed.value; unit.value=parsed.unit; }
+    $('.property-equivalent',row).textContent=parsed.imperial;
+    $('.property-equivalent',row).hidden=!parsed.imperial;
+  }
   function addProperty(property, focus) {
     if ($$(".item-property").length >= 40) return formError("#itemFormError", "Use up to 40 properties per item.");
     const row = document.createElement("div"); row.className = "item-property";
     row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit (optional)</span><input data-property-unit maxlength="30" placeholder="Optional" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
+    const equivalent=document.createElement('small'); equivalent.className='property-equivalent'; equivalent.setAttribute('aria-live','polite'); row.appendChild(equivalent);
+    row.addEventListener('input',function () { updateMeasurement(row,false); });
+    row.addEventListener('change',function () { updateMeasurement(row,true); });
     const endpoint = function () { return ['end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); };
     $('[data-property-value]',row).addEventListener('change', function () { if (endpoint()) this.value = m.cableEnd(this.value); });
     function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','size','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else value.removeAttribute("list"); }
-    $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions();
+    $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions(); updateMeasurement(row,false);
     $("#itemProperties").appendChild(row); renderPresets(); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
   }
   function renderPresets() {
@@ -752,8 +764,8 @@
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
     root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
-    root.innerHTML = '<p>' + (editingId ? 'Edit each copy’s location, Color, Size and Notes/Description. Blank fields clear an existing location; new copies use the location above.' : 'Set each copy’s location below. Blank locations use the shared location above; choose Unknown to leave a copy without a location. Copies use shared Color, Size and Notes/Description unless you set an override; all copies save together.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      return '<div data-copy-location><strong>Copy ' + (index+1) + (editingCopies[index]?.id === editingId ? ' · This Item' : '') + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><label><input type="checkbox" data-copy-shared-color checked> Use Shared Color</label><label class="field"><span>Color</span><input data-copy-color list="inventoryColorValues" maxlength="300" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><label><input type="checkbox" data-copy-shared-size checked> Use Shared Size</label><label class="field"><span>Size</span><input data-copy-size list="inventorySizeValues" maxlength="300" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><label><input type="checkbox" data-copy-shared-notes checked> Use Shared Notes/Description</label><label class="field"><span>Notes/Description</span><textarea data-copy-notes rows="1" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
+    root.innerHTML = '<p>' + (editingId ? 'Blank locations clear existing copies; new copies use the location above.' : 'Blank locations use the location above. Choose Unknown for no location. Shared fields use the main item.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
+      return '<div data-copy-location><strong>Copy ' + (index+1)  + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" maxlength="300" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" maxlength="300" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
     }).join('') + '</div>';
     $$('[data-copy-location]').forEach(function (row,index) {
       ['Zone','Room','Space'].forEach(function (name) { const input = $('#copy'+index+name); input.setAttribute('data-copy-'+name.toLowerCase(),''); input.value = old[index]?.[name.toLowerCase()] || ''; });
@@ -856,7 +868,7 @@
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       commitTags();
       item.categories = m.tags($("#itemCategories").value);
-      item.properties = $$(".item-property").map(function (row) { return { name: $("[data-property-name]", row).value, value: ["end a","end b"].includes($("[data-property-name]", row).value.trim().toLowerCase()) ? m.cableEnd($("[data-property-value]", row).value) : $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
+      item.properties = $$(".item-property").map(function (row) { updateMeasurement(row,true); return { name: $("[data-property-name]", row).value, value: ["end a","end b"].includes($("[data-property-name]", row).value.trim().toLowerCase()) ? m.cableEnd($("[data-property-value]", row).value) : $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
       ["Brand", "Zone", "Space"].forEach(function (key) {
         const value = $("#item" + key).value.trim(), old = previous?.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); });
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
