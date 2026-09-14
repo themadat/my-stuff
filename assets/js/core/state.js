@@ -29,6 +29,7 @@
         controls: {
           buttonStyle: "both",
           shortcutHints: true,
+          locationSidebarPercent: null,
           whatsNewDismissSeconds: config.controls.whatsNewAutoDismissMs / 1000,
           shortcutHintModifier: config.controls.shortcutHintModifier,
           developerMode: false
@@ -110,6 +111,7 @@
         controls: {
           buttonStyle: ["icons", "text", "both"].includes(controls.buttonStyle) ? controls.buttonStyle : "both",
           shortcutHints: controls.shortcutHints !== false,
+          locationSidebarPercent: typeof controls.locationSidebarPercent === "number" && Number.isFinite(controls.locationSidebarPercent) ? u.clamp(controls.locationSidebarPercent, 0, 100, null) : null,
           whatsNewDismissSeconds: Math.round(u.clamp(controls.whatsNewDismissSeconds, 1, 300, config.controls.whatsNewAutoDismissMs / 1000)),
           shortcutHintModifier: config.controls.shortcutHintModifier,
           developerMode: controls.developerMode === true

@@ -678,3 +678,13 @@ test('banner dismissal preference defaults to 20 seconds and persists bounded cu
  state.preferences.controls.whatsNewDismissSeconds=999;
  assert.equal(App.stateModel.normalize(state).preferences.controls.whatsNewDismissSeconds,300);
 });
+
+test('sidebar proportion is normalized and remains device-only', () => {
+ const {App}=harness(), state=App.stateModel.createDefaultState();
+ assert.equal(state.preferences.controls.locationSidebarPercent,null);
+ state.preferences.controls.locationSidebarPercent=24.25;
+ assert.equal(App.stateModel.normalize(state).preferences.controls.locationSidebarPercent,24.25);
+ assert.equal(JSON.stringify(App.stateModel.syncPayload(state)).includes('locationSidebarPercent'),false);
+ state.preferences.controls.locationSidebarPercent='bad';
+ assert.equal(App.stateModel.normalize(state).preferences.controls.locationSidebarPercent,null);
+});

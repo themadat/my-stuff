@@ -135,7 +135,12 @@
       if (add) openItem("", add);
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
-    $('#inventoryStats').addEventListener('click', function (event) { const button = event.target.closest('[data-owner-filter]'); if (button) { ownershipExpanded.set(button.dataset.inventoryTotal, button.getAttribute('aria-expanded') !== 'true'); $('#inventoryOwnerFilter').value = button.dataset.ownerFilter; renderList(); } });
+    $('#inventoryStats').addEventListener('click', function (event) {
+      const toggle=event.target.closest('[data-ownership-toggle]');
+      if (toggle) { ownershipExpanded.set(toggle.dataset.ownershipToggle,toggle.getAttribute('aria-expanded')!=='true'); renderList(); return; }
+      const card=event.target.closest('[data-inventory-total]');
+      if (card) { $('#inventoryOwnerFilter').value=card.dataset.inventoryTotal==='all'?'':card.dataset.inventoryTotal; renderList(); }
+    });
     function showCategory(event) {
       const card = event.target.closest('[data-category-group]');
       if (card) { cancelTagClose(); hoveredCategory = card.dataset.categoryGroup; renderCategoryTags(); }
@@ -197,11 +202,24 @@
     window.addEventListener('resize',closeTagMenu);
     const divider = $('#locationDivider'); let resizing = false;
     function setSidebarWidth(width) { width = Math.round(Math.max(160,Math.min(420,width))); $('#inventoryBody').style.setProperty('--location-sidebar-width',width+'px'); divider.setAttribute('aria-valuenow',width); }
+    function saveSidebarWidth() {
+      const width=$('#inventoryBody').getBoundingClientRect().width;
+      if (mobileInventory.matches || !width) return;
+      const percent=Number(divider.getAttribute('aria-valuenow'))/width*100;
+      App.storage.mutate(function (state) { state.preferences.controls.locationSidebarPercent=percent; },{reason:'sidebar-width',touch:false});
+      App.storage.saveNow();
+    }
+    function restoreSidebarWidth() {
+      const percent=App.storage.getState().preferences.controls.locationSidebarPercent;
+      if (!resizing && !mobileInventory.matches) setSidebarWidth(percent===null?230:$('#inventoryBody').getBoundingClientRect().width*percent/100);
+    }
+    new ResizeObserver(restoreSidebarWidth).observe($('#inventoryBody'));
+    restoreSidebarWidth();
     divider.addEventListener('pointerdown', function (event) { resizing=true; divider.setPointerCapture(event.pointerId); event.preventDefault(); });
     divider.addEventListener('pointermove', function (event) { if (resizing) setSidebarWidth(event.clientX-$('#inventoryBody').getBoundingClientRect().left); });
-    divider.addEventListener('pointerup', function () { resizing=false; });
-    divider.addEventListener('pointercancel', function () { resizing=false; });
-    divider.addEventListener('keydown', function (event) { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); setSidebarWidth(event.key==='Home'?160:event.key==='End'?420:Number(divider.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?10:-10)); } });
+    divider.addEventListener('pointerup', function () { if (resizing) saveSidebarWidth(); resizing=false; });
+    divider.addEventListener('pointercancel', function () { resizing=false; restoreSidebarWidth(); });
+    divider.addEventListener('keydown', function (event) { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); setSidebarWidth(event.key==='Home'?160:event.key==='End'?420:Number(divider.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?10:-10)); saveSidebarWidth(); } });
     const updateHeaderHeight = function () { document.documentElement.style.setProperty('--inventory-header-height', Math.ceil($('.app-header').getBoundingClientRect().height)+'px'); };
     new ResizeObserver(updateHeaderHeight).observe($('.app-header')); updateHeaderHeight();
     const updateFilterHeight = function () { document.documentElement.style.setProperty('--inventory-filter-height',Math.ceil($('.inventory-toolbar-scroll').getBoundingClientRect().height)+'px'); };
@@ -561,7 +579,7 @@
     $(".inventory-filterbar").hidden = !active;
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = stats[entry[0]];
-      return '<button type="button" class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span></button>';
+      return '<div class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label"><button type="button" class="ownership-select" aria-label="Filter ' + entry[1] + '">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></button></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span><button type="button" class="ownership-toggle" data-ownership-toggle="' + entry[0] + '" aria-label="Toggle ' + entry[1] + ' totals">⌄</button></div>';
 
     }).join("");
     renderLocationFilter();
@@ -658,7 +676,7 @@
   function renderList() {
     const search = $("#inventorySearch").value.trim().toLowerCase(), owner = $("#inventoryOwnerFilter").value, room = $("#inventoryRoomFilter").value, category = $("#inventoryCategoryFilter").value;
     const all = inventory().items.filter(function (item) { return Boolean(item.archive) === (view === "previous"); });
-    $$('[data-owner-filter]').forEach(function (button) { button.setAttribute('aria-pressed',String(button.dataset.ownerFilter === owner)); });
+    $$('[data-owner-filter]').forEach(function (button) { button.dataset.selected=String(button.dataset.ownerFilter === owner); });
     renderCategoryCards(all);
     const items = all.filter(function (item) {
       return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && matchesCategory(item,category) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
@@ -672,14 +690,14 @@
     const ownershipCards=$$('#inventoryStats .inventory-stat');
     ownershipCards.forEach(function (card) {
       const key=card.dataset.inventoryTotal, expanded=ownershipExpanded.has(key)?ownershipExpanded.get(key):!mobileInventory.matches;
-      card.setAttribute('aria-expanded',String(expanded)); card.setAttribute('aria-controls','ownership-details-'+key);
+      card.dataset.expanded=String(expanded); const toggle=card.querySelector('[data-ownership-toggle]'); toggle.setAttribute('aria-expanded',String(expanded)); toggle.setAttribute('aria-controls','ownership-details-'+key); card.querySelector('.ownership-select').setAttribute('aria-pressed',card.dataset.selected);
       card.querySelector('.stat-matrix').hidden=!expanded;
       card.style.width=''; card.style.removeProperty('--ownership-gap');
     });
-    const expandedCards=ownershipCards.filter(function (card) { return card.getAttribute('aria-expanded')==='true'; });
+    const expandedCards=ownershipCards.filter(function (card) { return card.dataset.expanded==='true'; });
     if (!mobileInventory.matches) {
       const ownershipWidth=Math.ceil(Math.max(0,...expandedCards.map(function (card) { return card.getBoundingClientRect().width; }))*1.2);
-      expandedCards.forEach(function (card) { const style=getComputedStyle(card), columns=style.gridTemplateColumns.split(' ').reduce(function (sum,value) { return sum+parseFloat(value); },0), borders=parseFloat(style.borderLeftWidth)+parseFloat(style.borderRightWidth); card.style.setProperty('--ownership-gap',Math.max(0,(ownershipWidth-columns-borders)/5)+'px'); card.style.width=ownershipWidth+'px'; });
+      expandedCards.forEach(function (card) { const style=getComputedStyle(card), columns=style.gridTemplateColumns.split(' ').reduce(function (sum,value) { return sum+parseFloat(value); },0), borders=parseFloat(style.borderLeftWidth)+parseFloat(style.borderRightWidth); card.style.setProperty('--ownership-gap',Math.max(0,(ownershipWidth-columns-borders)/6)+'px'); card.style.width=ownershipWidth+'px'; });
     }
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
     const sections = m.locationSections(items).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); renderLocationNavigation(sections);

@@ -1,3 +1,11 @@
+## Latest update — local divider and separate ownership actions (0.0.1.50)
+
+The Around the House divider saves its percentage in device-only preferences.controls.locationSidebarPercent; sync payloads exclude it. Pointer drag and keyboard resizing save immediately; reload and viewport changes restore the proportion with the existing 160–420px limits. Mobile layout leaves the saved preference intact.
+
+All/House/Me select ownership. Separate keyboard-accessible chevrons expand or collapse totals without changing the filter. Existing mobile/desktop defaults and session expansion choices remain. Preserved the committed .49 mobile layout and room-first ordering, and the unrelated icons edit.
+
+110 non-browser checks and 3 targeted Chromium checks passed, covering mobile geometry, separate selection/expansion, pointer and keyboard resizing, reload persistence and responsive proportional restoration. Mobile and desktop screenshots inspected. Version/cache/manifests/workflow align at .50. Preview server stopped. No commit or push performed. Before-copies: /private/tmp/my-stuff-divider-baseline.
+
 ## Latest update — mobile rows, expandable ownership, room-first ordering (0.0.1.49)
 
 Mobile (700px and below) uses four inventory toolbar rows: Find an Item; location/category dropdowns; quick selections; All/House/Me plus Clear/Bulk/Add. The repeated “third line” in the request was interpreted as separate quick-selection and action rows, stated to the user. Quick selections scroll within their row. Expanded ownership details wrap the action area while retaining minimum 44px button widths. Desktop keeps its existing horizontal toolbar.

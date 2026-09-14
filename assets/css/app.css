@@ -614,7 +614,7 @@ main { min-width: 0; padding: .75rem max(.9rem, var(--safe-right)) calc(5.5rem +
 .inventory-heading p, .inventory-heading .eyebrow { display: none; }
 .inventory-heading #inventoryStats { display: flex; gap: .4rem; margin: 0 0 0 auto; }
 .inventory-stat { display: block; padding: .4rem .65rem; border-radius: 8px; min-width: 105px; text-align: left; color: var(--text); }
-.inventory-stat[aria-pressed="true"], .category-card[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.inventory-stat[data-selected="true"], .category-card[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .inventory-stat-label { gap: .3rem; }
 .inventory-stat-count { font-size: 1rem; margin: .12rem 0; gap: .25rem; }
 .inventory-stat-value { font-size: .75rem; }
@@ -786,7 +786,7 @@ main { min-width: 0; padding: .75rem max(.9rem, var(--safe-right)) calc(5.5rem +
 @media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) .inventory-table tr[data-item-owner="house"] .object-title [data-instant-filter="name"] { color: #f2c55c; } }
 [data-theme="dark"] .inventory-table tr[data-item-owner="house"] .object-title [data-instant-filter="name"] { color: #f2c55c; }
 @media(max-width:620px) { .copy-notes { grid-column: 1 / -1; } }
-.inventory-stat[data-inventory-total="house"][aria-pressed="true"] { box-shadow: inset 0 0 0 1px #c38d20; }
+.inventory-stat[data-inventory-total="house"][data-selected="true"] { box-shadow: inset 0 0 0 1px #c38d20; }
 
 /* Tighten the space from the header through the inventory list. */
 main { padding-top: .25rem; }
@@ -898,7 +898,7 @@ main { padding-top: .25rem; }
 .inventory-heading .inventory-stat-label { flex-basis: 30px; }
 .inventory-heading .stat-row { grid-template-columns: auto auto auto; gap: .3rem; font-size: .62rem; }
 .inventory-stat[data-inventory-total="me"] { border-color: #d33124; background: color-mix(in srgb, #ee3928 16%, var(--surface)); }
-.inventory-stat[data-inventory-total="me"][aria-pressed="true"] { box-shadow: inset 0 0 0 1px #d33124; }
+.inventory-stat[data-inventory-total="me"][data-selected="true"] { box-shadow: inset 0 0 0 1px #d33124; }
 .inventory-table-wrap { overflow: visible; }
 .location-section-heading th { position: sticky; top: calc(var(--inventory-header-height,60px) + var(--inventory-filter-height,60px)); z-index: 10; scroll-margin-top: calc(var(--inventory-header-height,60px) + var(--inventory-filter-height,60px) + .4rem); }
 #roomOverview { top: calc(var(--inventory-header-height,60px) + var(--inventory-filter-height,60px)); height: calc(100dvh - var(--inventory-header-height,60px) - var(--inventory-filter-height,60px)); }
@@ -1029,7 +1029,7 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 @media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) #updateAppButton[data-update-available="true"] .button-icon { color: #ff7367; } }
 
 /* Equal spacing from each card edge through its four aligned content columns. */
-.inventory-heading .inventory-stat { --ownership-gap: .35rem; font-size: .62rem; grid-template-columns: 32px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)); grid-template-rows: repeat(2,auto); column-gap: var(--ownership-gap); row-gap: .1rem; padding-inline: var(--ownership-gap); }
+.inventory-heading .inventory-stat { --ownership-gap: .35rem; font-size: .62rem; grid-template-columns: 32px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)) 24px; grid-template-rows: repeat(2,auto); column-gap: var(--ownership-gap); row-gap: .1rem; padding-inline: var(--ownership-gap); }
 .inventory-heading .inventory-stat-label { grid-column: 1; grid-row: 1 / 3; align-items: flex-start; text-align: left; justify-self: start; }
 .inventory-heading .stat-matrix, .inventory-heading .stat-row { display: contents; }
 .inventory-heading .stat-row > span:first-child { grid-column: 2; text-align: left; }
@@ -1040,8 +1040,8 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 
 /* Ownership details toggle independently; mobile controls use four ordered rows. */
 .inventory-actions { display: contents; }
-.inventory-heading .inventory-stat[aria-expanded="false"] { display: flex; width: auto; min-width: 44px; min-height: 44px; padding: .35rem .5rem; font-size: .72rem; }
-.inventory-heading .inventory-stat[aria-expanded="false"] .inventory-stat-label { width: auto; flex: 0 0 auto; align-items: center; text-align: center; }
+.inventory-heading .inventory-stat[data-expanded="false"] { display: flex; width: auto; min-width: 44px; min-height: 44px; padding: .35rem .5rem; font-size: .72rem; }
+.inventory-heading .inventory-stat[data-expanded="false"] .inventory-stat-label { width: auto; flex: 0 0 auto; align-items: center; text-align: center; }
 @media(max-width:700px) {
  .inventory-toolbar-scroll { overflow: visible; }
  .inventory-toolbar-scroll .inventory-heading { min-width: 0; width: 100%; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .35rem; }
@@ -1053,7 +1053,13 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
  .inventory-toolbar-scroll .category-cards { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
  .inventory-toolbar-scroll .inventory-actions { grid-column: 1 / -1; grid-row: 4; display: flex; flex-wrap: wrap; align-items: stretch; gap: .25rem; min-width: 0; }
  .inventory-toolbar-scroll .inventory-actions #inventoryStats { display: contents; }
- .inventory-actions > .button, .inventory-actions .inventory-stat[aria-expanded="false"] { flex: 1 1 44px; min-width: 44px; width: auto; min-height: 44px; padding-inline: .25rem; }
- .inventory-actions .inventory-stat[aria-expanded="true"] { flex: 1 1 260px; min-width: 260px; max-width: 100%; width: auto; grid-template-columns: 40px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)); }
+ .inventory-actions > .button, .inventory-actions .inventory-stat[data-expanded="false"] { flex: 1 1 44px; min-width: 44px; width: auto; min-height: 44px; padding-inline: .25rem; }
+ .inventory-actions .inventory-stat[data-expanded="true"] { flex: 1 1 260px; min-width: 260px; max-width: 100%; width: auto; grid-template-columns: 40px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)) 24px; }
  .inventory-actions .inventory-stat-label { align-self: center; }
 }
+
+.ownership-select, .ownership-toggle { border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; font: inherit; }
+.ownership-select { display: flex; flex-direction: column; align-items: inherit; gap: .1rem; }
+.ownership-toggle { grid-column: 5; grid-row: 1 / 3; align-self: stretch; min-width: 24px; min-height: 44px; font-size: 1rem; }
+.ownership-toggle[aria-expanded="true"] { transform: rotate(180deg); }
+@media(max-width:700px) { .inventory-stat[data-expanded="false"] { flex-direction: column; gap: 0; } .inventory-stat[data-expanded="false"] .ownership-toggle { min-height: 24px; width: 100%; } }

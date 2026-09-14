@@ -1090,22 +1090,27 @@ test('mobile toolbar has ordered rows and ownership buttons expand without losin
   const {page}=await fixture(t,{viewport:{width,height:900},colorScheme:width===390?'dark':'light'});
   await page.locator('[data-close-dialog="supportDialog"]').click();
   const cards=page.locator('#inventoryStats .inventory-stat');
-  assert.deepEqual(await cards.evaluateAll(els=>els.map(el=>el.getAttribute('aria-expanded'))),['false','false','false']);
+  assert.deepEqual(await cards.evaluateAll(els=>els.map(el=>el.getAttribute('data-expanded'))),['false','false','false']);
   const bounds=await Promise.all(['#inventorySearch','#inventoryRoomFilter','#inventoryCategoryFilter','.category-quick-controls','[data-inventory-total="all"]','#clearInventoryFilters','#bulkEntryButton','#addItemButton'].map(selector=>page.locator(selector).boundingBox()));
   assert.ok(bounds[0].y<bounds[1].y && bounds[1].y<bounds[3].y && bounds[3].y<bounds[4].y);
   assert.equal(bounds[1].y,bounds[2].y);
   assert.ok(bounds.slice(4).every(rect=>Math.abs(rect.y-bounds[4].y)<2));
   assert.ok(bounds.every(rect=>rect.x>=0&&rect.x+rect.width<=width+1));
-  const house=page.locator('[data-inventory-total="house"]'); await house.click();
-  assert.equal(await house.getAttribute('aria-expanded'),'true');
+  const house=page.locator('[data-inventory-total="house"]'); await house.locator('.ownership-select').click();
+  assert.equal(await house.getAttribute('data-expanded'),'false');
+  await house.locator('.ownership-toggle').click();
+  assert.equal(await house.getAttribute('data-expanded'),'true');
   assert.equal(await page.locator('#ownership-details-house').isVisible(),true);
   assert.ok(await cards.evaluateAll(els=>els.every(el=>el.getBoundingClientRect().width>=44)));
   await page.screenshot({path:'/private/tmp/my-stuff-expanded-toolbar-'+width+'.png'});
   assert.equal(await page.locator('#inventoryOwnerFilter').inputValue(),'house');
+  await page.locator('[data-ownership-toggle="all"]').click();
+  assert.equal(await page.locator('#inventoryOwnerFilter').inputValue(),'house','expansion must not select another owner');
+  await page.locator('[data-ownership-toggle="all"]').click();
   await page.locator('#inventorySearch').fill('no result');
-  assert.equal(await house.getAttribute('aria-expanded'),'true');
+  assert.equal(await house.getAttribute('data-expanded'),'true');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await house.press('Enter'); assert.equal(await house.getAttribute('aria-expanded'),'false');
+  await house.locator('.ownership-toggle').press('Enter'); assert.equal(await house.getAttribute('data-expanded'),'false');
   await page.locator('#clearInventoryFilters').click();
   assert.equal(await page.locator('#inventoryOwnerFilter').inputValue(),'');
   await page.screenshot({path:'/private/tmp/my-stuff-mobile-toolbar-'+width+'.png'});
@@ -1114,19 +1119,41 @@ test('mobile toolbar has ordered rows and ownership buttons expand without losin
 
 test('desktop ownership defaults expand, toggles persist, and room-only rows precede space headings', {timeout:30000},async t=>{
  const {page}=await fixture(t,{viewport:{width:1800,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
- assert.deepEqual(await page.locator('#inventoryStats .inventory-stat').evaluateAll(els=>els.map(el=>el.getAttribute('aria-expanded'))),['true','true','true']);
- const all=page.locator('[data-inventory-total="all"]'); await all.click(); assert.equal(await all.getAttribute('aria-expanded'),'false');
+ assert.deepEqual(await page.locator('#inventoryStats .inventory-stat').evaluateAll(els=>els.map(el=>el.getAttribute('data-expanded'))),['true','true','true']);
+ const all=page.locator('[data-inventory-total="all"]'); await all.locator('.ownership-toggle').click(); assert.equal(await all.getAttribute('data-expanded'),'false');
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
   {id:'desk',name:'Desk Object',space:'Desk'}, {id:'room',name:'Room Object',space:''}, {id:'closet',name:'Closet Object',space:'Closet'}
  ].map(row=>window.LocalApp.inventoryModel.normalizeItem({id:row.id,name:row.name,owner:'me',room:'Office',properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:row.space}]}));}));
- assert.equal(await all.getAttribute('aria-expanded'),'false');
+ assert.equal(await all.getAttribute('data-expanded'),'false');
  const rows=await page.locator('#inventoryList tbody tr').allTextContents();
  assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text==='Closet'));
  assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text==='Desk'));
  await page.setViewportSize({width:390,height:900});
- await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('aria-expanded')==='false');
+ await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('data-expanded')==='false');
  await page.setViewportSize({width:1800,height:1000});
- await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('aria-expanded')==='true');
- assert.equal(await all.getAttribute('aria-expanded'),'false');
+ await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('data-expanded')==='true');
+ assert.equal(await all.getAttribute('data-expanded'),'false');
  await page.screenshot({path:'/private/tmp/my-stuff-desktop-ownership.png'});
+});
+
+test('sidebar percentage survives reload locally and scales on resize', {timeout:30000}, async t=>{
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ const divider=page.locator('#locationDivider');
+ await divider.focus(); await divider.press('ArrowRight'); await divider.press('ArrowRight');
+ let percent=await page.evaluate(()=>LocalApp.storage.getState().preferences.controls.locationSidebarPercent);
+ assert.ok(percent>0);
+ await page.reload();
+ assert.equal(await divider.getAttribute('aria-valuenow'),'250');
+ const handle=await divider.boundingBox();
+ await page.mouse.move(handle.x+handle.width/2,handle.y+30); await page.mouse.down();
+ await page.mouse.move(handle.x+handle.width/2+40,handle.y+30); await page.mouse.up();
+ percent=await page.evaluate(()=>LocalApp.storage.getState().preferences.controls.locationSidebarPercent);
+ await page.reload();
+ assert.equal(await divider.getAttribute('aria-valuenow'),'294');
+ await page.setViewportSize({width:1200,height:1000});
+ await page.waitForFunction(p=>Number(document.querySelector('#locationDivider').getAttribute('aria-valuenow'))===Math.round(Math.max(160,Math.min(420,document.querySelector('#inventoryBody').getBoundingClientRect().width*p/100))),percent);
+ assert.equal(await page.evaluate(()=>LocalApp.storage.getState().preferences.controls.locationSidebarPercent),percent);
+ await page.setViewportSize({width:390,height:900}); await page.reload();
+ assert.equal(await page.evaluate(()=>LocalApp.storage.getState().preferences.controls.locationSidebarPercent),percent);
 });
