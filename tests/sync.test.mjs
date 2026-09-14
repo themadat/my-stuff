@@ -667,3 +667,14 @@ test('location review dates survive state normalization and sync payloads', () =
  assert.equal(normalized.inventory.locationReviews[key].date,'2026-09-13');
  assert.equal(App.stateModel.syncPayload(normalized).data.inventory.locationReviews[key].date,'2026-09-13');
 });
+
+test('banner dismissal preference defaults to 20 seconds and persists bounded custom values', () => {
+ const {App}=harness(); const state=App.stateModel.createDefaultState();
+ assert.equal(state.preferences.controls.whatsNewDismissSeconds,20);
+ delete state.preferences.controls.whatsNewDismissSeconds;
+ assert.equal(App.stateModel.normalize(state).preferences.controls.whatsNewDismissSeconds,20);
+ state.preferences.controls.whatsNewDismissSeconds=45;
+ assert.equal(App.stateModel.normalize(state).preferences.controls.whatsNewDismissSeconds,45);
+ state.preferences.controls.whatsNewDismissSeconds=999;
+ assert.equal(App.stateModel.normalize(state).preferences.controls.whatsNewDismissSeconds,300);
+});

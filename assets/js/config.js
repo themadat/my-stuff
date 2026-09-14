@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.45",
-      buildId: "0.0.1.45",
+      version: "0.0.1.46",
+      buildId: "0.0.1.46",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -76,12 +76,16 @@
       shortcutHintModifier: "ShiftControlOption",
       autosaveDelayMs: 180,
       syncCheckIntervalMs: 5 * 60 * 1000,
-      whatsNewAutoDismissMs: 30 * 1000,
+      whatsNewAutoDismissMs: 20 * 1000,
       maxImportBytes: 5 * 1024 * 1024,
       maxTextLength: 250000
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.46", date: "2026-09-13T00:00:00.000Z", title: "Configurable Banner Timer",
+      summary: "Set the What’s New dismissal time in Settings; the default is 20 seconds.",
+      features: [], improvements: ["Supplied Update symbol"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.45", date: "2026-09-13T00:00:00.000Z", title: "Sidebar and Toolbar Spacing",
       summary: "Sticky sidebar heading, matched search width and 20% wider ownership cards.",
       features: [], improvements: ["Slightly smaller tab symbols"], fixes: ["Remove obsolete bottom floating-button clearance"], knownIssues: []

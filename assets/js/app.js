@@ -46,6 +46,7 @@
     $$('[data-theme-mode]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.themeMode === appearance.mode)); });
     $$('button[data-button-style]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.buttonStyle === preferences.controls.buttonStyle)); });
     $$('[data-hints-enabled]').forEach(function (button) { button.setAttribute("aria-pressed", String((button.dataset.hintsEnabled === "true") === preferences.hints.enabled)); });
+    $("#whatsNewDismissSeconds").value = preferences.controls.whatsNewDismissSeconds;
     renderHint();
     App.pwa?.applyAppearanceAssets();
   }
@@ -71,9 +72,12 @@
     $("[data-whats-new-version]", banner).textContent = "v" + release.version;
     $("[data-whats-new-title]", banner).textContent = release.title;
     $("[data-whats-new-summary]", banner).textContent = release.summary;
-    banner.style.setProperty("--whats-new-duration", config.controls.whatsNewAutoDismissMs + "ms");
+    const duration=state().preferences.controls.whatsNewDismissSeconds * 1000;
+    banner.classList.remove("is-counting-down");
+    void banner.offsetWidth;
+    banner.style.setProperty("--whats-new-duration", duration + "ms");
     requestAnimationFrame(function () { banner.classList.add("is-counting-down"); });
-    releaseTimer = window.setTimeout(dismissWhatsNew, config.controls.whatsNewAutoDismissMs);
+    releaseTimer = window.setTimeout(dismissWhatsNew, duration);
   }
 
   function dismissWhatsNew() {
@@ -446,6 +450,12 @@
     $$('[data-theme-mode]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.appearance.mode = button.dataset.themeMode; }, { reason: "appearance" }); applyAppearance(); }); });
     $$('button[data-button-style]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.controls.buttonStyle = button.dataset.buttonStyle; }, { reason: "appearance" }); applyAppearance(); }); });
     $$('[data-hints-enabled]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.hints.enabled = button.dataset.hintsEnabled === "true"; }, { reason: "hints" }); applyAppearance(); }); });
+    $('#whatsNewDismissSeconds').addEventListener('change',function () {
+      if (!this.reportValidity()) return;
+      const seconds=Number(this.value);
+      storage.mutate(function (next) { next.preferences.controls.whatsNewDismissSeconds=seconds; },{reason:'banner-duration'});
+      storage.saveNow(); renderWhatsNew();
+    });
     $("#restoreHintsButton").addEventListener("click", function () { storage.mutate(function (next) { next.preferences.hints.enabled = true; next.preferences.hints.dismissed = []; }, { reason: "hints" }); applyAppearance(); });
     $("#textSizeSlider").addEventListener("input", function () { const scale = Number(this.value) / 100; storage.mutate(function (next) { next.preferences.appearance.textScale = scale; }, { reason: "text-size" }); applyAppearance(); renderTextSize(); });
     $("#helpSearch").addEventListener("input", renderHelp);

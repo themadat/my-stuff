@@ -29,6 +29,7 @@
         controls: {
           buttonStyle: "both",
           shortcutHints: true,
+          whatsNewDismissSeconds: config.controls.whatsNewAutoDismissMs / 1000,
           shortcutHintModifier: config.controls.shortcutHintModifier,
           developerMode: false
         },
@@ -109,6 +110,7 @@
         controls: {
           buttonStyle: ["icons", "text", "both"].includes(controls.buttonStyle) ? controls.buttonStyle : "both",
           shortcutHints: controls.shortcutHints !== false,
+          whatsNewDismissSeconds: Math.round(u.clamp(controls.whatsNewDismissSeconds, 1, 300, config.controls.whatsNewAutoDismissMs / 1000)),
           shortcutHintModifier: config.controls.shortcutHintModifier,
           developerMode: controls.developerMode === true
         },

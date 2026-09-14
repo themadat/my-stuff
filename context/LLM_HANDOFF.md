@@ -1,3 +1,9 @@
+## Latest update — configurable banner timer and Update symbol (0.0.1.46)
+
+Settings includes What’s New dismissal (seconds), accepting integers from 1–300 with a 20-second default. It persists in device preferences; older state receives the new default. Changing the value restarts the visible banner countdown and its animation, while dismissed banners remain dismissed. Replaced the top-bar Update symbol with the supplied SVG through the shared registry.
+
+All 107 automated checks pass, including default/migrated/custom timer preference normalization, script syntax and aligned version/cache/manifest/workflow surfaces. Supplied SVG passes XML validation. Browser timing/visual validation remains pending. Before-copies: /private/tmp/my-stuff-banner-timer-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — sidebar and toolbar spacing (0.0.1.45)
 
 Around the House heading sticks inside its scrolling module with an opaque background. Removed the obsolete 5.5rem bottom clearance for the former floating sync button; desktop sidebar/divider heights now also account for the small remaining main padding and safe area. Tab symbols shrink from 32px to 29px.
