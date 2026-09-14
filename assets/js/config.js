@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.41",
-      buildId: "0.0.1.41",
+      version: "0.0.1.42",
+      buildId: "0.0.1.42",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -82,6 +82,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.42", date: "2026-09-13T00:00:00.000Z", title: "Compact Columns and Collapsible Locations",
+      summary: "Content-sized inventory columns, collapsible location navigation and sync status beside Notes.",
+      features: [], improvements: ["Smaller tab symbols", "Count heading shortened to #"], fixes: ["Dismissed hints immediately refresh on mobile and desktop"], knownIssues: []
+    }, {
       version: "0.0.1.41", date: "2026-09-13T00:00:00.000Z", title: "Research Tab Symbol",
       summary: "The Research tab uses the supplied filled document and magnifying glass artwork.",
       features: [], improvements: ["Masked clearance behind the magnifying glass"], fixes: [], knownIssues: []

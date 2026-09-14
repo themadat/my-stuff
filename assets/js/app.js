@@ -470,7 +470,7 @@
     App.components.bindLongPress(icon, function () { iconHoldTriggered = true; toggleDeveloperMode(); navigator.vibrate?.(25); }, 650);
 
     window.addEventListener("app:statechange", function (event) {
-      renderSync(); renderDeveloper();
+      renderSync(); renderDeveloper(); renderHint();
       if (["import", "recovery", "sync-download", "sync-merge"].includes(event.detail.reason)) {
         $("#notesTextarea").value = state().notes.text;
         applyAppearance(); renderSupport();

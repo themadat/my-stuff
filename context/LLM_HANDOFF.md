@@ -1,3 +1,11 @@
+## Latest update — compact columns and collapsible locations (0.0.1.42)
+
+Inventory uses automatic table layout with narrow content-sized supporting columns; Count becomes #, and Object/Properties/Notes gets the remaining width. The location navigator renders nested branches with left-side chevron buttons, aria-expanded/controls, and session-local collapse state preserved through re-renders. Location labels still jump to their inventory headings.
+
+Moved the existing combined local/GitHub status control into the top toolbar immediately before Notes, retaining its sync action, status updates and accessible label. It is icon-only on narrow screens with status available via its accessible label/title. Tab symbols decrease from 38px to 32px. Hint dismissal previously persisted the preference without refreshing the banner; state changes now call renderHint immediately. The close control has a nonshrinking 44px mobile target and hint text can wrap.
+
+All 103 automated checks pass, including script syntax, asset references and aligned version/cache/manifests/workflow surfaces. Browser visual, collapse and mobile interaction validation remains pending. Source was clean at a649f98 (0.0.1.41). Before-copies: /private/tmp/my-stuff-layout-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — Research tab artwork (0.0.1.41)
 
 The Research tab uses the supplied filled document/magnifying-glass SVG. Geometry and mask are preserved, with a tab-specific mask ID to avoid collisions with other document symbols. The dedicated shared-registry symbol is used only by the top-bar tab.

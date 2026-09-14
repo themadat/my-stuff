@@ -5,6 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
+  const collapsedLocations = new Set();
   let categorySlots = new Map(), hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
@@ -152,6 +153,8 @@
     });
     document.addEventListener('pointerdown',function (event) { if (!insideTags(event.target)) closeTagMenu(); });
     $('#roomStats').addEventListener('click', function (event) {
+      const toggle=event.target.closest('[data-location-toggle]');
+      if (toggle) { const key=toggle.dataset.locationToggle; if (collapsedLocations.has(key)) collapsedLocations.delete(key); else collapsedLocations.add(key); renderList(); $$('#roomStats [data-location-toggle]').find(function (button) { return button.dataset.locationToggle===key; })?.focus({preventScroll:true}); return; }
       const link = event.target.closest('[data-location-jump]'); if (!link) return;
       const target = document.getElementById(link.dataset.locationJump);
       if (target) { target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'}); target.focus({preventScroll:true}); }
@@ -598,7 +601,12 @@
         nodes.get(key).count += section.items.length;
       });
     });
-    $('#roomStats').innerHTML = nodes.size ? '<nav aria-label="Inventory locations">'+Array.from(nodes.values()).map(function (node) { return '<button type="button" class="location-jump" style="--location-depth:'+(node.path.length-1)+'" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span><small>'+node.count+'</small></button>'; }).join('')+'</nav>' : '<p>No locations in these results.</p>';
+    const values=Array.from(nodes.values());
+    function branch(node) {
+      const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
+      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span><small>'+node.count+'</small></button></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+    }
+    $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
   }
   function locationHeadings(path, previous) {
     let changed=false;
@@ -640,7 +648,7 @@
     if (!items.length) {
       $("#inventoryList").innerHTML = '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryAdd") + ' Add Item</button>' : '') + '</div>'; return;
     }
-    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th><span class="visually-hidden">Tags</span></th><th>Count</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return locationHeadings(section.path,sections[sectionIndex-1]?.path) + m.groupRows(section.items).map(function (members) {
+    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th><span class="visually-hidden">Tags</span></th><th aria-label="Count">#</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return locationHeadings(section.path,sections[sectionIndex-1]?.path) + m.groupRows(section.items).map(function (members) {
       const item = members[0], distinct = function (values) { return Array.from(new Map(values.map(function (value) { return [JSON.stringify(value),value]; })).values()); };
       const properties = distinct(members.flatMap(function (entry) { return entry.properties; })), descriptions = distinct(members.map(function (entry) { return entry.description; }));
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;

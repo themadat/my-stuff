@@ -979,3 +979,28 @@ body > #categoryTags { position: fixed; z-index: 100; box-sizing: border-box; ov
 .ordered-tag button { display: inline-grid; place-items: center; min-width: 24px; min-height: 28px; padding: .15rem; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
 .ordered-tag button:hover { background: var(--surface); }
 .ordered-tag .sf-symbol { width: .8rem; height: .8rem; }
+
+/* Fit supporting columns to their content; give the object column the remainder. */
+.inventory-table { table-layout: auto; }
+.inventory-table th:first-child { width: auto; }
+.inventory-table th:not(:first-child) { width: 1%; white-space: nowrap; }
+.inventory-table td:not(:first-child) { white-space: nowrap; }
+.inventory-table .inventory-row-actions { white-space: nowrap; }
+.location-nav-row { display: flex; align-items: center; padding-left: calc(var(--location-depth)*.65rem); }
+.location-toggle, .location-toggle-space { flex: 0 0 26px; width: 26px; }
+.location-toggle { min-height: 32px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+.location-toggle:hover { background: var(--surface-2); }
+.location-nav-row .location-jump { flex: 1; min-width: 0; padding-left: .15rem; }
+.top-toolbar #floatingStatus { position: relative; inset: auto; align-self: center; max-width: 155px; min-height: 40px; padding: .25rem .4rem; box-shadow: none; }
+.top-toolbar .floating-status-copy { min-width: 0; }
+.app-header .inventory-tab { grid-template-columns: 32px auto; }
+.app-header .inventory-tab > span:first-child .sf-symbol { width: 32px; height: 32px; }
+.context-hint p { min-width: 0; overflow-wrap: anywhere; }
+.context-hint [data-dismiss-hint] { flex: 0 0 44px; width: 44px; height: 44px; touch-action: manipulation; }
+@media(max-width:700px) {
+ .top-toolbar #floatingStatus { max-width: 44px; width: 44px; justify-content: center; }
+ .top-toolbar #floatingStatus .floating-status-copy { display: none; }
+ .inventory-table td:not(:first-child) { white-space: normal; }
+ .inventory-table .inventory-row-actions { white-space: nowrap; }
+ .location-toggle { min-height: 44px; }
+}
