@@ -1126,8 +1126,8 @@ test('desktop ownership defaults expand, toggles persist, and room-only rows pre
  ].map(row=>window.LocalApp.inventoryModel.normalizeItem({id:row.id,name:row.name,owner:'me',room:'Office',properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:row.space}]}));}));
  assert.equal(await all.getAttribute('data-expanded'),'false');
  const rows=await page.locator('#inventoryList tbody tr').allTextContents();
- assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text==='Closet'));
- assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text==='Desk'));
+ assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text.replace(/^[▾▸]\s*/, '')==='Closet'));
+ assert.ok(rows.findIndex(text=>text.includes('Room Object'))<rows.findIndex(text=>text.replace(/^[▾▸]\s*/, '')==='Desk'));
  await page.setViewportSize({width:390,height:900});
  await page.waitForFunction(()=>document.querySelector('[data-inventory-total="house"]').getAttribute('data-expanded')==='false');
  await page.setViewportSize({width:1800,height:1000});
@@ -1192,4 +1192,60 @@ test('compact item form parses measurements and hovered row shortcuts respect ty
  await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.screenshot({path:'/private/tmp/my-stuff-compact-editor-mobile.png'});
  assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);
+});
+
+test('copy controls clear shared overrides, tags align with Notes, and Command Enter saves', {timeout:30000}, async t=>{
+ const {page}=await fixture(t,{viewport:{width:1440,height:1100}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Copy alignment');
+ await page.locator('#itemCategories').evaluate(el=>{el.value='Apple, Hiking, Biking, Float';});
+ await page.locator('#itemBrand').fill('Apple');
+ assert.equal(await page.locator('[data-move-tag]').count(),0);
+ assert.equal(await page.locator('[data-order-tag="Apple"]').getAttribute('draggable'),'false');
+ assert.equal(await page.locator('[data-order-tag="Float"]').getAttribute('data-fixed'),'true');
+ await page.locator('[data-order-tag="Biking"]').press('Alt+ArrowLeft');
+ assert.equal(await page.locator('#itemCategories').inputValue(),'Apple, Biking, Hiking, Float');
+ await page.locator('#itemCopies').fill('2'); await page.locator('#itemCopies').press('Tab');
+ assert.equal(await page.locator('[data-copy-location] > strong').first().textContent(),'#1');
+ assert.equal(await page.locator('#itemCopyLocations > p').count(),0);
+ for(const name of ['color','size','notes']) {
+   const check=page.locator('[data-copy-shared-'+name+']').first(), input=page.locator('[data-copy-'+name+']').first();
+   await check.uncheck(); await input.fill('Override'); await check.check();
+   assert.equal(await input.inputValue(),''); assert.equal(await input.isDisabled(),true);
+ }
+ const boxes=await Promise.all(['#copy0Zone','#copy0Room','#copy0Space','#copy0color','#copy0size','#copy0notes'].map(selector=>page.locator(selector).boundingBox()));
+ assert.ok(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y))<2);
+ const search=await page.locator('#itemTagSearch').boundingBox(),tags=await page.locator('#selectedItemTags').boundingBox(),notes=await page.locator('#itemDescription').boundingBox();
+ assert.ok(Math.abs(search.y-notes.y)<2 && Math.abs(tags.y+tags.height-notes.y-notes.height)<2);
+ await page.screenshot({path:'/private/tmp/my-stuff52-editor.png'});
+ await page.locator('#itemDescription').press('Meta+Enter'); assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ await page.locator('[data-edit-item]').first().click(); await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ await page.locator('#itemDescription').fill('Saved with shortcut'); await page.locator('#itemDescription').press('Meta+Enter');
+ assert.match(await page.locator('#inventoryList').textContent(),/Saved with shortcut/);
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('[data-edit-item]').first().click(); await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ await page.locator('#itemDescription').scrollIntoViewIfNeeded();
+ assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff52-mobile.png'});
+
+});
+
+test('table location collapse nests, persists through renders and sidebar reveals targets', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1440,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{const app=window.LocalApp; app.storage.mutate(state=>{state.inventory.items=[['Room Only',''],['Desk Item','Desk']].map(([name,space],i)=>app.inventoryModel.normalizeItem({id:'collapse-'+i,name,room:'Office',owner:'me',properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:space},{name:'Weight',value:'250',unit:'g'}]}));});});
+ const room=page.locator('[data-table-location-toggle]').filter({hasText:'Office'}),zone=page.locator('[data-table-location-toggle]').filter({hasText:'Upstairs'});
+ await room.click(); assert.equal(await page.locator('[data-edit-item]:visible').count(),0);
+ await zone.click(); await zone.click(); assert.equal(await room.getAttribute('aria-expanded'),'false');
+ await page.locator('[data-inventory-total="all"] .ownership-select').click(); assert.equal(await room.getAttribute('aria-expanded'),'false');
+ await page.locator('#roomStats [data-location-jump]').filter({hasText:'Desk'}).click();
+ assert.equal(await page.locator('[data-edit-item]:visible').count(),2);
+ const pair=page.locator('.object-property').first(),equivalent=pair.locator('.property-equivalent'),property=pair.locator('button');
+ const a=await equivalent.boundingBox(),b=await property.boundingBox(); assert.ok(a.x>=b.x+b.width && Math.abs(a.y-b.y)<8);
+ for(const name of ['updateApp','updateReady','updateApp']) {
+  await page.evaluate(name=>window.LocalApp.icons.set(document.querySelector('#updateAppButton .button-icon'),name),name);
+  assert.equal(await page.locator('#updateAppButton svg').isVisible(),true);
+  assert.ok(await page.locator('#updateAppButton svg path').count()>0);
+ }
+ await page.screenshot({path:'/private/tmp/my-stuff52-table.png'});
 });

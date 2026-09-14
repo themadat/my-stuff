@@ -76,7 +76,7 @@ test('a waiting service worker changes Update artwork and activation clears the 
  const listeners={},attributes={},symbol={};
  const button={dataset:{},querySelector:()=>symbol,setAttribute:(k,v)=>attributes[k]=v,addEventListener(){}};
  const registration={waiting:{},addEventListener(){}};
- const app={config,storage:{getState:()=>({preferences:{appearance:{mode:'light'}}})},icons:{set:(target,name)=>{target.name=name;}},components:{toast(){throw new Error("Update availability must not create a bottom notification");}}};
+ const app={config,storage:{getState:()=>({preferences:{appearance:{mode:'light'}}})},icons:{markup:name=>name,set:(target,name)=>{target.name=name;}},components:{toast(){throw new Error("Update availability must not create a bottom notification");}}};
  const sandbox=vm.createContext({location:{protocol:'https:'},navigator:{serviceWorker:{controller:{},register:async()=>registration,addEventListener:(name,fn)=>listeners[name]=fn}},document:{documentElement:{dataset:{}},querySelector:selector=>selector==='#updateAppButton'?button:null},window:{LocalApp:app,addEventListener(){},matchMedia:()=>({matches:false,addEventListener(){}})}});
  vm.runInContext(read('assets/js/core/pwa.js'),sandbox); app.pwa.init();
  await new Promise(resolve=>setImmediate(resolve));
@@ -85,3 +85,11 @@ test('a waiting service worker changes Update artwork and activation clears the 
  listeners.controllerchange();
  assert.equal(button.dataset.updateAvailable,'false'); assert.equal(symbol.name,'updateApp');
 });
+
+ test('both update states have a concrete SVG symbol', () => {
+   const context=vm.createContext({window:{}}); vm.runInContext(read('assets/js/icons.js'),context);
+   for (const name of ['updateApp','updateReady']) {
+     const svg=context.window.LocalApp.icons.markup(name);
+     assert.match(svg,/<svg[^>]+viewBox=/); assert.match(svg,/<path/);
+   }
+ });

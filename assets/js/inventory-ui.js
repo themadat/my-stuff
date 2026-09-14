@@ -5,7 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
-  const collapsedLocations = new Set(), ownershipExpanded = new Map();
+  const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
   const mobileInventory = matchMedia("(max-width: 700px)");
   let categorySlots = new Map(), hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
@@ -20,8 +20,8 @@
   function segments(id, title, values) {
     return '<fieldset class="item-segments"><legend>' + title + '</legend><input type="hidden" id="' + id + '"><div class="segment-track">' + values.map(function (entry) { return '<label><input type="radio" name="' + id + 'Choice" value="' + esc(entry[0]) + '"><span>' + esc(entry[1]) + '</span></label>'; }).join("") + '</div></fieldset>';
   }
-  function picker(id, title, placeholder) {
-    return '<div class="field picker"><label for="' + id + '">' + title + '</label><input id="' + id + '" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + 'Options" autocomplete="off" maxlength="80" placeholder="' + placeholder + '"><div id="' + id + 'Options" class="picker-options" role="listbox" aria-label="' + title + ' Suggestions" hidden></div></div>';
+  function picker(id, title, placeholder, hint) {
+    return '<div class="field picker"><label for="' + id + '">' + title + (hint || '') + '</label><input id="' + id + '" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + 'Options" autocomplete="off" maxlength="80" placeholder="' + placeholder + '"><div id="' + id + 'Options" class="picker-options" role="listbox" aria-label="' + title + ' Suggestions" hidden></div></div>';
   }
   function init() {
     $("#inventoryWorkspace").innerHTML = `
@@ -72,7 +72,7 @@
             <div class="full item-location-row">
               ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Unknown location")}${picker("itemSpace", "Space", "Search spaces…")}
             </div><div class="full item-tags-notes-row">
-              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…")}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><small>Drag tags or use their arrows to reorder. Brand tags stay first; Float stays last.</small><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div><label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="2" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
+              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…", '<small class="tag-order-hint">Drag Tags or Use Alt+Arrow Keys to Reorder</small>')}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div><label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="1" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
             </div>
           </div>
           <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
@@ -86,7 +86,7 @@
           </details>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
-        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" class="button primary" type="submit">Save Item</button></footer>
+        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" aria-keyshortcuts="Meta+Enter Control+Enter" title="Save Item (Command+Enter)" class="button primary" type="submit">Save Item</button></footer>
       </form></dialog>
       <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
         ${field("itemGoneDate", "Gone Date", 'type="date" required')}
@@ -135,7 +135,13 @@
       if (add) openItem("", add);
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
-    $('#inventoryStats').addEventListener('click', function (event) {
+    $('#inventoryList').addEventListener('click',function (event) {
+      const button=event.target.closest('[data-table-location-toggle]'); if (!button) return;
+      const key=button.dataset.tableLocationToggle;
+      if (collapsedTableLocations.has(key)) collapsedTableLocations.delete(key); else collapsedTableLocations.add(key);
+      renderList(); $$('#inventoryList [data-table-location-toggle]').find(function (entry) { return entry.dataset.tableLocationToggle===key; })?.focus({preventScroll:true});
+    });
+    $('#inventoryStats').addEventListener('click' , function (event) {
       const toggle=event.target.closest('[data-ownership-toggle]');
       if (toggle) { ownershipExpanded.set(toggle.dataset.ownershipToggle,toggle.getAttribute('aria-expanded')!=='true'); renderList(); return; }
       const card=event.target.closest('[data-inventory-total]');
@@ -185,7 +191,8 @@
       const toggle=event.target.closest('[data-location-toggle]');
       if (toggle) { const key=toggle.dataset.locationToggle; if (collapsedLocations.has(key)) collapsedLocations.delete(key); else collapsedLocations.add(key); renderList(); $$('#roomStats [data-location-toggle]').find(function (button) { return button.dataset.locationToggle===key; })?.focus({preventScroll:true}); return; }
       const link = event.target.closest('[data-location-jump]'); if (!link) return;
-      const target = document.getElementById(link.dataset.locationJump);
+      let target = document.getElementById(link.dataset.locationJump);
+      if (target) { const path=JSON.parse(target.closest('[data-table-location-path]').dataset.tableLocationPath); path.forEach(function (_,index) { collapsedTableLocations.delete(JSON.stringify(path.slice(0,index+1))); }); renderList(); target=document.getElementById(link.dataset.locationJump); }
       if (target) { target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'}); target.focus({preventScroll:true}); }
     });
     document.addEventListener('keydown', function (event) {
@@ -398,6 +405,9 @@
     });
     [input, brand].forEach(function (el) { el.addEventListener("input", function () { objectWordHistory = []; }); });
     $("#itemForm").addEventListener("keydown", function (event) {
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && !event.repeat && !event.isComposing) {
+        event.preventDefault(); $('#itemForm').requestSubmit($('#saveItemButton')); return;
+      }
       if (event.target !== input && event.target !== brand) return;
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
         const last = objectWordHistory[objectWordHistory.length - 1];
@@ -416,6 +426,9 @@
     const company=(override ? $('[data-property-value]',override.closest('.item-property')).value.trim() : '') || App.inventoryCatalog.companyFor($('#itemBrand').value), hint=$('#itemBrandCompany');
     hint.textContent=company ? 'Company: '+company : ''; hint.hidden=!company;
   }
+  function fixedTag(tag) {
+    return tag.toLowerCase()==='float' || App.config.inventory.brands.concat(App.storage.getState().preferences.favoriteBrands || [],[$('#itemBrand').value]).some(function (brand) { return brand.toLowerCase()===tag.toLowerCase(); });
+  }
   function renderTags() {
     renderBrandCompany();
     renderPresets();
@@ -424,7 +437,7 @@
     $('#itemCategories').value=ordered.join(', ');
     const brand=$('#itemBrand').value.trim();
     if (brand && App.inventoryCatalog.isFavorite(brand) && !ordered.some(function (tag) { return tag.toLowerCase()===brand.toLowerCase(); })) $('#tagOrderStatus').textContent='Remove a tag to make room for the favorited brand (30-tag limit).';
-    $('#selectedItemTags').innerHTML=ordered.map(function (tag) { return '<span class="ordered-tag" draggable="true" data-order-tag="'+esc(tag)+'"><span>'+esc(tag)+'</span><button type="button" data-move-tag="-1" aria-label="Move '+esc(tag)+' earlier">‹</button><button type="button" data-move-tag="1" aria-label="Move '+esc(tag)+' later">›</button><button type="button" data-remove-tag="'+esc(tag)+'" aria-label="Remove '+esc(tag)+'">'+icon('close')+'</button></span>'; }).join('');
+    $('#selectedItemTags').innerHTML=ordered.map(function (tag) { const fixed=fixedTag(tag); return '<span class="ordered-tag" draggable="'+!fixed+'" data-fixed="'+fixed+'" data-order-tag="'+esc(tag)+'"'+(fixed ? ' title="Fixed Position"' : ' tabindex="0" aria-label="'+esc(tag)+', Alt+Arrow Keys to Reorder"')+'><span>'+esc(tag)+'</span><button type="button" data-remove-tag="'+esc(tag)+'" aria-label="Remove '+esc(tag)+'">'+icon('close')+'</button></span>'; }).join('');
   }
   function commitTags() {
     const value = $("#itemTagSearch").value.trim();
@@ -548,17 +561,17 @@
     const tagRoot=$('#selectedItemTags'); let draggedTag='';
     function reorderTag(tag,target) {
       const current=m.tags($('#itemCategories').value), from=current.indexOf(tag);
-      if (from<0) return;
+      if (from<0 || fixedTag(tag)) return;
       current.splice(from,1); current.splice(Math.max(0,Math.min(current.length,target)),0,tag);
       $('#itemCategories').value=current.join(', '); smartManual.add('categories'); $('#itemCategories').removeAttribute('data-smart-field'); renderTags();
       $('#tagOrderStatus').textContent='Tag order: '+$('#itemCategories').value;
       $$('#selectedItemTags [data-order-tag]').find(function (entry) { return entry.dataset.orderTag===tag; })?.querySelector('button')?.focus();
     }
-    tagRoot.addEventListener('dragstart',function (event) { const chip=event.target.closest('[data-order-tag]'); if (!chip) return; draggedTag=chip.dataset.orderTag; event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain',draggedTag); });
+    tagRoot.addEventListener('dragstart',function (event) { const chip=event.target.closest('[data-order-tag]'); if (!chip || fixedTag(chip.dataset.orderTag)) { event.preventDefault(); return; } draggedTag=chip.dataset.orderTag; event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain',draggedTag); });
     tagRoot.addEventListener('dragover',function (event) { if (draggedTag && event.target.closest('[data-order-tag]')) { event.preventDefault(); event.dataTransfer.dropEffect='move'; } });
     tagRoot.addEventListener('drop',function (event) { const chip=event.target.closest('[data-order-tag]'); if (!draggedTag || !chip) return; event.preventDefault(); reorderTag(draggedTag,m.tags($('#itemCategories').value).indexOf(chip.dataset.orderTag)); draggedTag=''; });
     tagRoot.addEventListener('dragend',function () { draggedTag=''; });
-    tagRoot.addEventListener('click',function (event) { const button=event.target.closest('[data-move-tag]'); if (!button) return; const tag=button.closest('[data-order-tag]').dataset.orderTag; reorderTag(tag,m.tags($('#itemCategories').value).indexOf(tag)+Number(button.dataset.moveTag)); });
+    tagRoot.addEventListener('keydown',function (event) { if (!event.altKey || event.ctrlKey || event.metaKey || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return; const chip=event.target.closest('[data-order-tag]'); if (!chip || fixedTag(chip.dataset.orderTag)) return; event.preventDefault(); const tag=chip.dataset.orderTag; reorderTag(tag,m.tags($('#itemCategories').value).indexOf(tag)+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)); });
     $("#selectedItemTags").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-tag]"); if (button) { smartManual.add("categories"); $("#itemCategories").removeAttribute("data-smart-field"); $("#itemCategories").value = m.tags($("#itemCategories").value).filter(function (tag) { return tag !== button.dataset.removeTag; }).join(", "); renderTags(); ($("#selectedItemTags button") || $("#itemTagSearch")).focus(); } });
   }
   function refreshOptions(selector, values, label) { const el = $(selector), value = el.value; el.innerHTML = options(values, label); el.value = values.includes(value) ? value : ""; }
@@ -654,9 +667,16 @@
     }
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
   }
+  function tableLocationClosed(path) {
+    return path.some(function (_,index) { return collapsedTableLocations.has(JSON.stringify(path.slice(0,index+1))); });
+  }
   function locationHeadings(path, previous) {
     let changed=false;
-    return path.map(function (name,index) { changed = changed || name !== previous?.[index]; return changed && name ? '<tr class="location-section-heading" data-location-level="'+index+'"><th colspan="6" id="'+esc(locationAnchor(path.slice(0,index+1)))+'" tabindex="-1">'+esc(name)+'</th></tr>' : ''; }).join('');
+    return path.map(function (name,index) {
+      changed = changed || name !== previous?.[index];
+      const prefix=path.slice(0,index+1), key=JSON.stringify(prefix), closed=collapsedTableLocations.has(key);
+      return changed && name ? '<tr class="location-section-heading" data-table-location-path="'+esc(key)+'" data-location-level="'+index+'"'+(tableLocationClosed(prefix.slice(0,-1))?' hidden':'')+'><th colspan="6" id="'+esc(locationAnchor(prefix))+'" tabindex="-1"><button type="button" class="table-location-toggle" data-table-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'"><span aria-hidden="true">'+(closed?'▸':'▾')+'</span> '+esc(name)+'</button></th></tr>' : '';
+    }).join('');
   }
   function fillMissingAmount() {
     const price = $('#itemPrice'), value = $('#itemValue');
@@ -712,7 +732,7 @@
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
       const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
       const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || '',room:entry.room || '',space:property('space')}; };
-      return '<tr data-item-owner="' + item.owner + '"><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.map(function (p) { return filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')) + (m.measurement(p).imperial ? '<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>' : ''); }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+      return '<tr data-item-owner="' + item.owner + '"'+(tableLocationClosed(section.path)?' hidden':'')+'><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.map(function (p) { return '<span class="object-property">'+filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')) + (m.measurement(p).imperial ? '<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>' : '')+'</span>'; }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join(''); }).join('') + '</tbody></table></div>';
   }
 
@@ -764,20 +784,20 @@
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
     root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
-    root.innerHTML = '<p>' + (editingId ? 'Blank locations clear existing copies; new copies use the location above.' : 'Blank locations use the location above. Choose Unknown for no location. Shared fields use the main item.') + '</p><div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      return '<div data-copy-location><strong>Copy ' + (index+1)  + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" maxlength="300" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" maxlength="300" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
+    root.innerHTML = '<div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
+      return '<div data-copy-location><strong>#' + (index+1)  + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" maxlength="300" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" maxlength="300" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
     }).join('') + '</div>';
     $$('[data-copy-location]').forEach(function (row,index) {
       ['Zone','Room','Space'].forEach(function (name) { const input = $('#copy'+index+name); input.setAttribute('data-copy-'+name.toLowerCase(),''); input.value = old[index]?.[name.toLowerCase()] || ''; });
       if (!$('[data-copy-zone]',row).value) $('[data-copy-zone]',row).value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === $('[data-copy-room]',row).value.toLowerCase(); })?.zone || '';
       const sharedColor = $('[data-copy-shared-color]',row), color = $('[data-copy-color]',row);
       sharedColor.checked = typeof old[index]?.color !== 'string'; color.value = old[index]?.color || ''; color.disabled = sharedColor.checked;
-      sharedColor.addEventListener('change', function () { color.disabled = this.checked; if (!this.checked) color.focus(); });
+      sharedColor.addEventListener('change', function () { color.disabled = this.checked; if (this.checked) color.value = ''; if (!this.checked) color.focus(); });
       const sharedSize = $('[data-copy-shared-size]',row), size = $('[data-copy-size]',row);
       sharedSize.checked = typeof old[index]?.size !== 'string'; size.value = old[index]?.size || ''; size.disabled = sharedSize.checked;
-      sharedSize.addEventListener('change', function () { size.disabled = this.checked; if (!this.checked) size.focus(); });
+      sharedSize.addEventListener('change', function () { size.disabled = this.checked; if (this.checked) size.value = ''; if (!this.checked) size.focus(); });
       const shared = $('[data-copy-shared-notes]',row), notes = $('[data-copy-notes]',row);
-      if (shared) { shared.checked = typeof old[index]?.notes !== 'string'; notes.value = old[index]?.notes || ''; notes.disabled = shared.checked; shared.addEventListener('change', function () { notes.disabled = this.checked; if (!this.checked) notes.focus(); }); }
+      if (shared) { shared.checked = typeof old[index]?.notes !== 'string'; notes.value = old[index]?.notes || ''; notes.disabled = shared.checked; shared.addEventListener('change', function () { notes.disabled = this.checked; if (this.checked) notes.value = ''; if (!this.checked) notes.focus(); }); }
       ['Zone','Room','Space'].forEach(function (name) { initPicker('copy'+index+name,row,'item'+name); });
     });
 

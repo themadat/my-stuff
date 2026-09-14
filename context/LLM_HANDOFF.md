@@ -1,3 +1,13 @@
+## Latest Update — Table Collapse and Copy Controls (0.0.1.52)
+
+The committed icon set lacked updateReady. Preserved the user's existing updateReady SVG addition byte-for-byte and include it in this task; PWA rendering also falls back to updateApp if that alternate symbol is absent. Both symbols are checked for concrete SVG paths.
+
+Table headings have stronger contrast. Zone, room and space buttons collapse table descendants using independent session state; nested collapsed states survive parent toggles and filtering. Sidebar location links reveal collapsed destinations. Table metric equivalents stay gray and inline with their property on the details line.
+
+Copy labels are #1/#2; all six copy fields align. Checking Shared clears the override input immediately. Removed the copy guidance paragraph. Tag guidance follows the Tags heading; visible reorder chevrons are removed, with drag and Alt+Arrow key support retained for movable tags. Brand/Float tags have fixed-position gray outlines. Desktop Notes height matches the tag search and selected tags. Command+Enter (also Control+Enter) uses native form validation and saves Add/Edit Item.
+
+Verification: 112 non-browser checks and 6 targeted Chromium checks cover update icons, nested table collapse/reveal, copy geometry and clearing, tag keyboard order, Notes height, add/edit save shortcuts, mobile layouts and offline edit/reload. Desktop/mobile screenshots reviewed. Version/cache/manifests/workflow align at .52. No commit or push performed.
+
 ## Latest update — compact editor and smart units (0.0.1.51)
 
 Centered ownership symbols above their labels, removed the 20% width inflation, and tightened the spacing to the separate expansion chevrons. Filtering and expansion remain independent; mobile defaults and room-first ordering are unchanged.

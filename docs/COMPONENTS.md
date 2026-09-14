@@ -47,3 +47,9 @@ The sidebar divider saves a percentage in device-only preferences.controls.locat
 The inventory model exposes `measurement(property)` to split recognized numeric unit suffixes and derive approximate US equivalents without replacing metric values. The editor commits value/unit on change and save; both editor and inventory list display the derived equivalent. Unitless and unrecognized content is preserved. Conversion previews are not stored.
 
 The item editor places Tags beside Notes, uses the full width for custom properties, and keeps copy labels and Shared controls inline. Date Unknown clears the date and disables its control. Hovered object rows accept E for Edit and A for the archive form, with input/dialog/modifier guards. Ownership symbols are centered and cards retain separate selection and expansion controls.
+
+### Table Location Disclosure and Copy Editing
+
+Table location state is session-local and independent of sidebar disclosure. Zone, room and space buttons hide descendants, preserve nested state, and expose aria-expanded. Sidebar jumps reveal the target path. Measurement equivalents remain inline with their property in the object details row.
+
+Copy Shared controls clear disabled override inputs; labels use #1, #2. The tag editor marks brand/Float tags as fixed and supports drag or Alt+Arrow reordering for other tags. Notes stretches alongside the tag search and selected tags on desktop. Command+Enter and Control+Enter call requestSubmit, preserving native form validation. PWA state uses updateReady when supplied and falls back to updateApp otherwise.
