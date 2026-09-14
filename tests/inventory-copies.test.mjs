@@ -263,3 +263,16 @@ test('favorite brand tags match Brand rather than Seller and are idempotent', ()
  assert.deepEqual(Array.from(app.inventoryModel.favoriteTag(tagged,[]).categories),Array.from(tagged.categories));
  assert.deepEqual(branded.categories,['Books','Float']);
 });
+
+test('location review dates preserve explicit UNKNOWN and remain independent of items', () => {
+ const key=JSON.stringify(['Main Level','Den']);
+ const inventory={currency:'USD',items:[item],locationReviews:{[key]:{date:'2026-09-13',updatedAt:'2026-09-13T10:00:00.000Z'}}};
+ const normalized=app.inventoryModel.normalize(inventory);
+ assert.equal(normalized.locationReviews[key].date,'2026-09-13');
+ normalized.items[0].name='Changed contents';
+ assert.equal(app.inventoryModel.normalize(normalized).locationReviews[key].date,'2026-09-13');
+ const remote={currency:'USD',items:[item],locationReviews:{[key]:{date:'',updatedAt:'2026-09-13T11:00:00.000Z'}}};
+ assert.equal(app.inventoryModel.merge(inventory,remote).locationReviews[key].date,'');
+ assert.equal(app.inventoryModel.merge(remote,inventory).locationReviews[key].date,'');
+ assert.ok(!Object.hasOwn(app.inventoryModel.normalize({currency:'USD',items:[]}), 'locationReviews'));
+});

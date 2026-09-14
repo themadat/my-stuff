@@ -659,3 +659,11 @@ test('favorite brands tag matching records on normalization and tag order surviv
  assert.deepEqual(Array.from(App.stateModel.normalize(normalized).inventory.items[0].categories),['Apple','Tools','Books','Float']);
  assert.ok(JSON.stringify(App.stateModel.syncPayload(normalized)).includes('Apple'));
 });
+
+test('location review dates survive state normalization and sync payloads', () => {
+ const {App}=harness(); const state=App.stateModel.createDefaultState(), key=JSON.stringify(['Main Level','Nook','Floating']);
+ state.inventory.locationReviews={[key]:{date:'2026-09-13',updatedAt:'2026-09-13T12:00:00.000Z'}};
+ const normalized=App.stateModel.normalize(state);
+ assert.equal(normalized.inventory.locationReviews[key].date,'2026-09-13');
+ assert.equal(App.stateModel.syncPayload(normalized).data.inventory.locationReviews[key].date,'2026-09-13');
+});

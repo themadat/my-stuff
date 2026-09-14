@@ -1004,3 +1004,9 @@ body > #categoryTags { position: fixed; z-index: 100; box-sizing: border-box; ov
  .inventory-table .inventory-row-actions { white-space: nowrap; }
  .location-toggle { min-height: 44px; }
 }
+
+.location-review-date { flex: 0 0 auto; margin-left: auto; padding: .2rem .15rem; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: .62rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; cursor: pointer; }
+.location-review-date:hover { background: var(--surface-2); color: var(--text); }
+.location-object-count { flex: 0 0 3ch; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.location-nav-row .location-jump span { overflow-wrap: anywhere; }
+@media(max-width:700px) { .location-review-date { min-height: 44px; } }

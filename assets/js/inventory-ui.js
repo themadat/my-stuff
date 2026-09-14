@@ -93,6 +93,19 @@
         <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" maxlength="2000" rows="3" placeholder="Anything you want to remember"></textarea></label>
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
+    document.body.insertAdjacentHTML('beforeend','<dialog id="locationDateDialog" class="app-dialog small-dialog" aria-labelledby="locationDateTitle"><form id="locationDateForm" class="dialog-shell"><header class="dialog-header"><h2 id="locationDateTitle">Last Updated Date</h2></header><div class="dialog-body"><p id="locationDateName"></p><p>The contents of this location are correct as of this date.</p><label class="unknown-date-choice"><input id="locationDateUnknown" type="checkbox"> UNKNOWN</label><label class="field"><span>Last Updated Date</span><input id="locationDateValue" type="date"></label><p id="locationDateError" role="alert"></p></div><footer class="dialog-footer"><button id="locationDateCancel" class="button" type="button">Cancel</button><button class="button primary" type="submit">Save</button></footer></form></dialog>');
+    let locationDateKey='';
+    function updateLocationDateInput() { const unknown=$('#locationDateUnknown').checked; $('#locationDateValue').disabled=unknown; $('#locationDateValue').required=!unknown; }
+    $('#locationDateUnknown').addEventListener('change',updateLocationDateInput);
+    $('#locationDateCancel').addEventListener('click',function () { App.components.closeDialog('#locationDateDialog'); });
+    $('#locationDateForm').addEventListener('submit',function (event) {
+      event.preventDefault(); const date=$('#locationDateUnknown').checked ? '' : m.dateOnly($('#locationDateValue').value);
+      if (!$('#locationDateUnknown').checked && !date) { $('#locationDateError').textContent='Choose a valid date or UNKNOWN.'; return; }
+      App.storage.mutate(function (state) { state.inventory.locationReviews=Object.assign({},state.inventory.locationReviews,{[locationDateKey]:{date:date,updatedAt:u.isoNow()}}); },{reason:'location-reviewed'});
+      const saved=App.storage.saveNow(); if (!saved) { $('#locationDateError').textContent='The date could not be saved on this device. Please try again.'; return; }
+      App.components.closeDialog('#locationDateDialog');
+      $$('#roomStats [data-location-date]').find(function (button) { return button.dataset.locationDate===locationDateKey; })?.focus({preventScroll:true});
+    });
     $('.global-search-wrap').before($('.inventory-nav'));
     $('.inventory-nav').addEventListener('click', function (event) { const nav = event.target.closest('[data-inventory-view]'); if (nav) { view = nav.dataset.inventoryView; render(); $('#inventoryTitle').focus({preventScroll:true}); } });
     initSmartControls(); $("#itemBrand").maxLength = 300;
@@ -153,6 +166,12 @@
     });
     document.addEventListener('pointerdown',function (event) { if (!insideTags(event.target)) closeTagMenu(); });
     $('#roomStats').addEventListener('click', function (event) {
+      const dateButton=event.target.closest('[data-location-date]');
+      if (dateButton) {
+        locationDateKey=dateButton.dataset.locationDate; const date=inventory().locationReviews?.[locationDateKey]?.date || '';
+        $('#locationDateName').textContent=JSON.parse(locationDateKey).join(' / '); $('#locationDateValue').value=date; $('#locationDateUnknown').checked=!date; $('#locationDateError').textContent=''; updateLocationDateInput();
+        App.components.openDialog('#locationDateDialog',{trigger:dateButton,focus:'#locationDateUnknown'}); return;
+      }
       const toggle=event.target.closest('[data-location-toggle]');
       if (toggle) { const key=toggle.dataset.locationToggle; if (collapsedLocations.has(key)) collapsedLocations.delete(key); else collapsedLocations.add(key); renderList(); $$('#roomStats [data-location-toggle]').find(function (button) { return button.dataset.locationToggle===key; })?.focus({preventScroll:true}); return; }
       const link = event.target.closest('[data-location-jump]'); if (!link) return;
@@ -604,7 +623,7 @@
     const values=Array.from(nodes.values());
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
-      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span><small>'+node.count+'</small></button></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
   }

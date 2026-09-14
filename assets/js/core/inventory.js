@@ -143,6 +143,19 @@
       return normalizeItem(item);
     });
   }
+  function locationReviews(value) {
+    const result={};
+    if (!value || typeof value!=='object' || Array.isArray(value)) return result;
+    Object.keys(value).sort().slice(0,1000).forEach(function (key) {
+      try {
+        const path=JSON.parse(key), record=value[key];
+        if (!Array.isArray(path) || !path.length || path.length>3 || path.some(function (part) { return typeof part!=='string' || !part.trim() || part.length>80; }) || !record || typeof record!=='object') return;
+        const stamp=typeof record.updatedAt==='string' && Number.isFinite(Date.parse(record.updatedAt)) ? new Date(record.updatedAt).toISOString() : '1970-01-01T00:00:00.000Z';
+        result[JSON.stringify(path)]={date:dateOnly(record.date),updatedAt:stamp};
+      } catch (_) { /* Ignore malformed location keys in imports. */ }
+    });
+    return result;
+  }
   function normalize(input, favorites) {
     if (input === undefined) return { currency: App.config.inventory.defaultCurrency, items: [] };
     if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.items) || input.items.length > 5000) throw new Error("Inventory must contain a list of up to 5,000 items.");
@@ -150,7 +163,8 @@
     const items = input.items.map(function (item) { return favoriteTag(normalizeItem(item),favorites); });
     if (new Set(items.map(function (item) { return item.id; })).size !== items.length) throw new Error("Inventory contains duplicate item IDs.");
     // Earlier copies offered other labels without converting amounts. Keep amounts intact.
-    return { currency: App.config.inventory.defaultCurrency, items: items };
+    const reviews=locationReviews(input.locationReviews);
+    return { currency: App.config.inventory.defaultCurrency, items: items, ...(Object.keys(reviews).length ? {locationReviews:reviews} : {}) };
   }
   function daysOwned(item, end) {
     if (!item.obtainedDate) return null;
@@ -231,7 +245,9 @@
       if (items.has(item.id) && JSON.stringify(items.get(item.id)) !== JSON.stringify(item)) throw new Error("An inventory item differs between copies. Choose which copy to keep.");
       items.set(item.id, item);
     });
-    return normalize({ currency: local.currency, items: Array.from(items.values()) });
+    const reviews=locationReviews(local.locationReviews);
+    Object.entries(locationReviews(remote.locationReviews)).forEach(function (entry) { const key=entry[0], incoming=entry[1], current=reviews[key]; if (!current || incoming.updatedAt>current.updatedAt || (incoming.updatedAt===current.updatedAt && incoming.date>current.date)) reviews[key]=incoming; });
+    return normalize({ currency: local.currency, items: Array.from(items.values()), locationReviews:reviews });
   }
   App.inventoryModel = { orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

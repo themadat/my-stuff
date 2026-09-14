@@ -1,3 +1,11 @@
+## Latest update — location Last Updated Dates (0.0.1.43)
+
+Each displayed location in Around the House has a right-aligned Last Updated Date button immediately before the object count. It defaults to UNKNOWN. Clicking opens a labelled dialog with a date input and explicit UNKNOWN checkbox; Save persists the choice and Cancel leaves it unchanged. This is a manual contents-verification date, independent of inventory edits and scoped to the full zone/room/space path.
+
+Optional inventory.locationReviews stores date plus edit timestamp under JSON location-path keys. Older data remains valid with UNKNOWN defaults; normalized records travel in backups and GitHub Sync. Merge combines paths and uses the newer edit timestamp for the same path, including explicit UNKNOWN clears. No item fields are changed. Save failures keep the dialog open with an error.
+
+All 105 automated checks pass, including explicit UNKNOWN, independent dates, merge order, state/sync preservation, script syntax and aligned 0.0.1.43 version/cache/manifest/workflow surfaces. Browser visual and date-dialog interaction validation remains pending. Source was clean at f2c8619 (0.0.1.42). Before-copies: /private/tmp/my-stuff-location-dates-baseline. Transfer uses equality guards and byte verification. No server, commit or push performed.
+
 ## Latest update — compact columns and collapsible locations (0.0.1.42)
 
 Inventory uses automatic table layout with narrow content-sized supporting columns; Count becomes #, and Object/Properties/Notes gets the remaining width. The location navigator renders nested branches with left-side chevron buttons, aria-expanded/controls, and session-local collapse state preserved through re-renders. Location labels still jump to their inventory headings.
