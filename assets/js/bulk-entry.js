@@ -2,7 +2,7 @@
   "use strict";
   const App = window.LocalApp, u = App.utils, esc = u.escapeHtml, key = App.config.storage.bulkDraftKey;
   const $ = function (selector) { return document.querySelector(selector); };
-  let queue = null, lastJson = null, reviewing = false, sheets = [], prepared = [], loadToken = 0, draftTimer, loadError = '';
+  let queue = null, lastJson = null, reviewing = false, sheets = [], prepared = [], loadToken = 0, draftTimer, loadError = '', destination = 'have';
   function error(message) { const el = reviewing ? $('#itemFormError') : $('#bulkError'); el.textContent = message; el.hidden = false; }
   function persist(next) {
     const current = localStorage.getItem(key);
@@ -50,6 +50,7 @@
     bulkButton.setAttribute("aria-keyshortcuts","Control+Shift+Alt+B");
   }
   function show() {
+    destination=App.inventoryUI.currentView(); $('#bulkTitle').textContent=destination==='previous'?'Bulk Add to Stuff I Had':'Bulk Entry';
     reviewing = false; $('#bulkError').hidden = true; if (loadError) error(loadError);
     try { reconcile(); } catch (e) { error(e.message); }
     renderStatus(); App.components.openDialog('#bulkDialog', { trigger: $('#bulkEntryButton'), focus: queue?.rows.some(function (r) { return r.status === 'pending'; }) ? '#resumeBulkButton' : '#bulkFile' });
@@ -67,7 +68,7 @@
   function advance() {
     clearTimeout(draftTimer); reconcile();
     reviewing = true;
-    if (!row()) { reviewing = false; App.components.closeDialog('#itemDialog', 'saved'); App.components.closeDialog('#bulkDialog'); renderStatus(); App.inventoryUI.home(); return; }
+    if (!row()) { reviewing = false; App.components.closeDialog('#itemDialog', 'saved'); App.components.closeDialog('#bulkDialog'); renderStatus(); App.inventoryUI.home(queue.destination); return; }
     App.components.closeDialog('#bulkDialog');
     if (!row().draft._smartEntry && !row().draft._reviewed) row().draft._smartEntry = row().source;
     const current = row(), members = reviewCopies(current), draft = u.clone(current.draft);
@@ -97,7 +98,7 @@
     if (queue.rows.length - members.length + count > 500) throw new Error('These copies would exceed the 500-object review limit.');
     const group = current.draft.copyGroup || item.copyGroup || u.uid('copies');
     const copies = App.inventoryModel.createCopies(Object.assign({},item,{copyGroup:group}),count,locations).map(function (copy,index) {
-      return App.inventoryModel.normalizeItem(Object.assign({},copy,{id:members[index]?.id || u.uid('bulk')}));
+      return App.inventoryModel.normalizeItem(Object.assign({},copy,{archive:item.archive, id:members[index]?.id || u.uid('bulk')}));
     });
     const existing = App.storage.getState().inventory.items;
     copies.forEach(function (copy) {
@@ -124,7 +125,7 @@
     try {
       const source = sheet(); if (!source) return;
       const columns = Array.from(document.querySelectorAll('[data-bulk-column]')).map(function (el) { return el.value; });
-      prepared = App.bulkImport.prepare(source.rows, $('#bulkHeaders').checked, columns, App.storage.getState().inventory.items);
+      prepared = App.bulkImport.prepare(source.rows, $('#bulkHeaders').checked, columns, App.storage.getState().inventory.items,{archive:destination==='previous'});
       $('#bulkPreview').innerHTML = '<p>' + prepared.length + (prepared.length === 1 ? ' object ready' : ' objects ready') + ' for review. Copies from one row are edited and saved together. Tags, location, and property suggestions remain editable.</p><ol>' + prepared.slice(0, 5).map(function (r) { return '<li>' + esc(r.draft.name || '(Needs an object name)') + '<small>' + esc(r.suggestions.join(' · ')) + '</small></li>'; }).join('') + '</ol>';
     } catch (e) { error(e.message); $('#bulkPreview').textContent = ''; }
     $('#startBulkReview').disabled = !prepared.length;
@@ -149,7 +150,7 @@
     try {
       preview(); if (!prepared.length) return;
       if (queue?.rows.some(function (r) { return r.status !== 'saved'; }) && !await App.components.confirm({ title: 'Replace the Pending Review Queue?', message: 'The new batch contains ' + prepared.length + ' objects. Existing pending and skipped rows will be replaced; saved inventory stays unchanged.', confirmLabel: 'Start New Batch', trigger: $('#startBulkReview') })) return;
-      persist({ version: 1, name: sheet().name, rows: u.clone(prepared) }); advance();
+      persist({ version: 1, destination:destination, name: sheet().name, rows: u.clone(prepared) }); advance();
     } catch (e) { error(e.message); }
   }
   function init() {

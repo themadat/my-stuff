@@ -6,9 +6,9 @@
     source: ["seller", "store", "source", "retailer", "merchant"], brand: ["brand", "manufacturer"], obtainedDate: ["date", "date obtained", "obtained date", "purchase date", "purchased on"],
     price: ["price", "cost", "amount", "paid", "obtaining price", "purchase price"], value: ["value", "current value", "estimated value"],
     categories: ["tags", "tag", "categories", "category"], zone: ["zone"], room: ["room", "location"], space: ["space"], color: ["color", "colour"],
-    owner: ["owner", "belongs to", "ownership"], obtainedHow: ["method", "obtained", "obtained how", "how obtained"], quantity: ["quantity", "qty", "copies", "count"], description: ["notes", "note", "comments"]
+    owner: ["owner", "belongs to", "ownership"], obtainedHow: ["method", "obtained", "obtained how", "how obtained"], quantity: ["quantity", "qty", "copies", "count"], goneDate: ["gone date", "departure date"], goneReason: ["what happened", "what happened?", "reason", "gone reason"], goneNotes: ["departure notes"], description: ["notes", "note", "comments"]
   };
-  const labels = { ignore: "Ignore", raw: "Smart Complete", name: "Object", source: "Seller", brand: "Brand", obtainedDate: "Date Obtained", price: "Price per Object", value: "Value per Object", categories: "Tags", zone: "Zone", room: "Room", space: "Space", color: "Color", owner: "Belongs to", obtainedHow: "Obtained", quantity: "Copies", description: "Notes", property: "Custom Property" };
+  const labels = { goneDate: "Gone Date", goneReason: "What Happened", goneNotes: "Departure Notes", ignore: "Ignore", raw: "Smart Complete", name: "Object", source: "Seller", brand: "Brand", obtainedDate: "Date Obtained", price: "Price per Object", value: "Value per Object", categories: "Tags", zone: "Zone", room: "Room", space: "Space", color: "Color", owner: "Belongs to", obtainedHow: "Obtained", quantity: "Copies", description: "Notes", property: "Custom Property" };
   function heading(value) { return String(value).trim().toLowerCase().replace(/[_-]+/g, " "); }
   function mapping(row) { return row.map(function (cell) { return Object.keys(aliases).find(function (key) { return aliases[key].includes(heading(cell)); }) || "description"; }); }
   function hasHeaders(row) { return row.some(function (cell) { return Object.values(aliases).some(function (values) { return values.includes(heading(cell)); }); }); }
@@ -77,7 +77,7 @@
     }
     return suggested;
   }
-  function prepare(rows, headers, columns, items) {
+  function prepare(rows, headers, columns, items, options) {
     const output = [], names = headers ? rows[0] : [], records = headers ? rows.slice(1) : rows;
     const brands = App.config.inventory.brands.concat((items || []).flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }).map(function (p) { return p.value; }); }));
     records.forEach(function (row, index) {
@@ -92,8 +92,9 @@
         if (key === 'description') notes.push((names[column] ? names[column] + ': ' : '') + value);
         else { mapped[key] = mapped[key] ? mapped[key] + ' ' + value : value; locked.add(key); }
       });
-      const parsed = App.smartEntry.parse(headers ? mapped.raw || mapped.name || '' : source, brands.concat(mapped.brand || [])).fields;
+      const parsed = App.smartEntry.parse(headers ? mapped.raw || mapped.name || '' : source, brands.concat(mapped.brand || []),options).fields;
       const draft = { name: parsed.name || '', brand: parsed.brand || '', source: parsed.source || '', owner: parsed.owner || 'me', obtainedHow: parsed.obtainedHow || 'Purchased', obtainedDate: parsed.obtainedDate || '', price: parsed.price ?? '', value: parsed.value ?? '', room: parsed.room || '', categories: m.tags(parsed.categories || ''), properties: properties, description: [parsed.description, ...notes].filter(Boolean).join('\n') };
+      if (options?.archive) { draft._archiveMode=true; draft.archive={date:parsed.goneDate || '',reason:parsed.goneReason || '',notes:parsed.goneNotes || ''}; }
       if (parsed.categories) locked.add('categories');
       if (parsed.room) locked.add('room');
       ['zone','space'].forEach(function (key) { if (parsed[key] && !mapped[key]) properties.push({ name: key[0].toUpperCase() + key.slice(1), value: parsed[key], unit: '' }); });
@@ -102,7 +103,8 @@
       Object.keys(mapped).forEach(function (key) {
         const value = mapped[key];
         try {
-          if (['price', 'value'].includes(key)) draft[key] = amount(value);
+          if (options?.archive && ['goneDate','goneReason','goneNotes'].includes(key)) { const field={goneDate:'date',goneReason:'reason',goneNotes:'notes'}[key]; draft.archive[field]=key==='goneDate' ? date(value) : key==='goneReason' ? m.reasons.find(function (reason) { return reason.toLowerCase()===value.toLowerCase(); }) || value : value; }
+          else if (['price', 'value'].includes(key)) draft[key] = amount(value);
           else if (key === 'obtainedDate') { draft[key] = ''; draft[key] = date(value); }
           else if (key === 'categories') draft.categories = m.tags(value.replace(/;/g, ','));
           else if (['brand', 'source', 'room'].includes(key)) draft[key] = value;

@@ -12,6 +12,10 @@
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
+  function inputDate(value) {
+    const text=String(value || '').trim(), match=/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(text);
+    return m.dateOnly(match ? (match[3].length===2?'20'+match[3]:match[3])+'-'+match[1].padStart(2,'0')+'-'+match[2].padStart(2,'0') : text);
+  }
   function dateLabel(value) { return value ? new Date(value + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Unknown"; }
   function duration(item) { const days = m.daysOwned(item); return days == null ? "Duration unknown" : days.toLocaleString() + (days === 1 ? " day owned" : " days owned"); }
   function options(values, empty) { return (empty == null ? "" : '<option value="">' + esc(empty) + '</option>') + values.map(function (value) { return '<option value="' + esc(value) + '">' + esc(value) + '</option>'; }).join(""); }
@@ -66,7 +70,7 @@
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
               ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-              <div class="field obtained-date-field"><div class="date-heading"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice">Unknown <input id="itemDateUnknown" type="checkbox" checked></label></div><div class="obtained-date-input" data-unknown="true"><input id="itemObtainedDate" type="date" disabled><span aria-hidden="true">-- / -- / ----</span></div></div>
+              <div class="field obtained-date-field"><div class="date-heading"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice">Unknown <input id="itemDateUnknown" type="checkbox" checked></label></div><div class="obtained-date-input" data-unknown="true"><input id="itemObtainedDate" type="text" placeholder="MM/DD/YYYY or YYYY-MM-DD"><span aria-hidden="true">-- / -- / ----</span></div></div>
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
             </div>
@@ -100,13 +104,14 @@
         <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" maxlength="2000" rows="3" placeholder="Anything you want to remember"></textarea></label>
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
-    document.body.insertAdjacentHTML('beforeend','<dialog id="locationDateDialog" class="app-dialog small-dialog" aria-labelledby="locationDateTitle"><form id="locationDateForm" class="dialog-shell"><header class="dialog-header"><h2 id="locationDateTitle">Last Updated Date</h2></header><div class="dialog-body"><p id="locationDateName"></p><p>The contents of this location are correct as of this date.</p><label class="unknown-date-choice"><input id="locationDateUnknown" type="checkbox"> UNKNOWN</label><label class="field"><span>Last Updated Date</span><input id="locationDateValue" type="date"></label><p id="locationDateError" role="alert"></p></div><footer class="dialog-footer"><button id="locationDateCancel" class="button" type="button">Cancel</button><button class="button primary" type="submit">Save</button></footer></form></dialog>');
+    document.body.insertAdjacentHTML('beforeend','<dialog id="locationDateDialog" class="app-dialog small-dialog" aria-labelledby="locationDateTitle"><form id="locationDateForm" class="dialog-shell"><header class="dialog-header"><h2 id="locationDateTitle">Last Updated Date</h2></header><div class="dialog-body"><p id="locationDateName"></p><p>The contents of this location are correct as of this date.</p><label class="unknown-date-choice"><input id="locationDateUnknown" type="checkbox"> UNKNOWN</label><label class="field"><span>Last Updated Date</span><input id="locationDateValue" type="text" placeholder="MM/DD/YYYY or YYYY-MM-DD"></label><p id="locationDateError" role="alert"></p></div><footer class="dialog-footer"><button id="locationDateCancel" class="button" type="button">Cancel</button><button class="button primary" type="submit">Save</button></footer></form></dialog>');
     let locationDateKey='';
-    function updateLocationDateInput() { const unknown=$('#locationDateUnknown').checked; $('#locationDateValue').disabled=unknown; $('#locationDateValue').required=!unknown; }
+    function updateLocationDateInput() { const unknown=$('#locationDateUnknown').checked; $('#locationDateValue').disabled=false; $('#locationDateValue').required=!unknown; }
     $('#locationDateUnknown').addEventListener('change',updateLocationDateInput);
+    $('#locationDateValue').addEventListener('focus',function () { $('#locationDateUnknown').checked=false; updateLocationDateInput(); });
     $('#locationDateCancel').addEventListener('click',function () { App.components.closeDialog('#locationDateDialog'); });
     $('#locationDateForm').addEventListener('submit',function (event) {
-      event.preventDefault(); const date=$('#locationDateUnknown').checked ? '' : m.dateOnly($('#locationDateValue').value);
+      event.preventDefault(); let date; try { date=$('#locationDateUnknown').checked ? '' : inputDate($('#locationDateValue').value); } catch (error) { $('#locationDateError').textContent=error.message; return; }
       if (!$('#locationDateUnknown').checked && !date) { $('#locationDateError').textContent='Choose a valid date or UNKNOWN.'; return; }
       App.storage.mutate(function (state) { state.inventory.locationReviews=Object.assign({},state.inventory.locationReviews,{[locationDateKey]:{date:date,updatedAt:u.isoNow()}}); },{reason:'location-reviewed'});
       const saved=App.storage.saveNow(); if (!saved) { $('#locationDateError').textContent='The date could not be saved on this device. Please try again.'; return; }
@@ -339,7 +344,7 @@
   }
   function setDateUnknown(unknown) {
     $('#itemDateUnknown').checked = unknown;
-    $('#itemObtainedDate').disabled = unknown;
+    $('#itemObtainedDate').disabled = false;
     $('.obtained-date-input').dataset.unknown=String(unknown);
   }
   function syncDateUnknown() { setDateUnknown(!$('#itemObtainedDate').value); }
@@ -580,6 +585,8 @@
       setDateUnknown(this.checked);
       if (!this.checked) input.focus();
     });
+    $('#itemObtainedDate').addEventListener('focus', function () { setDateUnknown(false); });
+    $('#itemObtainedDate').addEventListener('input', function () { setDateUnknown(false); smartManual.add('obtainedDate'); });
     $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
     $('#itemBrand').addEventListener('input',renderTags);
     $("#itemSmartEntry").addEventListener("input", completeSmart);
@@ -625,7 +632,7 @@
     $("#inventorySubtitle").textContent = view === "have" ? "Know what you own, where it lives, and what it’s worth." : view === "previous" ? "Gone, but not forgotten. The things that were part of your life." : "A little space for what comes next.";
     const active = view === "have" || view === "previous";
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
-    if ($("#bulkEntryButton")) $("#bulkEntryButton").hidden = view !== "have";
+    if ($("#bulkEntryButton")) $("#bulkEntryButton").hidden = ! ["have","previous"].includes(view);
     $("#addItemButton").hidden = !active; $("#inventoryStats").hidden = false;
     $("#roomOverview").hidden = !active; $("#locationDivider").hidden = !active; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
@@ -644,7 +651,7 @@
   }
   function renderCategoryFilter() {
     const groups = App.inventoryCatalog.data(inventory().items).tagGroups.map(function (g) { return g.name === 'Brands' ? {name:g.name,tags:App.inventoryCatalog.brands(inventory().items).filter(App.inventoryCatalog.isFavorite)} : g; }).filter(function (g) { return g.name !== 'Brands' || g.tags.length; });
-    categoryGroups = new Map(groups.map(function (g) { return ['group:'+g.name,{kind:'tags',values:g.tags,brands:g.name==='Brands'}]; }));
+    categoryGroups = new Map(groups.map(function (g) { return ['group:'+g.name,{kind:'tags',values:g.tags.concat(g.name),brands:g.name==='Brands'}]; }));
   }
 
   function matchesCategory(item,value) { return !value || (categoryGroups.has(value) ? App.inventoryCatalog.matches(item,categoryGroups.get(value)) : item.categories.includes(value) || (categoryGroups.get('group:Brands')?.values.includes(value) && App.inventoryCatalog.matches(item,{kind:'property',name:'Brand',value:value})) ); }
@@ -660,7 +667,7 @@
     const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags');
     root.hidden = !group;
     if (group) { const card=$$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===hoveredCategory; }), bounds=(card || $('.category-quick-controls')).getBoundingClientRect(), width=Math.min(500,innerWidth-16); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=width+'px'; root.style.maxHeight=Math.max(80,innerHeight-bounds.bottom-8)+'px'; }
-    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.map(function (tag) { return '<button type="button" class="button small" title="'+esc(App.inventoryCatalog.presetDescription(tag))+'" data-category-tag="'+esc(tag)+'">'+esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' <span class="preset-indicator" aria-hidden="true">◇</span>':'')+'</button>'; }).join('') : '';
+    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).map(function (tag) { return '<button type="button" class="button small" title="'+esc(App.inventoryCatalog.presetDescription(tag))+'" data-category-tag="'+esc(tag)+'">'+esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' <span class="preset-indicator" aria-hidden="true">◇</span>':'')+'</button>'; }).join('') : '';
   }
   function renderCategoryCards(items) {
     const selected = $('#inventoryCategoryFilter').value;
@@ -857,14 +864,14 @@
       return m.sameObject(entry,item);
     }).map(function (entry) { return JSON.parse(JSON.stringify(entry)); }) : [];
     editingCopies.sort(function (a, b) { return a.id === id ? -1 : b.id === id ? 1 : 0; });
-    directArchive=!id && !copy && !draft && view==='previous';
+    directArchive=!id && !copy && (draft ? Boolean(draft._archiveMode) : view==='previous');
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
     $('#itemDirectArchive').hidden=!directArchive;
     $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) { input.disabled=!directArchive; });
     $('#itemDirectGoneReason').required=directArchive; $('#itemDirectGoneDate').max=m.today();
     $("#itemDialogTitle").textContent = directArchive ? "Add to Stuff I Had" : id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
-    $("#itemCopiesField").hidden = Boolean(item?.archive || directArchive); $("#itemCopies").disabled = Boolean(item?.archive || directArchive);
+    $("#itemCopiesField").hidden = Boolean(item?.archive || (directArchive && !draft)); $("#itemCopies").disabled = Boolean(item?.archive || (directArchive && !draft));
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
@@ -872,6 +879,7 @@
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#deleteItemButton").hidden = !id;
     $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || "", color:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || ''), size:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || ''), notes:entry.description === item.description ? null : entry.description}; }));
+    if (directArchive && draft) { $('#itemDirectGoneDate').value=draft.archive?.date || ''; $('#itemDirectGoneReason').value=draft.archive?.reason || ''; $('#itemDirectGoneNotes').value=draft.archive?.notes || ''; }
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -912,11 +920,12 @@
     event.preventDefault();
     try {
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
-      const count = previous?.archive || directArchive ? 1 : Number($("#itemCopies").value);
+      const count = previous?.archive || (directArchive && !App.bulkEntry?.current()) ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
       if (!App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
       const item = { id: editingId || u.uid("item"), archive: directArchive ? {date:$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
+      item.obtainedDate=$('#itemDateUnknown').checked ? '' : inputDate(item.obtainedDate);
       commitTags();
       item.categories = m.tags($("#itemCategories").value);
       item.properties = $$(".item-property").map(function (row) { updateMeasurement(row,true); return { name: $("[data-property-name]", row).value, value: ["end a","end b"].includes($("[data-property-name]", row).value.trim().toLowerCase()) ? m.cableEnd($("[data-property-value]", row).value) : $("[data-property-value]", row).value, unit: $("[data-property-unit]", row).value }; });
@@ -1021,9 +1030,10 @@
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
     draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();
     if (App.bulkEntry?.current()?.draft.copyGroup) draft.copyGroup = App.bulkEntry.current().draft.copyGroup;
+    if (directArchive) { draft._archiveMode=true; draft.archive={date:$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value}; }
     draft._reviewed = true;
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;
   }
-  App.inventoryUI = { fromCatalog: function (filter) { instantFilters.clear(); instantFilters.set('catalog',filter); view='have'; ['#inventorySearch','#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); render(); $('#inventoryTitle').focus(); }, search: function (query) { instantFilters.clear(); view='have'; ['#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); $('#inventorySearch').value=query; render(); }, openSearchItem: function (id,trigger) { const item=inventory().items.find(function (entry) { return entry.id===id; }); if(item) { view=item.archive?'previous':'have'; render(); openItem(id,trigger); } }, home: function () { instantFilters.clear(); view = "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
+  App.inventoryUI = { currentView: function () { return view; }, fromCatalog: function (filter) { instantFilters.clear(); instantFilters.set('catalog',filter); view='have'; ['#inventorySearch','#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); render(); $('#inventoryTitle').focus(); }, search: function (query) { instantFilters.clear(); view='have'; ['#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); $('#inventorySearch').value=query; render(); }, openSearchItem: function (id,trigger) { const item=inventory().items.find(function (entry) { return entry.id===id; }); if(item) { view=item.archive?'previous':'have'; render(); openItem(id,trigger); } }, home: function (destination) { instantFilters.clear(); view = destination === "previous" ? "previous" : "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
 })();

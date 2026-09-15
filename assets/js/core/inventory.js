@@ -27,7 +27,7 @@
     const list = Array.isArray(value) ? value : String(value || "").split(",");
     const seen = new Set();
     return list.map(function (tag) { const clean = u.cleanLine(tag, 60); return App.config.inventory.tagAliases?.[clean.toLowerCase()] || App.config.inventory.categories.find(function (category) { return category.name.toLowerCase() === clean.toLowerCase(); })?.name || (/^cables?$/i.test(clean) ? "Cables" : clean); }).filter(function (tag) {
-      if (!tag || seen.has(tag.toLowerCase())) return false;
+      if (!tag || App.config.inventory.removedTags?.some(function (name) { return name.toLowerCase() === tag.toLowerCase(); }) || seen.has(tag.toLowerCase())) return false;
       seen.add(tag.toLowerCase()); return true;
     }).slice(0, 30);
   }

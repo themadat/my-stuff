@@ -2,9 +2,9 @@
   "use strict";
   const App = window.LocalApp, esc = App.utils.escapeHtml;
   const unique = function (values) { const seen = new Set(); return values.filter(function (value) { const key = value.toLowerCase(); if (!value || seen.has(key)) return false; seen.add(key); return true; }).sort(function (a, b) { return a.localeCompare(b); }); };
-  function isFavorite(name) { return (App.storage.getState().preferences.favoriteBrands || []).some(function (brand) { return brand.toLowerCase() === name.toLowerCase(); }); }
+  function isFavorite(name) { return (App.storage?.getState().preferences.favoriteBrands || []).some(function (brand) { return brand.toLowerCase() === name.toLowerCase(); }); }
   function sortBrands(values) { return unique(values).sort(function (a,b) { return Number(isFavorite(b))-Number(isFavorite(a)) || a.localeCompare(b); }); }
-  function brands(items) { return sortBrands(App.config.inventory.brands.concat(Object.keys(App.config.inventory.brandCompanies || {}),Object.values(App.config.inventory.brandCompanies || {}),App.config.inventory.tagGroups.find(function (g) { return g.name === 'Brands'; })?.tags || [], items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }).map(function (p) { return p.value; }); }),App.storage.getState().preferences.favoriteBrands || [])); }
+  function brands(items) { return sortBrands(App.config.inventory.brands.concat(Object.keys(App.config.inventory.brandCompanies || {}),Object.values(App.config.inventory.brandCompanies || {}),App.config.inventory.tagGroups.find(function (g) { return g.name === 'Brands'; })?.tags || [], items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }).map(function (p) { return p.value; }); }),App.storage?.getState().preferences.favoriteBrands || [])); }
   function companyFor(brand) {
     const relations = App.config.inventory.brandCompanies || {}, name = Object.keys(relations).find(function (key) { return key.toLowerCase() === String(brand || '').toLowerCase(); });
     return name ? relations[name] : Object.values(relations).find(function (company) { return company.toLowerCase() === String(brand || '').toLowerCase(); }) || '';
@@ -27,7 +27,11 @@
     }
     config.locations.forEach(function (l) { location(l.zone, l.room, l.spaces); });
     const tagGroups = config.tagGroups.map(function (g) { return { name: g.name, tags: g.tags.slice() }; });
-    const knownTags = tagGroups.flatMap(function (g) { return g.tags.map(function (tag) { return tag.toLowerCase(); }); });
+    tagGroups.find(function (g) { return g.name === "Brands"; }).tags = brands(items);
+    const grouped = new Set(tagGroups.flatMap(function (g) { return g.tags.map(function (tag) { return tag.toLowerCase(); }); }));
+    const categories = config.categories.map(function (c) { return c.name; }).filter(function (name) { return !grouped.has(name.toLowerCase()); });
+    if (categories.length) tagGroups.push({name:"Categories",tags:categories});
+    const knownTags = tagGroups.flatMap(function (g) { return [g.name].concat(g.tags).map(function (tag) { return tag.toLowerCase(); }); });
     const customTags = unique(items.flatMap(function (item) { return item.categories; }).filter(function (tag) { return !knownTags.includes(tag.toLowerCase()); }));
     if (customTags.length) tagGroups.push({ name: "Custom Tags", tags: customTags });
     const properties = new Map();
@@ -72,8 +76,8 @@
     const root = document.querySelector("#inventoryCatalog"); if (!root) return;
     const catalog = data(App.storage.getState().inventory.items), query = document.querySelector("#inventoryCatalogSearch").value.trim().toLowerCase();
     const matchesQuery = function (parts) { return parts.join(" ").toLowerCase().includes(query); };
-    const chips = function (values, makeFilter, brandList) { return '<div class="catalog-chips">' + (brandList ? sortBrands(values) : values).map(function (value) {
-      return '<span class="catalog-chip">' + filterButton(value,makeFilter(value)) + presetBadge(value) + (brandList ? '<button type="button" class="favorite-brand" data-favorite-brand="' + esc(value) + '" aria-pressed="' + isFavorite(value) + '" aria-label="' + (isFavorite(value) ? 'Unfavorite ' : 'Favorite ') + esc(value) + '">' + App.icons.markup('favoriteBrand') + '</button>' : '') + '</span>';
+    const chips = function (values, makeFilter, brandList, custom) { return '<div class="catalog-chips">' + (brandList ? sortBrands(values) : values).map(function (value) {
+      return '<span class="catalog-chip">' + filterButton(value,makeFilter(value)) + presetBadge(value) + (custom ? '<button type="button" class="button small" data-delete-custom-tag="'+esc(value)+'" aria-label="Delete Custom Tag '+esc(value)+'">Delete</button>' : '') + (brandList ? '<button type="button" class="favorite-brand" data-favorite-brand="' + esc(value) + '" aria-pressed="' + isFavorite(value) + '" aria-label="' + (isFavorite(value) ? 'Unfavorite ' : 'Favorite ') + esc(value) + '">' + App.icons.markup('favoriteBrand') + '</button>' : '') + '</span>';
     }).join('') + '</div>'; };
     const locations = catalog.locations.map(function (zone) {
       const rooms = zone.rooms.filter(function (room) { return matchesQuery([zone.name,room.name].concat(room.spaces)); });
@@ -84,7 +88,7 @@
     }).join('');
     const tags = catalog.tagGroups.map(function (g) {
       const all = g.name === 'Brands' ? brands(App.storage.getState().inventory.items) : g.tags, values = all.filter(function (tag) { return matchesQuery([g.name,tag]); });
-      return values.length ? '<section class="catalog-group"><h4>' + filterButton(g.name,{kind:'tags',values:all,brands:g.name==='Brands'}) + '</h4>' + chips(values,function (value) { return g.name === 'Brands' ? {kind:'tags',values:[value],brands:true} : {kind:'tag',value:value}; },g.name==='Brands') + '</section>' : '';
+      return values.length ? '<section class="catalog-group"><h4>' + filterButton(g.name,{kind:'tags',values:all,brands:g.name==='Brands'}) + '</h4>' + chips(values,function (value) { return g.name === 'Brands' ? {kind:'tags',values:[value],brands:true} : {kind:'tag',value:value}; },g.name==='Brands',g.name==='Custom Tags') + '</section>' : '';
     }).join('');
     const companyNames = unique(Object.values(App.config.inventory.brandCompanies || {}).concat(App.storage.getState().inventory.items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase()==='company'; }).map(function (p) { return p.value; }); })));
     const companies = companyNames.filter(function (company) { return matchesQuery([company].concat(companyBrands(company))); }).map(function (company) {
@@ -103,7 +107,14 @@
   }
   function init() {
     document.body.insertAdjacentHTML("beforeend", '<datalist id="inventoryPropertyNames"></datalist><datalist id="inventoryColorValues"></datalist>');
-    document.querySelector('#inventoryCatalog').addEventListener('click', function (event) {
+    document.querySelector('#inventoryCatalog').addEventListener('click', async function (event) {
+      const remove = event.target.closest('[data-delete-custom-tag]');
+      if (remove) {
+        const name=remove.dataset.deleteCustomTag;
+        if (!await App.components.confirm({title:'Delete Custom Tag?',message:'Remove “'+name+'” from all current and archived items? Objects and their other details stay saved.',confirmLabel:'Delete Tag',trigger:remove})) return;
+        App.storage.mutate(function (state) { state.inventory.items=state.inventory.items.map(function (item) { return item.categories.some(function (tag) { return tag.toLowerCase()===name.toLowerCase(); }) ? Object.assign({},item,{categories:item.categories.filter(function (tag) { return tag.toLowerCase()!==name.toLowerCase(); }),updatedAt:App.utils.isoNow()}) : item; }); },{reason:'delete-custom-tag'});
+        App.storage.saveNow(); render(); document.querySelector('#inventoryCatalogSearch').focus(); return;
+      }
       const filter = event.target.closest('[data-catalog-filter]'); if (filter) { App.components.closeDialog('#supportDialog'); App.inventoryUI.fromCatalog(JSON.parse(filter.dataset.catalogFilter)); return; }
       const button = event.target.closest('[data-favorite-brand]'); if (!button) return;
       const name = button.dataset.favoriteBrand, active = isFavorite(name);
