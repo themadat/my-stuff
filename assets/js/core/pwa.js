@@ -95,7 +95,7 @@
     const button=document.querySelector('#updateAppButton');
     if (!button) return;
     button.dataset.updateAvailable=String(ready);
-    button.title=ready ? 'Update available — install and refresh' : 'Check for updates and force refresh';
+    button.title=(ready ? 'Update available — install and refresh' : 'Check for updates and force refresh')+' (Shift-Control-Option-R)';
     button.setAttribute('aria-label',ready ? 'Update — new version available' : 'Update — check for updates and force refresh');
     App.icons.set(button.querySelector('.button-icon'),ready && App.icons.markup('updateReady') ? 'updateReady' : 'updateApp');
   }

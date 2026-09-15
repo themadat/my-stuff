@@ -17,13 +17,17 @@
     const first = cells[0];
     if (first) {
       const raw = first[0].trim();
-      const candidates = locations.flatMap(function (l) { return [{ value: l.room, room: l.room, zone: l.zone }].concat(l.spaces.map(function (space) { return { value: space, room: l.room, zone: l.zone, space: space }; })); });
+      const candidates = locations.flatMap(function (l) { return [{ value: l.room, room: l.room, zone: l.zone }].concat(l.spaces.flatMap(function (space) { return [{ value: space, room: l.room, zone: l.zone, space: space }, { value: l.room + ' ' + space, room: l.room, zone: l.zone, space: space, qualified: true }]; })); });
+      Object.entries(App.config.inventory.locationAliases || {}).forEach(function ([value, alias]) {
+        const location=locations.find(function (entry) { return entry.room===alias.room && entry.spaces.includes(alias.space); });
+        if (location) candidates.push({value:value,room:location.room,zone:location.zone,space:alias.space,qualified:true});
+      });
       const matches = candidates.filter(function (l) { return l.value.toLowerCase() === raw.toLowerCase(); });
       if (matches.length === 1 && cells.length > 1) {
         const place = matches[0]; fields.room = place.room; fields.zone = place.zone;
         take(first.index + first[0].indexOf(raw), raw.length, place.space ? 'space' : 'room', place.space || place.room);
       } else if (!text.includes('\t')) {
-        const prefix = candidates.filter(function (l) { return !l.space && text.toLowerCase().startsWith(l.value.toLowerCase() + ' '); }).sort(function (a,b) { return b.value.length - a.value.length; });
+        const prefix = candidates.filter(function (l) { return (!l.space || l.qualified) && text.toLowerCase().startsWith(l.value.toLowerCase() + ' '); }).sort(function (a,b) { return b.value.length - a.value.length; });
         if (prefix.length && candidates.filter(function (l) { return l.value === prefix[0].value; }).length === 1) {
           const place = prefix[0]; fields.room = place.room; fields.zone = place.zone; take(0, place.value.length, place.space ? 'space' : 'room', place.space || place.room);
         }

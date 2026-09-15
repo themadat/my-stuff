@@ -1249,3 +1249,31 @@ test('table location collapse nests, persists through renders and sidebar reveal
  }
  await page.screenshot({path:'/private/tmp/my-stuff52-table.png'});
 });
+
+test('weight defaults, unknown date dashes, smart location and aligned location totals', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1800,height:1100}}); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ assert.equal(await page.locator('.obtained-date-input > span').isVisible(),true);
+ assert.equal(await page.locator('.obtained-date-input > span').textContent(),'-- / -- / ----');
+ await page.locator('#itemDateUnknown').uncheck(); assert.equal(await page.locator('.obtained-date-input > span').isVisible(),false);
+ await page.locator('#itemObtainedDate').fill('2026-09-14'); await page.locator('#itemDateUnknown').check(); assert.equal(await page.locator('#itemObtainedDate').inputValue(),'');
+ await page.locator('#itemSmartEntry').fill('Primary Closet Winter Coat');
+ assert.equal(await page.locator('#itemRoom').inputValue(),'Primary Bedroom'); assert.equal(await page.locator('#itemSpace').inputValue(),'Closet');
+ await page.locator('#addPropertyButton').click(); await page.locator('[data-property-name]').fill('Weight'); assert.equal(await page.locator('[data-property-unit]').inputValue(),'oz');
+ await page.locator('[data-property-value]').fill('250g'); await page.locator('[data-property-value]').press('Tab'); assert.equal(await page.locator('[data-property-unit]').inputValue(),'g');
+ await page.locator('#itemValue').fill('12.50'); await page.locator('#saveItemButton').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>state.inventory.items.push(window.LocalApp.inventoryModel.normalizeItem({id:'room-only-total',name:'Room Only',room:'Primary Bedroom',value:7.5,owner:'me',properties:[{name:'Zone',value:'Main Level'}]}))));
+ const section=page.locator('.location-section-heading').filter({has:page.locator('.table-location-toggle').filter({hasText:'Primary Bedroom'})});
+ assert.equal(await section.locator('.location-total-count').textContent(),'2'); assert.equal(await section.locator('.location-total-value').textContent(),'$20');
+ const nav=page.locator('.location-nav-row').filter({has:page.locator('.location-jump').filter({hasText:'Primary Bedroom'})});
+ assert.equal(await nav.locator('.location-object-count').textContent(),'2'); assert.equal(await nav.locator('.location-object-value').textContent(),'$20');
+ for(const [header,row] of [['.location-total-count','.item-count'],['.location-total-value','.item-money']]) {
+  const a=await section.locator(header).boundingBox(),b=await page.locator('tr[data-item-owner] '+row).first().boundingBox(); assert.ok(Math.abs(a.x+a.width-b.x-b.width)<2);
+ }
+ await section.locator('button').click(); assert.equal(await section.locator('.location-total-value').textContent(),'$20'); await section.locator('button').click();
+ await page.screenshot({path:'/private/tmp/my-stuff53-totals.png'});
+ await page.setViewportSize({width:390,height:844}); await page.waitForFunction(()=>document.querySelector('[data-inventory-total="all"]').dataset.expanded==='false'); await section.scrollIntoViewIfNeeded();
+ for(const [header,row] of [['.location-total-count','.item-count'],['.location-total-value','.item-money']]) { const a=await section.locator(header).boundingBox(),b=await page.locator('tr[data-item-owner] '+row).first().boundingBox(); assert.ok(Math.abs(a.x+a.width-b.x-b.width)<2); }
+ await page.screenshot({path:'/private/tmp/my-stuff53-mobile.png'});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+});

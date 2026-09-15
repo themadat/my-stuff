@@ -497,6 +497,10 @@
       if (event.key === "Escape") { $("#globalSearchResults").hidden = true; return; }
       if (u.isEditableTarget(event.target) || event.metaKey || (event.ctrlKey && !event.altKey)) return;
       const chord = event.shiftKey && event.ctrlKey && event.altKey;
+      if (chord && event.code === 'KeyR') {
+        if (!event.repeat && !event.defaultPrevented) { event.preventDefault(); $('#updateAppButton').click(); }
+        return;
+      }
       const key = event.key.toLowerCase();
       if (!chord && event.altKey) return;
       if (key === "/") { event.preventDefault(); $("#globalSearch").focus(); }

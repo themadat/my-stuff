@@ -80,3 +80,11 @@ test('explicit Seller and Brand override prefix and brand guesses without overla
  const oldStore=JSON.parse(JSON.stringify(app.smartEntry.parse('Amazon - Cable',['Amazon'])));
  assert.equal(oldStore.fields.brand,undefined);
 });
+
+test('qualified locations resolve Primary Closet without guessing ambiguous Closet', () => {
+ for (const input of ['Primary Closet\tWinter Coat','primary closet Winter Coat','Primary Bedroom Closet Winter Coat']) {
+  const fields=parse(input).fields;
+  assert.equal(fields.room,'Primary Bedroom'); assert.equal(fields.zone,'Main Level'); assert.equal(fields.space,'Closet'); assert.equal(fields.name,'Winter Coat');
+ }
+ assert.equal(parse('Closet\tWinter Coat').fields.room,undefined);
+});

@@ -1,3 +1,17 @@
+## Latest Update — Force Reload Shortcut (0.0.1.54)
+
+Shift-Control-Option-R activates the top-bar Update/force-refresh button. Uses physical KeyR so Option-modified characters do not break the chord, ignores key repeats and editable targets, and keeps plain R for Research. Button hint, aria-keyshortcuts and Help match. Prior .53 work remains included and uncommitted. Version surfaces align at .54. Six static checks and a Chromium shortcut smoke check passed; plain R still opens Research. Preview stopped.
+
+## Latest Update — Location Totals and Defaults (0.0.1.53)
+
+New Weight presets and newly named Weight properties default to oz; explicitly supplied units remain unchanged. Unknown Date Obtained displays -- / -- / ---- over the disabled native date field without storing placeholder text. Unchecking Unknown restores the native date picker.
+
+Smart Complete recognizes the configured Primary Closet alias as Main Level / Primary Bedroom / Closet and full room-plus-space prefixes such as Primary Bedroom Closet. The same recognition works in the first spreadsheet cell. Ambiguous bare Closet remains unassigned rather than choosing a room.
+
+Around the House now shows known-value totals after the count. A single per-path aggregation supplies both sidebar and floating table section totals, counting room-only items plus descendants once and following current filters. Table headers use separate count/value cells aligned with object columns; mobile headers and rows share the same count/value grid. Collapsing locations retains their totals. Values use existing whole-dollar display formatting, with cent-precision aggregation and unknown-value counts in titles.
+
+Verification: 113 non-browser checks and 3 targeted Chromium checks passed, covering defaults, date toggles, alias recognition, totals and desktop/mobile alignment, nested collapse/reveal, and offline edit/reload. Desktop/mobile screenshots reviewed. Version/cache/manifests/workflow aligned at .53. Preview server stopped. No commit or push performed.
+
 ## Latest Update — Table Collapse and Copy Controls (0.0.1.52)
 
 The committed icon set lacked updateReady. Preserved the user's existing updateReady SVG addition byte-for-byte and include it in this task; PWA rendering also falls back to updateApp if that alternate symbol is absent. Both symbols are checked for concrete SVG paths.

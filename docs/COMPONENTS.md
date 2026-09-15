@@ -53,3 +53,9 @@ The item editor places Tags beside Notes, uses the full width for custom propert
 Table location state is session-local and independent of sidebar disclosure. Zone, room and space buttons hide descendants, preserve nested state, and expose aria-expanded. Sidebar jumps reveal the target path. Measurement equivalents remain inline with their property in the object details row.
 
 Copy Shared controls clear disabled override inputs; labels use #1, #2. The tag editor marks brand/Float tags as fixed and supports drag or Alt+Arrow reordering for other tags. Notes stretches alongside the tag search and selected tags on desktop. Command+Enter and Control+Enter call requestSubmit, preserving native form validation. PWA state uses updateReady when supplied and falls back to updateApp otherwise.
+
+### Location Totals and Entry Defaults
+
+The per-path location map aggregates count, integer value cents and unknown-value count across filtered descendant sections. Sidebar values and table section cells consume the same totals; collapsing a branch does not alter them. Mobile headers and object rows share count/value grid widths.
+
+New Weight fields default to oz without overwriting explicit units. Unknown dates use a visual dash overlay on a disabled native date input; the stored date remains empty. Smart Complete resolves configured locationAliases and full room-plus-space prefixes, while ambiguous bare space names remain untouched.

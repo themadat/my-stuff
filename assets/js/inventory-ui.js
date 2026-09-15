@@ -65,7 +65,7 @@
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
               ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-              <div class="field obtained-date-field"><div class="date-heading"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice">Unknown <input id="itemDateUnknown" type="checkbox" checked></label></div><input id="itemObtainedDate" type="date" disabled></div>
+              <div class="field obtained-date-field"><div class="date-heading"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice">Unknown <input id="itemDateUnknown" type="checkbox" checked></label></div><div class="obtained-date-input" data-unknown="true"><input id="itemObtainedDate" type="date" disabled><span aria-hidden="true">-- / -- / ----</span></div></div>
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
             </div>
@@ -300,11 +300,12 @@
     $("#itemSmartEntry").value = ""; $("#smartPreview").hidden = true; $("#smartPreview").textContent = ""; $("#smartDestinations").textContent = "";
     $$("[data-smart-field]").forEach(function (el) { el.removeAttribute("data-smart-field"); });
   }
-  function syncDateUnknown() {
-    const unknown = !$('#itemObtainedDate').value;
+  function setDateUnknown(unknown) {
     $('#itemDateUnknown').checked = unknown;
     $('#itemObtainedDate').disabled = unknown;
+    $('.obtained-date-input').dataset.unknown=String(unknown);
   }
+  function syncDateUnknown() { setDateUnknown(!$('#itemObtainedDate').value); }
   function syncSegments() {
     ["itemOwner", "itemObtainedHow"].forEach(function (id) { $$('input[name="' + id + 'Choice"]').forEach(function (el) { el.checked = el.value === $("#" + id).value; }); });
   }
@@ -539,7 +540,7 @@
     $('#itemDateUnknown').addEventListener('change', function () {
       const input = $('#itemObtainedDate');
       if (this.checked) { input.value = ''; smartManual.add('obtainedDate'); input.removeAttribute('data-smart-field'); delete smartApplied.obtainedDate; }
-      input.disabled = this.checked;
+      setDateUnknown(this.checked);
       if (!this.checked) input.focus();
     });
     $('#itemObtainedDate').addEventListener('change', syncDateUnknown);
@@ -656,26 +657,28 @@
       section.path.forEach(function (name,index) {
         if (!name) return;
         const path=section.path.slice(0,index+1), key=JSON.stringify(path);
-        if (!nodes.has(key)) nodes.set(key,{path:path,name:name,count:0});
-        nodes.get(key).count += section.items.length;
+        if (!nodes.has(key)) nodes.set(key,{path:path,name:name,count:0,valueCents:0,unknown:0});
+        const node=nodes.get(key); node.count += section.items.length;
+        section.items.forEach(function (item) { if (item.value===null) node.unknown++; else node.valueCents+=Math.round(item.value*100); });
       });
     });
     const values=Array.from(nodes.values());
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
-      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
+    return nodes;
   }
   function tableLocationClosed(path) {
     return path.some(function (_,index) { return collapsedTableLocations.has(JSON.stringify(path.slice(0,index+1))); });
   }
-  function locationHeadings(path, previous) {
+  function locationHeadings(path, previous, totals) {
     let changed=false;
     return path.map(function (name,index) {
       changed = changed || name !== previous?.[index];
-      const prefix=path.slice(0,index+1), key=JSON.stringify(prefix), closed=collapsedTableLocations.has(key);
-      return changed && name ? '<tr class="location-section-heading" data-table-location-path="'+esc(key)+'" data-location-level="'+index+'"'+(tableLocationClosed(prefix.slice(0,-1))?' hidden':'')+'><th colspan="6" id="'+esc(locationAnchor(prefix))+'" tabindex="-1"><button type="button" class="table-location-toggle" data-table-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'"><span aria-hidden="true">'+(closed?'▸':'▾')+'</span> '+esc(name)+'</button></th></tr>' : '';
+      const prefix=path.slice(0,index+1), key=JSON.stringify(prefix), closed=collapsedTableLocations.has(key), total=totals.get(key);
+      return changed && name ? '<tr class="location-section-heading" data-table-location-path="'+esc(key)+'" data-location-level="'+index+'"'+(tableLocationClosed(prefix.slice(0,-1))?' hidden':'')+'><th colspan="2" id="'+esc(locationAnchor(prefix))+'" tabindex="-1"><button type="button" class="table-location-toggle" data-table-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'"><span aria-hidden="true">'+(closed?'▸':'▾')+'</span> '+esc(name)+'</button></th><th class="location-total-count" scope="row">'+total.count+'</th><th class="location-total-value" title="'+total.unknown+' Not Valued">'+esc(money(total.valueCents/100,true))+'</th><th colspan="2" aria-hidden="true"></th></tr>' : '';
     }).join('');
   }
   function fillMissingAmount() {
@@ -722,11 +725,11 @@
       expandedCards.forEach(function (card) { card.style.width=ownershipWidth+'px'; });
     }
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
-    const sections = m.locationSections(items).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); renderLocationNavigation(sections);
+    const sections = m.locationSections(items).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); const locationTotals=renderLocationNavigation(sections);
     if (!items.length) {
       $("#inventoryList").innerHTML = '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryAdd") + ' Add Item</button>' : '') + '</div>'; return;
     }
-    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th><span class="visually-hidden">Tags</span></th><th aria-label="Count">#</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return locationHeadings(section.path,sections[sectionIndex-1]?.path) + m.groupRows(section.items).map(function (members) {
+    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th><span class="visually-hidden">Tags</span></th><th aria-label="Count">#</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return locationHeadings(section.path,sections[sectionIndex-1]?.path,locationTotals) + m.groupRows(section.items).map(function (members) {
       const item = members[0], distinct = function (values) { return Array.from(new Map(values.map(function (value) { return [JSON.stringify(value),value]; })).values()); };
       const properties = distinct(members.flatMap(function (entry) { return entry.properties; })), descriptions = distinct(members.map(function (entry) { return entry.description; }));
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
@@ -754,7 +757,7 @@
     row.addEventListener('change',function () { updateMeasurement(row,true); });
     const endpoint = function () { return ['end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); };
     $('[data-property-value]',row).addEventListener('change', function () { if (endpoint()) this.value = m.cableEnd(this.value); });
-    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','size','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else value.removeAttribute("list"); }
+    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','size','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else value.removeAttribute("list"); }
     $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions(); updateMeasurement(row,false);
     $("#itemProperties").appendChild(row); renderPresets(); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
   }
