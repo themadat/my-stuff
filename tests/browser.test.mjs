@@ -1293,3 +1293,15 @@ test('sidebar right click filters exact location paths without dropdowns', {time
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  await page.screenshot({path:'/private/tmp/my-stuff55-mobile.png'});
 });
+
+test('sidebar number tracks align for large totals and category property hints are immediate', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=Array.from({length:123},(_,i)=>window.LocalApp.inventoryModel.normalizeItem({id:'wide-'+i,name:'Object '+i,room:i<120?'Den':'Office',owner:'me',value:i<120?100:10,properties:[{name:'Zone',value:i<120?'Main Level':'Upstairs'}]}));}));
+ for(const selector of ['.location-object-count','.location-object-value']) { const boxes=await page.locator(selector).evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {right:r.right,width:r.width,scroll:el.scrollWidth};}));assert.ok(Math.max(...boxes.map(b=>b.right))-Math.min(...boxes.map(b=>b.right))<1);assert.ok(boxes.every(b=>b.scroll<=b.width+1)); }
+ await page.locator('[data-category-group="group:Tech"]').hover(); await page.locator('[data-category-tag="Powerbanks"]').hover();
+ assert.equal(await page.locator('#categoryPropertyHint').isVisible(),true);assert.match(await page.locator('#categoryPropertyHint').textContent(),/Battery Capacity.*mAh/);
+ await page.screenshot({path:'/private/tmp/my-stuff56-sidebar.png'});
+ await page.locator('#inventorySearch').hover(); assert.equal(await page.locator('#categoryPropertyHint').isVisible(),false);
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('[data-category-preset="1"]').focus(); assert.equal(await page.locator('#itemDialog #categoryPropertyHint').isVisible(),true);assert.match(await page.locator('#categoryPropertyHint').textContent(),/Weight.*oz/);
+});

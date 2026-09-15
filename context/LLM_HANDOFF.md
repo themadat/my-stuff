@@ -1,3 +1,11 @@
+## Latest Update — Aligned Sidebar Totals and Instant Hints (0.0.1.56)
+
+Sidebar count/value columns use shared widths across all hierarchy levels, reserving at least four and nine character widths respectively and growing for larger totals. Tabular numerals and right alignment are consistent. Review dates sit beneath location names to keep names readable while allocating room for hundreds and five-digit values.
+
+Category tags, selected category cards and Add Item property-set buttons show an immediate custom tooltip with preset properties and units on pointer hover or keyboard focus. Tooltip text is escaped via textContent, attached inside the active dialog when necessary, described with aria-describedby, and dismissed on leave, Escape, scrolling or resize.
+
+Verification: 113 non-browser checks and 3 targeted Chromium checks passed, including 123 objects, $12,000 location values, cross-row numeric alignment, hover/focus hints inside and outside dialogs, right-click filtering, mobile layout and offline edit/reload. Screenshots reviewed. Version surfaces align at .56. Preview stopped before handoff; no commit or push performed.
+
 ## Latest Update — Sidebar Location Filtering (0.0.1.55)
 
 Removed location/category dropdown UI and its option-building code. Internal hidden filter values retain compatibility with quick category selections and existing filter/reset paths. Mobile now has search, quick categories, then ownership/actions in three rows; desktop gives the removed dropdown space back to the toolbar.

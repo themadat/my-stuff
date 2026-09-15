@@ -63,3 +63,7 @@ New Weight fields default to oz without overwriting explicit units. Unknown date
 ### Sidebar Filters
 
 Right-click, Shift+F10 or the context-menu key on an Around the House location filters by its complete path. Repeating toggles it off; the visible Location filter label and Clear also reset it. Left-click retains location navigation. Category quick controls remain; both former dropdowns are replaced by hidden internal filter values. The mobile toolbar uses three rows.
+
+### Sidebar Numeric Tracks and Property Hints
+
+All location rows share count/value widths derived from the largest displayed totals, with minimum four/nine character tracks. Review dates appear below names. Preset-category controls show an immediate, viewport-clamped tooltip on hover or focus. The tooltip uses textContent and aria-describedby and is mounted inside a dialog when needed.

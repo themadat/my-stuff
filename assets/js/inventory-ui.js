@@ -165,6 +165,28 @@
       $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup === group; })?.focus({preventScroll:true});
       hoveredCategory = ''; renderCategoryTags();
     });
+    const propertyHint=document.createElement('div'); propertyHint.id='categoryPropertyHint'; propertyHint.className='category-property-hint'; propertyHint.setAttribute('role','tooltip'); propertyHint.hidden=true;
+    let propertyHintTarget=null;
+    function hidePropertyHint() {
+      if (propertyHintTarget) { const ids=(propertyHintTarget.getAttribute('aria-describedby') || '').split(' ').filter(function (id) { return id && id!==propertyHint.id; }); if (ids.length) propertyHintTarget.setAttribute('aria-describedby',ids.join(' ')); else propertyHintTarget.removeAttribute('aria-describedby'); }
+      propertyHintTarget=null; propertyHint.hidden=true;
+    }
+    function showPropertyHint(event) {
+      const target=event.target.closest('[data-category-tag],[data-category-filter],[data-category-preset]');
+      const name=target?.dataset.categoryTag || target?.dataset.categoryFilter || App.config.inventory.categories[Number(target?.dataset.categoryPreset)]?.name;
+      const description=target && App.inventoryCatalog.presetDescription(name);
+      hidePropertyHint(); if (!description) return;
+      propertyHintTarget=target; (target.closest('dialog') || document.body).append(propertyHint); propertyHint.textContent=description; propertyHint.hidden=false;
+      target.setAttribute('aria-describedby',((target.getAttribute('aria-describedby') || '')+' '+propertyHint.id).trim());
+      const bounds=target.getBoundingClientRect(), width=propertyHint.getBoundingClientRect().width;
+      propertyHint.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px';
+      propertyHint.style.top=Math.max(8,Math.min(bounds.bottom+6,innerHeight-propertyHint.offsetHeight-8))+'px';
+    }
+    document.addEventListener('pointerover',showPropertyHint);
+    document.addEventListener('focusin',showPropertyHint);
+    ['pointerout','focusout'].forEach(function (type) { document.addEventListener(type,function (event) { if (propertyHintTarget && propertyHintTarget.contains(event.target) && !propertyHintTarget.contains(event.relatedTarget)) hidePropertyHint(); }); });
+    document.addEventListener('keydown',function (event) { if (event.key==='Escape') hidePropertyHint(); });
+    document.addEventListener('scroll',hidePropertyHint,true); window.addEventListener('resize',hidePropertyHint);
     const quickControls=$('.category-quick-controls'), tagMenu=$('#categoryTags');
     document.body.append(tagMenu);
     let tagCloseTimer;
@@ -656,6 +678,8 @@
       });
     });
     const values=Array.from(nodes.values());
+    $('#roomStats').style.setProperty('--location-count-width',Math.max(4,...values.map(function (node) { return String(node.count).length; }))+'ch');
+    $('#roomStats').style.setProperty('--location-value-width',Math.max(9,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
       return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';

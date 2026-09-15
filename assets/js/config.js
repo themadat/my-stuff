@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.55",
-      buildId: "0.0.1.55",
+      version: "0.0.1.56",
+      buildId: "0.0.1.56",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -83,6 +83,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.56", date: "2026-09-15T12:00:00.000Z", title: "Aligned Totals and Instant Property Hints",
+      summary: "Wider aligned sidebar totals and immediate category property hints.",
+      features: [], improvements: ["Shared numeric columns sized for hundreds and five-digit values", "Instant hover and focus hints for category property sets"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.55", date: "2026-09-14T23:45:00.000Z", title: "Sidebar Location Filtering",
       summary: "Right-click Around the House locations to filter the list.",
       features: ["Right-click or Shift+F10 filters a location"], improvements: ["Removed location and category dropdowns", "Compact three-row mobile toolbar"], fixes: [], knownIssues: []
