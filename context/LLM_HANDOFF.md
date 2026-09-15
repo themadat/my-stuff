@@ -1,3 +1,11 @@
+## Latest Update — Sidebar Location Filtering (0.0.1.55)
+
+Removed location/category dropdown UI and its option-building code. Internal hidden filter values retain compatibility with quick category selections and existing filter/reset paths. Mobile now has search, quick categories, then ownership/actions in three rows; desktop gives the removed dropdown space back to the toolbar.
+
+Right-clicking an Around the House location row toggles filtering by its complete zone/room/space path, preventing repeated Closet names from matching other rooms. Shift+F10 or the context-menu key provides keyboard access. Left-click still reveals/jumps to its section. A visible Location filter label and Clear remove the filter. Filters combine with category, ownership and search.
+
+113 non-browser checks passed, plus targeted Chromium checks for exact-path filtering, keyboard activation, clear, category controls, nested disclosure and offline edit/reload. Desktop/mobile screenshots reviewed; version surfaces align at .55. Preview stopped before handoff. No commit or push performed.
+
 ## Latest Update — Force Reload Shortcut (0.0.1.54)
 
 Shift-Control-Option-R activates the top-bar Update/force-refresh button. Uses physical KeyR so Option-modified characters do not break the chord, ignores key repeats and editable targets, and keeps plain R for Research. Button hint, aria-keyshortcuts and Help match. Prior .53 work remains included and uncommitted. Version surfaces align at .54. Six static checks and a Chromium shortcut smoke check passed; plain R still opens Research. Preview stopped.

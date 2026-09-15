@@ -1091,10 +1091,9 @@ test('mobile toolbar has ordered rows and ownership buttons expand without losin
   await page.locator('[data-close-dialog="supportDialog"]').click();
   const cards=page.locator('#inventoryStats .inventory-stat');
   assert.deepEqual(await cards.evaluateAll(els=>els.map(el=>el.getAttribute('data-expanded'))),['false','false','false']);
-  const bounds=await Promise.all(['#inventorySearch','#inventoryRoomFilter','#inventoryCategoryFilter','.category-quick-controls','[data-inventory-total="all"]','#clearInventoryFilters','#bulkEntryButton','#addItemButton'].map(selector=>page.locator(selector).boundingBox()));
-  assert.ok(bounds[0].y<bounds[1].y && bounds[1].y<bounds[3].y && bounds[3].y<bounds[4].y);
-  assert.equal(bounds[1].y,bounds[2].y);
-  assert.ok(bounds.slice(4).every(rect=>Math.abs(rect.y-bounds[4].y)<2));
+  const bounds=await Promise.all(['#inventorySearch','.category-quick-controls','[data-inventory-total="all"]','#clearInventoryFilters','#bulkEntryButton','#addItemButton'].map(selector=>page.locator(selector).boundingBox()));
+  assert.ok(bounds[0].y<bounds[1].y && bounds[1].y<bounds[2].y);
+  assert.ok(bounds.slice(2).every(rect=>Math.abs(rect.y-bounds[2].y)<2));
   assert.ok(bounds.every(rect=>rect.x>=0&&rect.x+rect.width<=width+1));
   const house=page.locator('[data-inventory-total="house"]'); await house.locator('.ownership-select').click();
   assert.equal(await house.getAttribute('data-expanded'),'false');
@@ -1276,4 +1275,21 @@ test('weight defaults, unknown date dashes, smart location and aligned location 
  for(const [header,row] of [['.location-total-count','.item-count'],['.location-total-value','.item-money']]) { const a=await section.locator(header).boundingBox(),b=await page.locator('tr[data-item-owner] '+row).first().boundingBox(); assert.ok(Math.abs(a.x+a.width-b.x-b.width)<2); }
  await page.screenshot({path:'/private/tmp/my-stuff53-mobile.png'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+});
+
+test('sidebar right click filters exact location paths without dropdowns', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[['Office','Closet'],['Guest Room','Closet'],['Office','Desk']].map(([room,space],i)=>window.LocalApp.inventoryModel.normalizeItem({id:'context-'+i,name:'Object '+i,room,owner:'me',categories:['Books'],properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:space}]}));}));
+ assert.equal(await page.locator('select#inventoryRoomFilter, select#inventoryCategoryFilter').count(),0);
+ const target=page.locator(`[data-location-filter='["Upstairs","Office","Closet"]']`);
+ await target.click({button:'right'});assert.equal(await page.locator('[data-edit-item]:visible').count(),1);
+ assert.match(await page.locator('[data-clear-location-filter]').textContent(),/Office \/ Closet/);
+ await page.locator('[data-clear-location-filter]').click();assert.equal(await page.locator('[data-edit-item]:visible').count(),3);
+ await page.locator('[data-location-filter]').filter({hasText:'Office'}).press('Shift+F10');assert.equal(await page.locator('[data-edit-item]:visible').count(),2);
+ await page.locator('#clearInventoryFilters').click();
+ await page.locator('[data-category-group="group:Other"]').click();assert.equal(await page.locator('[data-edit-item]:visible').count(),3);
+ await page.screenshot({path:'/private/tmp/my-stuff55-desktop.png'});
+ await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.querySelector('[data-inventory-total="all"]').dataset.expanded==='false');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff55-mobile.png'});
 });

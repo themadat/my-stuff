@@ -59,3 +59,7 @@ Copy Shared controls clear disabled override inputs; labels use #1, #2. The tag 
 The per-path location map aggregates count, integer value cents and unknown-value count across filtered descendant sections. Sidebar values and table section cells consume the same totals; collapsing a branch does not alter them. Mobile headers and object rows share count/value grid widths.
 
 New Weight fields default to oz without overwriting explicit units. Unknown dates use a visual dash overlay on a disabled native date input; the stored date remains empty. Smart Complete resolves configured locationAliases and full room-plus-space prefixes, while ambiguous bare space names remain untouched.
+
+### Sidebar Filters
+
+Right-click, Shift+F10 or the context-menu key on an Around the House location filters by its complete path. Repeating toggles it off; the visible Location filter label and Clear also reset it. Left-click retains location navigation. Category quick controls remain; both former dropdowns are replaced by hidden internal filter values. The mobile toolbar uses three rows.

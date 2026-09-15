@@ -34,8 +34,8 @@
       <div class="inventory-toolbar-scroll"><header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
             ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}
             <input type="hidden" id="inventoryOwnerFilter" value="">
-            ${select("inventoryRoomFilter", "Location", '<option value="">All Rooms</option>')}
-            ${select("inventoryCategoryFilter", "Category", '<option value="">All Categories</option>')}
+            <input type="hidden" id="inventoryRoomFilter" value="">
+            <input type="hidden" id="inventoryCategoryFilter" value="">
           </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header></div>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><h2 id="roomOverviewTitle">Around the House</h2><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
@@ -181,6 +181,15 @@
       });
     });
     document.addEventListener('pointerdown',function (event) { if (!insideTags(event.target)) closeTagMenu(); });
+    function filterSidebarLocation(event) {
+      const link=event.target.closest('.location-nav-row')?.querySelector('[data-location-filter]'); if (!link) return;
+      event.preventDefault(); const value='path:'+link.dataset.locationFilter;
+      $('#inventoryRoomFilter').value=$('#inventoryRoomFilter').value===value?'':value;
+      renderList(); $$('#roomStats [data-location-filter]').find(function (entry) { return entry.dataset.locationFilter===link.dataset.locationFilter; })?.focus({preventScroll:true});
+    }
+    $('#roomStats').addEventListener('contextmenu',filterSidebarLocation);
+    $('#roomStats').addEventListener('keydown',function (event) { if (event.key==='ContextMenu' || (event.shiftKey && event.key==='F10')) filterSidebarLocation(event); });
+    $('#inventoryResultCount').addEventListener('click',function (event) { if (event.target.closest('[data-clear-location-filter]')) { $('#inventoryRoomFilter').value=''; renderList(); $('#inventorySearch').focus(); } });
     $('#roomStats').addEventListener('click', function (event) {
       const dateButton=event.target.closest('[data-location-date]');
       if (dateButton) {
@@ -598,7 +607,6 @@
       return '<div class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label"><button type="button" class="ownership-select" aria-label="Filter ' + entry[1] + '">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></button></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span><button type="button" class="ownership-toggle" data-ownership-toggle="' + entry[0] + '" aria-label="Toggle ' + entry[1] + ' totals">⌄</button></div>';
 
     }).join("");
-    renderLocationFilter();
     renderCategoryFilter();
     let sizeList=$('#inventorySizeValues'); if (!sizeList) { sizeList=document.createElement('datalist'); sizeList.id='inventorySizeValues'; $('#itemForm').append(sizeList); }
     sizeList.innerHTML=options(unique(App.config.inventory.commonProperties.find(function (p) { return p.name==='Size'; }).values.concat(data.items.flatMap(function (entry) { return entry.properties.filter(function (p) { return p.name.toLowerCase()==='size'; }).map(function (p) { return p.value; }); }))));
@@ -607,29 +615,14 @@
     App.inventoryCatalog?.render();
   }
   function renderCategoryFilter() {
-    const el = $('#inventoryCategoryFilter'), old = el.value;
     const groups = App.inventoryCatalog.data(inventory().items).tagGroups.map(function (g) { return g.name === 'Brands' ? {name:g.name,tags:App.inventoryCatalog.brands(inventory().items).filter(App.inventoryCatalog.isFavorite)} : g; }).filter(function (g) { return g.name !== 'Brands' || g.tags.length; });
     categoryGroups = new Map(groups.map(function (g) { return ['group:'+g.name,{kind:'tags',values:g.tags,brands:g.name==='Brands'}]; }));
-    el.innerHTML = '<option value="">All Categories</option>' + groups.map(function (g) {
-      return '<optgroup label="' + esc(g.name) + '"><option value="' + esc('group:'+g.name) + '">' + esc(g.name+' — All') + '</option>' + g.tags.map(function (tag) { return '<option value="' + esc(tag) + '">　' + esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' ◇':'') + '</option>'; }).join('') + '</optgroup>';
-    }).join('');
-    el.value = Array.from(el.options).some(function (option) { return option.value===old; }) ? old : '';
   }
+
   function matchesCategory(item,value) { return !value || (categoryGroups.has(value) ? App.inventoryCatalog.matches(item,categoryGroups.get(value)) : item.categories.includes(value) || (categoryGroups.get('group:Brands')?.values.includes(value) && App.inventoryCatalog.matches(item,{kind:'property',name:'Brand',value:value})) ); }
-  function renderLocationFilter() {
-    const el = $('#inventoryRoomFilter'), old = el.value;
-    el.innerHTML = '<option value="">All Locations</option>' + App.inventoryCatalog.data(inventory().items).locations.map(function (zone) {
-      const rooms = zone.rooms.map(function (room) {
-        return (room.name ? '<option value="' + esc(room.name) + '">　' + esc(room.name) + '</option>' : '') + room.spaces.map(function (space) {
-          return '<option value="' + esc('space:' + JSON.stringify([room.name,space])) + '">　　' + esc(space) + '</option>';
-        }).join('');
-      }).join('');
-      return zone.name ? '<optgroup label="' + esc(zone.name) + '"><option value="' + esc('zone:' + zone.name) + '">' + esc(zone.name + ' — All') + '</option>' + rooms + '</optgroup>' : rooms;
-    }).join('');
-    el.value = Array.from(el.options).some(function (o) { return o.value === old; }) ? old : '';
-  }
   function matchesLocation(item, filter) {
     if (!filter) return true;
+    if (filter.startsWith('path:')) { const path=JSON.parse(filter.slice(5)), actual=m.itemLocation(item); if (!actual.some(Boolean)) actual[0]='Unknown Location'; return path.every(function (name,index) { return actual[index]===name; }); }
     const property = function (name) { return item.properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
     if (filter.startsWith('zone:')) return (property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || '') === filter.slice(5);
     if (filter.startsWith('space:')) { const path = JSON.parse(filter.slice(6)); return (item.room || '') === path[0] && property('space') === path[1]; }
@@ -665,7 +658,7 @@
     const values=Array.from(nodes.values());
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
-      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
     return nodes;
@@ -707,7 +700,8 @@
       return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && matchesCategory(item,category) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return m.compareBrand(a,b); });
     $("#inventoryResultCount").textContent = "";
-    $(".inventory-list-heading").hidden = !instantFilters.size;
+    $(".inventory-list-heading").hidden = !(instantFilters.size || room);
+    if (room) $("#inventoryResultCount").innerHTML='<button type="button" class="instant-filter" data-clear-location-filter>Location: '+esc(room.startsWith('path:')?JSON.parse(room.slice(5)).filter(Boolean).join(' / '):room)+' ×</button>';
     $("#clearInventoryFilters").disabled = !(search || owner || room || category || instantFilters.size || categorySlots.size);
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
     ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').innerHTML = '<span>Filtered</span><span class="stat-count">' + filtered[key].count + '</span><span class="stat-money">' + esc(money(filtered[key].valueCents/100,true)) + '</span>'; });
