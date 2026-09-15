@@ -67,3 +67,9 @@ Right-click, Shift+F10 or the context-menu key on an Around the House location f
 ### Sidebar Numeric Tracks and Property Hints
 
 All location rows share count/value widths derived from the largest displayed totals, with minimum four/nine character tracks. Review dates appear below names. Preset-category controls show an immediate, viewport-clamped tooltip on hover or focus. The tooltip uses textContent and aria-describedby and is mounted inside a dialog when needed.
+
+### Direct Archive Entry
+
+Add in Stuff I Had enables departure fields and saves the normalized archived record directly, bypassing createCopies (which intentionally clears archive state). Smart Complete's archive option recognizes tab-separated departure dates/reasons/notes and a second amount as value. The mode is explicit and does not affect ordinary entry parsing. New archived items require departure date/reason and retain chronology validation.
+
+Normalization maps Nook / Sling Bag to Sling for items and review-date keys. Govee has a brand/company relationship and the supplied inline SVG category symbol.

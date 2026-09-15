@@ -1,3 +1,13 @@
+## Latest Update — Direct Had Entry and Govee (0.0.1.57)
+
+Nook Sling Bag is now Sling; Nook adds Wash Pouch and Office adds Cabinent (user spelling). Normalization migrates existing Nook Sling Bag item assignments and location-review keys, retaining the newest record on review-key collisions. Govee is available as a brand/company and uses the user's supplied SVG through brandGovee/category mapping.
+
+Stuff I Had now exposes Add. New entries in that view use Add to Stuff I Had, show required Gone Date/What Happened and optional Departure Notes, and save one archived record directly without passing through current inventory or copy creation. Existing archive editing and ordinary Add/Copy retain their flows. Native form validation and the model's obtained/departure chronology validation apply.
+
+Smart Complete receives an explicit archive mode for direct Had entry. Tab-separated rows use the first two dollar amounts as price/value, the last date as gone date (earlier dates remain obtained date), and a recognized final reason with semicolon note as departure details. Lights aliases to Lighting. The supplied Govee example parses Den, Lighting, $90/$90, brand Govee, gone 2023-09-02, Broken, replaced; obtained date stays unknown. The example was used only as a test fixture, not written to the user's inventory.
+
+115 non-browser checks and 3 targeted Chromium checks passed, including migration, sample parsing, save/reload without current-inventory totals, archive re-edit, return to ordinary Add, copy controls, desktop/mobile departure layout and offline edit/reload. Screenshots reviewed; version/cache/manifests/workflow align at .57. Preview stopped. No commit or push performed.
+
 ## Latest Update — Aligned Sidebar Totals and Instant Hints (0.0.1.56)
 
 Sidebar count/value columns use shared widths across all hierarchy levels, reserving at least four and nine character widths respectively and growing for larger totals. Tabular numerals and right alignment are consistent. Review dates sit beneath location names to keep names readable while allocating room for hundreds and five-digit values.

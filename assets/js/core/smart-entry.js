@@ -3,7 +3,8 @@
   const App = window.LocalApp;
   const example = "08/03/26\t($62.77)\tChase Prime: 125.54\tAmazon Mktplace - Final Touch Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand [65] [O]";
   // Match only known brands or explicit labels. Unrecognized metadata remains in notes.
-  function parse(text, knownBrands) {
+  function parse(text, knownBrands, options) {
+    const archiveMode=Boolean(options?.archive);
     const fields = {}, spans = []; let rest = text.split("");
     function take(start, length, field, value) {
       if (spans.some(function (span) { return start < span.end && start + length > span.start; })) return;
@@ -12,7 +13,7 @@
     }
     // Spreadsheet cells retain offsets so extracted values stay highlighted in their original columns.
     const cells = Array.from(text.matchAll(/[^\t\n]+/g));
-    const vocabulary = Object.keys(App.config.inventory.tagAliases || {}).concat(App.config.inventory.tagGroups.flatMap(function (group) { return group.tags; }).concat(App.config.inventory.categories.map(function (c) { return c.name; })));
+    const vocabulary = Object.keys(App.config.inventory.tagAliases || {}).concat(App.config.inventory.tagGroups.flatMap(function (group) { return group.tags.concat([group.name]); }).concat(App.config.inventory.categories.map(function (c) { return c.name; })));
     const locations = App.config.inventory.locations;
     const first = cells[0];
     if (first) {
@@ -33,17 +34,22 @@
         }
       }
     }
+    const dateCells=cells.filter(function (cell) { return /^(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})$/.test(cell[0].trim()); });
     if (text.includes('\t')) cells.forEach(function (cell) {
       const raw = cell[0].trim(), start = cell.index + cell[0].indexOf(raw);
       if (/^(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})$/.test(raw)) {
         const parts = raw.split('/'), date = parts.length === 3 ? (parts[2].length === 2 ? '20' + parts[2] : parts[2]) + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0') : raw;
-        try { App.inventoryModel.dateOnly(date); take(start,raw.length,'obtainedDate',date); } catch (_) { take(start,raw.length,null); }
-      } else if (/^\(?\$[\d,]+(?:\.\d{1,2})?\)?$/.test(raw) && !fields.price) take(start,raw.length,'price',raw.replace(/[$(),]/g,''));
+        try { App.inventoryModel.dateOnly(date); take(start,raw.length,archiveMode && cell===dateCells.at(-1)?'goneDate':'obtainedDate',date); } catch (_) { take(start,raw.length,null); }
+      } else if (/^\(?\$[\d,]+(?:\.\d{1,2})?\)?$/.test(raw) && (!fields.price || (archiveMode && !fields.value))) take(start,raw.length,fields.price?'value':'price',raw.replace(/[$(),]/g,''));
       else {
         const tags = raw.split(/[,;]/).map(function (tag) { return vocabulary.find(function (v) { return v.toLowerCase() === App.inventoryModel.tags(tag.trim())[0]?.toLowerCase(); }); });
         if (tags.length && tags.every(Boolean) && cells.length > 1) take(start,raw.length,'categories',App.inventoryModel.tags((fields.categories || '') + ',' + tags.join(',')).join(', '));
       }
     });
+    if (archiveMode && text.includes('\t')) {
+      const cell=cells.at(-1), raw=cell?.[0].trim() || '', parts=raw.split(';'), reason=App.inventoryModel.reasons.find(function (value) { return value.toLowerCase()===parts[0].trim().toLowerCase(); });
+      if (reason) { const start=cell.index+cell[0].indexOf(raw); take(start,parts[0].length,'goneReason',reason); if (raw.length>parts[0].length) take(start+parts[0].length,raw.length-parts[0].length,'goneNotes',parts.slice(1).join(';').trim()); }
+    }
     const tail = /\[\$?[\d,.]+\]\s*,\s*([^\t\n]+)$/.exec(text);
     if (tail) {
       let offset = tail.index + tail[0].indexOf(',') + 1;

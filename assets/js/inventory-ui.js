@@ -4,6 +4,7 @@
   const $ = function (selector, root) { return (root || document).querySelector(selector); };
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
+  let directArchive=false;
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
   const mobileInventory = matchMedia("(max-width: 700px)");
@@ -84,6 +85,11 @@
               </fieldset>
             </div>
           </details>
+          <fieldset id="itemDirectArchive" class="item-fieldset" hidden><legend>Departure Details</legend><div class="item-form-grid">
+            ${field("itemDirectGoneDate", "Gone Date", 'type="date" required disabled')}
+            ${select("itemDirectGoneReason", "What Happened?", '<option value="">Choose a Reason</option>' + options(m.reasons))}
+            <label class="field full"><span>Departure Notes</span><textarea id="itemDirectGoneNotes" rows="2" maxlength="2000" disabled></textarea></label>
+          </div></fieldset>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
         <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" aria-keyshortcuts="Meta+Enter Control+Enter" title="Save Item (Command+Enter)" class="button primary" type="submit">Save Item</button></footer>
@@ -322,9 +328,9 @@
     });
     render();
   }
-  const smartLabels = { name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained", room: "Room", zone: "Zone", space: "Space", categories: "Tags", volume: "Volume" };
+  const smartLabels = { goneDate:"Gone Date", goneReason:"Departure Reason", goneNotes:"Departure Notes", name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained", room: "Room", zone: "Zone", space: "Space", categories: "Tags", volume: "Volume" };
   let smartApplied = {}, smartManual = new Set(), objectWordHistory = [];
-  function smartField(key) { if (key === "volume") { const row = $$('[data-property-name]').find(function (el) { return el.value.toLowerCase() === 'volume'; })?.closest('.item-property'); return row ? $('[data-property-value]', row) : null; } return $("#item" + key[0].toUpperCase() + key.slice(1)); }
+  function smartField(key) { if (['goneDate','goneReason','goneNotes'].includes(key)) return $('#itemDirect'+key[0].toUpperCase()+key.slice(1)); if (key === "volume") { const row = $$('[data-property-name]').find(function (el) { return el.value.toLowerCase() === 'volume'; })?.closest('.item-property'); return row ? $('[data-property-value]', row) : null; } return $("#item" + key[0].toUpperCase() + key.slice(1)); }
   function resetSmart() {
     smartApplied = {}; smartManual = new Set(); objectWordHistory = [];
     $("#objectWordStatus").textContent = "";
@@ -344,7 +350,7 @@
     previewOnly = previewOnly === true;
     const text = $("#itemSmartEntry").value;
     const brands = App.config.inventory.brands.concat(inventory().items.flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === "brand"; }).map(function (p) { return p.value; }); }));
-    const result = App.smartEntry.parse(text, brands);
+    const result = App.smartEntry.parse(text, brands, {archive:directArchive});
     if (!previewOnly && result.fields.volume && !smartField('volume') && !smartManual.has('volume')) addProperty({ name: 'Volume', value: '', unit: result.fields.volumeUnit || 'oz' });
     Object.keys(smartLabels).forEach(function (key) {
       const el = smartField(key), next = result.fields[key];
@@ -620,7 +626,7 @@
     const active = view === "have" || view === "previous";
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
     if ($("#bulkEntryButton")) $("#bulkEntryButton").hidden = view !== "have";
-    $("#addItemButton").hidden = view !== "have"; $("#inventoryStats").hidden = false;
+    $("#addItemButton").hidden = !active; $("#inventoryStats").hidden = false;
     $("#roomOverview").hidden = !active; $("#locationDivider").hidden = !active; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
     $(".inventory-filterbar").hidden = !active;
@@ -851,10 +857,14 @@
       return m.sameObject(entry,item);
     }).map(function (entry) { return JSON.parse(JSON.stringify(entry)); }) : [];
     editingCopies.sort(function (a, b) { return a.id === id ? -1 : b.id === id ? 1 : 0; });
+    directArchive=!id && !copy && !draft && view==='previous';
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
-    $("#itemDialogTitle").textContent = id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
-    $("#itemCopiesField").hidden = Boolean(item?.archive); $("#itemCopies").disabled = Boolean(item?.archive);
+    $('#itemDirectArchive').hidden=!directArchive;
+    $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) { input.disabled=!directArchive; });
+    $('#itemDirectGoneReason').required=directArchive; $('#itemDirectGoneDate').max=m.today();
+    $("#itemDialogTitle").textContent = directArchive ? "Add to Stuff I Had" : id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
+    $("#itemCopiesField").hidden = Boolean(item?.archive || directArchive); $("#itemCopies").disabled = Boolean(item?.archive || directArchive);
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
@@ -902,10 +912,10 @@
     event.preventDefault();
     try {
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
-      const count = previous?.archive ? 1 : Number($("#itemCopies").value);
+      const count = previous?.archive || directArchive ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
       if (!App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
-      const item = { id: editingId || u.uid("item"), archive: previous?.archive || null };
+      const item = { id: editingId || u.uid("item"), archive: directArchive ? {date:$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       commitTags();
       item.categories = m.tags($("#itemCategories").value);
@@ -945,11 +955,11 @@
           if (!await App.components.confirm({title:'Delete Removed Copies?',message:'Permanently delete ' + (editingCopies.length-count) + ' copies: ' + removed + '. This cannot be undone.',confirmLabel:'Delete Copies',danger:true,trigger:$('#saveItemButton')})) return;
           verifyCopies();
         }
-      } else copies = previous ? [next] : m.createCopies(next, count, copyLocations());
+      } else copies = previous || directArchive ? [next] : m.createCopies(next, count, copyLocations());
       const replaced = new Set(previous ? (editingCopies.length ? editingCopies : [previous]).map(function (entry) { return entry.id; }) : []);
       App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(copies); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
-      App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + " is in your inventory.") : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
+      App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + (directArchive ? " is in Stuff I Had." : " is in your inventory.")) : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
       $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
     } catch (error) { formError("#itemFormError", error.message); }
   }

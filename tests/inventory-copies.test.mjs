@@ -38,12 +38,12 @@ test('settings catalog preserves hierarchy, all tag groups, category property gr
 });
 
 test('copies have independent spaces, resolve unique spaces and reject conflicting room-space combinations', () => {
- const copies = app.inventoryModel.createCopies(item, 2, [{room:'Nook',space:'Sling Bag'},{room:'Office',space:'Desk'}]);
- assert.equal(copies[0].properties.find(p=>p.name==='Space').value,'Sling Bag');
+ const copies = app.inventoryModel.createCopies(item, 2, [{room:'Nook',space:'Sling'},{room:'Office',space:'Desk'}]);
+ assert.equal(copies[0].properties.find(p=>p.name==='Space').value,'Sling');
  assert.equal(copies[1].properties.find(p=>p.name==='Space').value,'Desk');
  assert.equal(copies[1].properties.find(p=>p.name==='Zone').value,'Upstairs');
- assert.equal(app.inventoryModel.createCopies(item,1,[{space:'Sling Bag'}])[0].room,'Nook');
- assert.throws(()=>app.inventoryModel.createCopies(item,1,[{room:'Office',space:'Sling Bag'}]),/matching room/);
+ assert.equal(app.inventoryModel.createCopies(item,1,[{space:'Sling'}])[0].room,'Nook');
+ assert.throws(()=>app.inventoryModel.createCopies(item,1,[{room:'Office',space:'Sling'}]),/matching room/);
  assert.equal(item.properties.find(p=>p.name==='Space').value,'Bar');
 });
 
@@ -92,11 +92,11 @@ test('copy overrides preserve configured parents and remove custom locations', (
 });
 
 test('catalog filters respect location parents, tag groups, properties and property values', () => {
- const entry=app.inventoryModel.normalizeItem({...item,room:'Nook',categories:['Water Bottles'],properties:[{name:'Space',value:'Sling Bag'},{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]});
+ const entry=app.inventoryModel.normalizeItem({...item,room:'Nook',categories:['Water Bottles'],properties:[{name:'Space',value:'Sling'},{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]});
  const matches=app.inventoryCatalog.matches;
  assert.equal(matches(entry,{kind:'zone',value:'Main Level'}),true);
- assert.equal(matches(entry,{kind:'space',value:'Sling Bag',room:'Nook',zone:'Main Level'}),true);
- assert.equal(matches(entry,{kind:'space',value:'Sling Bag',room:'Office',zone:'Upstairs'}),false);
+ assert.equal(matches(entry,{kind:'space',value:'Sling',room:'Nook',zone:'Main Level'}),true);
+ assert.equal(matches(entry,{kind:'space',value:'Sling',room:'Office',zone:'Upstairs'}),false);
  assert.equal(matches(entry,{kind:'tags',values:['Water','Fire']}),true);
  assert.equal(matches(entry,{kind:'tags',values:['OXO'],brands:true}),true);
  assert.equal(matches(entry,{kind:'properties',values:['color','weight']}),true);
@@ -296,4 +296,13 @@ test('measurement suffixes split safely and metric values retain US equivalents'
   assert.equal(measure('1/2 in').value, '0.5');
   for (const value of ['1/0 in', 'waterproof', '12 bananas', '2 x 3 cm', '1e999 kg']) assert.equal(measure(value).value, value);
   assert.equal(measure('8.5 cm', '', 'Size').value, '8.5 cm');
+});
+
+test('location rename preserves stored Sling assignments and review dates',()=>{
+ const normalized=app.inventoryModel.normalize({currency:'USD',items:[{...item,room:'Nook',properties:[{name:'Space',value:'Sling Bag'}]}],locationReviews:{'["Main Level","Nook","Sling Bag"]':{date:'2026-09-10',updatedAt:'2026-09-10T00:00:00Z'}}});
+ assert.equal(normalized.items[0].properties.find(p=>p.name==='Space').value,'Sling');
+ assert.equal(normalized.locationReviews['["Main Level","Nook","Sling"]'].date,'2026-09-10');
+ assert.ok(app.config.inventory.locations.find(l=>l.room==='Nook').spaces.includes('Wash Pouch'));
+ assert.ok(app.config.inventory.locations.find(l=>l.room==='Office').spaces.includes('Cabinent'));
+ assert.equal(app.inventoryCatalog.companyFor('Govee'),'Govee');
 });

@@ -21,7 +21,7 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   const c = app.config.inventory;
   assert.equal(c.locations.length, 23);
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
-  assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 17);
+  assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 19);
   assert.equal(c.tagGroups.length, 8);
   assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 61);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
@@ -87,4 +87,13 @@ test('qualified locations resolve Primary Closet without guessing ambiguous Clos
   assert.equal(fields.room,'Primary Bedroom'); assert.equal(fields.zone,'Main Level'); assert.equal(fields.space,'Closet'); assert.equal(fields.name,'Winter Coat');
  }
  assert.equal(parse('Closet\tWinter Coat').fields.room,undefined);
+});
+
+test('direct Had purchase line separates amounts, brand and departure details',()=>{
+ const sample='Den\tLights\t\t$90\t\tGovee TV LED Backlights with Camera, DreamView T1 RGBIC Wi-Fi TV Backlights for 55-65 inch TVs PC\t\t$90\t\t09/02/23\t\tBroken; replaced';
+ const result=app.smartEntry.parse(sample,null,{archive:true});
+ assert.equal(result.fields.room,'Den');assert.equal(result.fields.brand,'Govee');assert.equal(result.fields.categories,'Lighting');
+ assert.equal(result.fields.price,'90');assert.equal(result.fields.value,'90');assert.equal(result.fields.obtainedDate,undefined);
+ assert.equal(result.fields.goneDate,'2023-09-02');assert.equal(result.fields.goneReason,'Broken');assert.equal(result.fields.goneNotes,'replaced');
+ assert.match(result.fields.name,/^TV LED Backlights/);assert.ok(!result.fields.name.includes('Broken'));
 });

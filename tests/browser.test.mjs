@@ -1305,3 +1305,26 @@ test('sidebar number tracks align for large totals and category property hints a
  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.locator('[data-category-preset="1"]').focus(); assert.equal(await page.locator('#itemDialog #categoryPropertyHint').isVisible(),true);assert.match(await page.locator('#categoryPropertyHint').textContent(),/Weight.*oz/);
 });
+
+test('add directly to Had parses departure and never enters current inventory', {timeout:30000},async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();await page.keyboard.press('d');
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ assert.equal(await page.locator('#itemDialogTitle').textContent(),'Add to Stuff I Had');
+ await page.locator('#itemSmartEntry').fill('Den\tLights\t\t$90\t\tGovee TV LED Backlights with Camera, DreamView T1 RGBIC Wi-Fi TV Backlights for 55-65 inch TVs PC\t\t$90\t\t09/02/23\t\tBroken; replaced');
+ assert.equal(await page.locator('#itemBrand').inputValue(),'Govee');assert.equal(await page.locator('#itemDirectGoneDate').inputValue(),'2023-09-02');assert.equal(await page.locator('#itemDirectGoneReason').inputValue(),'Broken');assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),'replaced');
+ assert.equal(await page.locator('#itemObtainedDate').inputValue(),'');
+ await page.locator('#itemDirectArchive').scrollIntoViewIfNeeded();
+ await page.screenshot({path:'/private/tmp/my-stuff57-had-editor.png'});
+ await page.setViewportSize({width:390,height:844});await page.locator('#itemDirectArchive').scrollIntoViewIfNeeded();await page.screenshot({path:'/private/tmp/my-stuff57-had-mobile.png'});
+ assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);
+ await page.setViewportSize({width:1280,height:900});
+ await page.locator('#saveItemButton').click();assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ const saved=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(saved.length,1);assert.equal(saved[0].archive.date,'2023-09-02');assert.equal(saved[0].archive.reason,'Broken');assert.equal(saved[0].value,90);
+ assert.equal(await page.evaluate(()=>window.LocalApp.inventoryModel.stats(window.LocalApp.storage.getState().inventory.items).all.count),0);
+ await page.reload();await page.keyboard.press('d');assert.equal(await page.locator('[data-edit-item]').count(),1);
+ await page.locator('[data-edit-item]').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');assert.equal(await page.locator('#itemDirectArchive').isVisible(),false);
+ await page.locator('#saveItemButton').click();assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ await page.keyboard.press('h');await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');assert.equal(await page.locator('#itemDirectGoneDate').isDisabled(),true);
+ await page.locator('#itemName').fill('Current Object');await page.locator('#saveItemButton').click();assert.equal(await page.locator('#itemDialog').isVisible(),false);
+});
