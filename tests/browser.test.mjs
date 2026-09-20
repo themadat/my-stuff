@@ -1328,3 +1328,42 @@ test('add directly to Had parses departure and never enters current inventory', 
  await page.keyboard.press('h');await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');assert.equal(await page.locator('#itemDirectGoneDate').isDisabled(),true);
  await page.locator('#itemName').fill('Current Object');await page.locator('#saveItemButton').click();assert.equal(await page.locator('#itemDialog').isVisible(),false);
 });
+
+test('quick categories combine selections and keep preset details visible', { timeout: 30000 }, async t => {
+  const { page } = await fixture(t);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  for (const [name, tag] of [['Cable fixture', 'Cables'], ['Hiking fixture', 'Hiking'], ['Book fixture', 'Books']]) {
+    await page.locator('#addItemButton').click();
+    await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+    await page.locator('#itemName').fill(name);
+    await page.locator('#itemTagSearch').fill(tag); await page.locator('#itemTagSearch').press('Enter');
+    await page.locator('#saveItemButton').click();
+  }
+  const activity = page.locator('[data-category-group="group:Activity"]');
+  const tech = page.locator('[data-category-group="group:Tech"]');
+  await activity.click(); await tech.click();
+  assert.equal(await page.locator('.category-card[aria-pressed="true"]').count(), 2);
+  for (const card of [activity, tech]) assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+  assert.match(await page.locator('#inventoryList').innerText(), /Cable fixture/);
+  assert.match(await page.locator('#inventoryList').innerText(), /Hiking fixture/);
+  assert.doesNotMatch(await page.locator('#inventoryList').innerText(), /Book fixture/);
+  await page.locator('[data-category-tag="Cables"]').click();
+  await page.locator('[data-category-tag="Phone"]').click();
+  assert.equal(await page.locator('#categoryTags [aria-pressed="true"]').count(), 2);
+  assert.equal(await page.locator('#selectedCategories button').count(), 3);
+  assert.equal(await page.locator('[data-category-tag="Cables"] .preset-description').isVisible(), true);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#categoryTags').isVisible(), false);
+  await page.locator('[data-remove-category="Cables"]').click();
+  assert.doesNotMatch(await page.locator('#inventoryList').innerText(), /Cable fixture/);
+  await page.locator('#clearInventoryFilters').click();
+  assert.match(await page.locator('#inventoryList').innerText(), /Book fixture/);
+  assert.equal(await page.locator('#selectedCategories').isVisible(), false);
+  await tech.focus(); await page.keyboard.press('ArrowDown');
+  assert.equal(await page.locator('#categoryTags').evaluate(el => el.contains(document.activeElement)), true);
+  await page.keyboard.press('Escape');
+  await page.locator('#addItemButton').click();
+  await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
+  assert.equal(await page.locator('[data-category-preset="2"] .preset-description').isVisible(), true);
+  assert.equal(await page.locator('[data-category-preset="2"]').getAttribute('title'), null);
+});

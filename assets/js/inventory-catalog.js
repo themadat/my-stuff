@@ -57,7 +57,7 @@
     const preset=App.config.inventory.categories.find(function (entry) { return entry.name===App.inventoryModel.tags([tag])[0]; });
     return preset ? 'Preset properties: '+preset.properties.map(function (p) { return p.name+(p.unit?' ('+p.unit+')':''); }).join(', ') : '';
   }
-  function presetBadge(tag) { const description=presetDescription(tag); return description ? '<span class="preset-indicator" tabindex="0" title="'+esc(description)+'" aria-label="'+esc(description)+'">◇</span>' : ''; }
+  function presetBadge(tag) { const description=presetDescription(tag); return description ? '<small class="preset-description">'+esc(description)+'</small>' : ''; }
   function matches(item, filter) {
     const property = function (name) { return item.properties.find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); })?.value || ''; };
     const zone = property('Zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === item.room.toLowerCase(); })?.zone || '';

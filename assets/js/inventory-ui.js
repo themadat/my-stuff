@@ -8,7 +8,7 @@
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
   const mobileInventory = matchMedia("(max-width: 700px)");
-  let categorySlots = new Map(), hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
+  let hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
@@ -41,7 +41,7 @@
             <input type="hidden" id="inventoryOwnerFilter" value="">
             <input type="hidden" id="inventoryRoomFilter" value="">
             <input type="hidden" id="inventoryCategoryFilter" value="">
-          </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header></div>
+          </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header><div id="selectedCategories" class="selected-categories" aria-label="Selected categories" hidden></div></div>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
       <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><h2 id="roomOverviewTitle">Around the House</h2><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
@@ -166,38 +166,21 @@
     $('#categoryCards').addEventListener('focusin', showCategory);
     $('#categoryCards').addEventListener('click', function (event) {
       const card = event.target.closest('[data-category-filter]');
-      if (card) { const group=card.dataset.categoryGroup; $('#inventoryCategoryFilter').value = card.dataset.categoryFilter; hoveredCategory = group; renderList(); $$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===group; })?.focus({preventScroll:true}); }
+      if (card) { const group=card.dataset.categoryGroup; toggleCategory(card.dataset.categoryFilter); hoveredCategory = group; renderList(); $$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===group; })?.focus({preventScroll:true}); }
     });
     $('#categoryTags').addEventListener('click', function (event) {
       const tag = event.target.closest('[data-category-tag]'); if (!tag) return;
-      categorySlots.set(hoveredCategory,tag.dataset.categoryTag);
-      $('#inventoryCategoryFilter').value = tag.dataset.categoryTag;
-      const group = hoveredCategory; hoveredCategory = ''; renderList();
-      $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup === group; })?.focus({preventScroll:true});
-      hoveredCategory = ''; renderCategoryTags();
+      const value=tag.dataset.categoryTag;
+      const selected=selectedCategories().filter(function (entry) { return entry!==hoveredCategory; });
+      $('#inventoryCategoryFilter').value=selected.length ? JSON.stringify(selected) : '';
+      toggleCategory(value); renderList();
+      $$('#categoryTags [data-category-tag]').find(function (button) { return button.dataset.categoryTag===value; })?.focus({preventScroll:true});
     });
-    const propertyHint=document.createElement('div'); propertyHint.id='categoryPropertyHint'; propertyHint.className='category-property-hint'; propertyHint.setAttribute('role','tooltip'); propertyHint.hidden=true;
-    let propertyHintTarget=null;
-    function hidePropertyHint() {
-      if (propertyHintTarget) { const ids=(propertyHintTarget.getAttribute('aria-describedby') || '').split(' ').filter(function (id) { return id && id!==propertyHint.id; }); if (ids.length) propertyHintTarget.setAttribute('aria-describedby',ids.join(' ')); else propertyHintTarget.removeAttribute('aria-describedby'); }
-      propertyHintTarget=null; propertyHint.hidden=true;
-    }
-    function showPropertyHint(event) {
-      const target=event.target.closest('[data-category-tag],[data-category-filter],[data-category-preset]');
-      const name=target?.dataset.categoryTag || target?.dataset.categoryFilter || App.config.inventory.categories[Number(target?.dataset.categoryPreset)]?.name;
-      const description=target && App.inventoryCatalog.presetDescription(name);
-      hidePropertyHint(); if (!description) return;
-      propertyHintTarget=target; (target.closest('dialog') || document.body).append(propertyHint); propertyHint.textContent=description; propertyHint.hidden=false;
-      target.setAttribute('aria-describedby',((target.getAttribute('aria-describedby') || '')+' '+propertyHint.id).trim());
-      const bounds=target.getBoundingClientRect(), width=propertyHint.getBoundingClientRect().width;
-      propertyHint.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px';
-      propertyHint.style.top=Math.max(8,Math.min(bounds.bottom+6,innerHeight-propertyHint.offsetHeight-8))+'px';
-    }
-    document.addEventListener('pointerover',showPropertyHint);
-    document.addEventListener('focusin',showPropertyHint);
-    ['pointerout','focusout'].forEach(function (type) { document.addEventListener(type,function (event) { if (propertyHintTarget && propertyHintTarget.contains(event.target) && !propertyHintTarget.contains(event.relatedTarget)) hidePropertyHint(); }); });
-    document.addEventListener('keydown',function (event) { if (event.key==='Escape') hidePropertyHint(); });
-    document.addEventListener('scroll',hidePropertyHint,true); window.addEventListener('resize',hidePropertyHint);
+    $('#selectedCategories').addEventListener('click',function (event) {
+      const button=event.target.closest('[data-remove-category]'); if (!button) return;
+      toggleCategory(button.dataset.removeCategory); renderList();
+      ($('#selectedCategories button') || $('#categoryCards button')).focus({preventScroll:true});
+    });
     const quickControls=$('.category-quick-controls'), tagMenu=$('#categoryTags');
     document.body.append(tagMenu);
     let tagCloseTimer;
@@ -206,8 +189,8 @@
     function insideTags(target) { return target && (quickControls.contains(target) || tagMenu.contains(target)); }
     [quickControls,tagMenu].forEach(function (surface) {
       surface.addEventListener('pointerenter',cancelTagClose);
-      surface.addEventListener('pointerleave',function (event) { if (!insideTags(event.relatedTarget)) { cancelTagClose(); tagCloseTimer=setTimeout(closeTagMenu,180); } });
-      surface.addEventListener('focusout',function (event) { if (!insideTags(event.relatedTarget)) closeTagMenu(); });
+      surface.addEventListener('pointerleave',function (event) { if (!insideTags(event.relatedTarget)) { cancelTagClose(); tagCloseTimer=setTimeout(function () { if (!insideTags(document.activeElement)) closeTagMenu(); },180); } });
+      surface.addEventListener('focusout',function (event) { if (event.relatedTarget) { if (!insideTags(event.relatedTarget)) closeTagMenu(); } else { setTimeout(function () { if (!insideTags(document.activeElement)) closeTagMenu(); },0); } });
       surface.addEventListener('keydown',function (event) {
         if (event.key==='Escape') { const group=hoveredCategory; closeTagMenu(); $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup===group; })?.focus(); closeTagMenu(); event.stopPropagation(); }
         if (event.key==='ArrowDown' && surface===quickControls && !tagMenu.hidden) { event.preventDefault(); tagMenu.querySelector('button')?.focus(); }
@@ -277,7 +260,7 @@
     new ResizeObserver(updateFilterHeight).observe($('.inventory-toolbar-scroll')); updateFilterHeight();
     const updateSearchWidth=function () { const width=$('#roomOverview').getBoundingClientRect().width; if (width>0) $('#inventoryWorkspace').style.setProperty('--location-panel-width',width+'px'); };
     new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
-    $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); categorySlots.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
+    $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     $("#itemCopies").addEventListener("input", renderCopyLocations);
     $("#addColorButton").addEventListener("click", function () {
@@ -663,20 +646,37 @@
     if (filter.startsWith('space:')) { const path = JSON.parse(filter.slice(6)); return (item.room || '') === path[0] && property('space') === path[1]; }
     return (item.room || 'Unassigned') === filter;
   }
+  function selectedCategories() {
+    const value=$('#inventoryCategoryFilter').value;
+    if (!value) return [];
+    try { const parsed=JSON.parse(value); if (Array.isArray(parsed)) return parsed; } catch (_) { /* Legacy single-category filter. */ }
+    return [value];
+  }
+  function toggleCategory(value) {
+    const selected=new Set(selectedCategories());
+    if (selected.has(value)) selected.delete(value); else selected.add(value);
+    $('#inventoryCategoryFilter').value=selected.size ? JSON.stringify(Array.from(selected)) : '';
+  }
   function renderCategoryTags() {
-    const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags');
+    const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags'), selected=selectedCategories();
     root.hidden = !group;
     if (group) { const card=$$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===hoveredCategory; }), bounds=(card || $('.category-quick-controls')).getBoundingClientRect(), width=Math.min(500,innerWidth-16); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=width+'px'; root.style.maxHeight=Math.max(80,innerHeight-bounds.bottom-8)+'px'; }
-    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+'</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).map(function (tag) { return '<button type="button" class="button small" title="'+esc(App.inventoryCatalog.presetDescription(tag))+'" data-category-tag="'+esc(tag)+'">'+esc(tag)+(App.inventoryCatalog.presetDescription(tag)?' <span class="preset-indicator" aria-hidden="true">◇</span>':'')+'</button>'; }).join('') : '';
+    if (group && root.dataset.group===hoveredCategory) {
+      $$('[data-category-tag]',root).forEach(function (button) { const active=selected.includes(button.dataset.categoryTag); button.setAttribute('aria-pressed',String(active)); button.querySelector('span').textContent=(active?'✓ ':'')+button.dataset.categoryTag; });
+      return;
+    }
+    root.dataset.group=hoveredCategory;
+    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+' · Select any tags</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).map(function (tag) { const description=App.inventoryCatalog.presetDescription(tag); return '<button type="button" class="button small category-tag-option" aria-pressed="'+selected.includes(tag)+'" data-category-tag="'+esc(tag)+'"><span>'+ (selected.includes(tag)?'✓ ':'')+esc(tag)+'</span>'+(description?'<small class="preset-description">'+esc(description)+'</small>':'')+'</button>'; }).join('') : '';
   }
   function renderCategoryCards(items) {
-    const selected = $('#inventoryCategoryFilter').value;
+    const selected = selectedCategories();
     $('#categoryCards').innerHTML = Array.from(categoryGroups).map(function (entry) {
-      const group=entry[0], values=entry[1].values, saved=categorySlots.get(group);
-      if (saved && !values.includes(saved)) categorySlots.delete(group);
-      const value=categorySlots.get(group) || group, label=value.startsWith('group:')?value.slice(6):value;
-      return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(value)+'" aria-pressed="'+(selected===value)+'" title="'+esc(group.slice(6))+' — Show Tags'+(App.inventoryCatalog.presetDescription(value)?' · '+esc(App.inventoryCatalog.presetDescription(value)):'')+'">'+App.icons.category(value)+'<span>'+esc(label)+(App.inventoryCatalog.presetDescription(value)?' ◇':'')+'</span><small>'+items.filter(function (item) { return matchesCategory(item,value); }).length+'</small></button>';
-    }).join(''); renderCategoryTags();
+      const group=entry[0], active=selected.includes(group) || entry[1].values.some(function (value) { return selected.includes(value); });
+      return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(group)+'" aria-pressed="'+selected.includes(group)+'" data-active="'+active+'" aria-label="'+esc(group.slice(6))+' — toggle entire group; down arrow for tags">'+App.icons.category(group)+'<span>'+esc(group.slice(6))+'</span><small>'+items.filter(function (item) { return matchesCategory(item,group); }).length+'</small></button>';
+    }).join('');
+    const summary=$('#selectedCategories'); summary.hidden=!selected.length;
+    summary.innerHTML='<span>Matching any:</span>'+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
+    renderCategoryTags();
   }
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
   function renderLocationNavigation(sections) {
@@ -695,7 +695,7 @@
     $('#roomStats').style.setProperty('--location-value-width',Math.max(9,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
-      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="'+esc(node.name)+' — Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
     return nodes;
@@ -734,12 +734,12 @@
     $$('[data-owner-filter]').forEach(function (button) { button.dataset.selected=String(button.dataset.ownerFilter === owner); });
     renderCategoryCards(all);
     const items = all.filter(function (item) {
-      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && matchesCategory(item,category) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
+      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || selectedCategories().some(function (value) { return matchesCategory(item,value); })) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return m.compareBrand(a,b); });
     $("#inventoryResultCount").textContent = "";
     $(".inventory-list-heading").hidden = !(instantFilters.size || room);
     if (room) $("#inventoryResultCount").innerHTML='<button type="button" class="instant-filter" data-clear-location-filter>Location: '+esc(room.startsWith('path:')?JSON.parse(room.slice(5)).filter(Boolean).join(' / '):room)+' ×</button>';
-    $("#clearInventoryFilters").disabled = !(search || owner || room || category || instantFilters.size || categorySlots.size);
+    $("#clearInventoryFilters").disabled = !(search || owner || room || category || instantFilters.size);
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));
     ['all','house','me'].forEach(function (key) { $('[data-filtered-total="'+key+'"]').innerHTML = '<span>Filtered</span><span class="stat-count">' + filtered[key].count + '</span><span class="stat-money">' + esc(money(filtered[key].valueCents/100,true)) + '</span>'; });
     ['count','money'].forEach(function (kind) { const width=Math.max(1,...$$('#inventoryStats .stat-'+kind).map(function (el) { return (el.firstChild?.textContent || '').length; })); $('#inventoryStats').style.setProperty('--stat-'+kind+'-width',(width+.5)+'ch'); });
@@ -797,8 +797,8 @@
     $$('#categoryPresets [data-category-preset]').forEach(function (button) {
       const preset = App.config.inventory.categories[Number(button.dataset.categoryPreset)], active = m.tags($('#itemCategories').value).some(function (tag) { return tag.toLowerCase() === preset.name.toLowerCase(); }) && preset.properties.every(function (p) { return names.includes(p.name.toLowerCase()); });
       button.setAttribute('aria-pressed', String(active)); button.classList.toggle('preset-applied', active);
-      button.innerHTML = icon(active ? 'close' : 'inventoryPlus') + ' ' + esc(preset.name);
-      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set'); button.title=App.inventoryCatalog.presetDescription(preset.name);
+      button.innerHTML = icon(active ? 'close' : 'inventoryPlus') + '<span>' + esc(preset.name) + '<small class="preset-description">'+esc(App.inventoryCatalog.presetDescription(preset.name))+'</small></span>';
+      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set'); button.removeAttribute('title');
     });
   }
   function suggestProperties() {
