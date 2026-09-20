@@ -8,7 +8,7 @@
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
   const mobileInventory = matchMedia("(max-width: 700px)");
-  let hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
+  let categoryMatchMode = 'any', hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
   function inventory() { return App.storage.getState().inventory; }
   function icon(name) { return '<span aria-hidden="true">' + App.icons.markup(name) + '</span>'; }
   function money(value, whole) { return value == null ? "Not valued" : new Intl.NumberFormat(undefined, { style: "currency", currency: inventory().currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value); }
@@ -177,6 +177,8 @@
       $$('#categoryTags [data-category-tag]').find(function (button) { return button.dataset.categoryTag===value; })?.focus({preventScroll:true});
     });
     $('#selectedCategories').addEventListener('click',function (event) {
+      const mode=event.target.closest('[data-category-match]');
+      if (mode) { categoryMatchMode=mode.dataset.categoryMatch; renderList(); $$('#selectedCategories [data-category-match]').find(function (button) { return button.dataset.categoryMatch===categoryMatchMode; })?.focus({preventScroll:true}); return; }
       const button=event.target.closest('[data-remove-category]'); if (!button) return;
       toggleCategory(button.dataset.removeCategory); renderList();
       ($('#selectedCategories button') || $('#categoryCards button')).focus({preventScroll:true});
@@ -671,12 +673,13 @@
   }
   function renderCategoryCards(items) {
     const selected = selectedCategories();
+    if (!selected.length) categoryMatchMode='any';
     $('#categoryCards').innerHTML = Array.from(categoryGroups).map(function (entry) {
       const group=entry[0], active=selected.includes(group) || entry[1].values.some(function (value) { return selected.includes(value); });
       return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(group)+'" aria-pressed="'+selected.includes(group)+'" data-active="'+active+'" aria-label="'+esc(group.slice(6))+' — toggle entire group; down arrow for tags">'+App.icons.category(group)+'<span>'+esc(group.slice(6))+'</span><small>'+items.filter(function (item) { return matchesCategory(item,group); }).length+'</small></button>';
     }).join('');
     const summary=$('#selectedCategories'); summary.hidden=!selected.length;
-    summary.innerHTML='<span>Matching any:</span>'+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
+    summary.innerHTML=(selected.length>1 ? '<span>Match:</span><span class="category-match-toggle" role="group" aria-label="Category matching">'+['any','all'].map(function (mode) { return '<button type="button" class="button small" data-category-match="'+mode+'" aria-pressed="'+(categoryMatchMode===mode)+'" aria-label="Match '+mode.toUpperCase()+' selected categories">'+mode.toUpperCase()+'</button>'; }).join('')+'</span>' : '<span>Matching:</span>')+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
     renderCategoryTags();
   }
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
@@ -735,7 +738,7 @@
     $$('[data-owner-filter]').forEach(function (button) { button.dataset.selected=String(button.dataset.ownerFilter === owner); });
     renderCategoryCards(all);
     const items = all.filter(function (item) {
-      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || selectedCategories().some(function (value) { return matchesCategory(item,value); })) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
+      return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || selectedCategories()[categoryMatchMode==='all'?'every':'some'](function (value) { return matchesCategory(item,value); })) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return m.compareBrand(a,b); });
     $("#inventoryResultCount").textContent = "";
     $(".inventory-list-heading").hidden = !(instantFilters.size || room);

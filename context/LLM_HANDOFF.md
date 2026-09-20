@@ -1,3 +1,9 @@
+## Latest Update — Match Any or All Categories (0.0.1.61)
+
+With multiple category/group/tag selections, the selected-filter row shows keyboard-accessible ANY and ALL buttons with pressed states. ANY is the default and matches at least one selection; ALL requires each selected group or tag (a group still matches any of its members). The mode survives removing selections down to one, where the toggle hides; clearing all category selections resets it to ANY. Filtering remains combined with search, location and ownership. Mode is session-only and not synced.
+
+Verification: all 117 non-browser checks and two targeted Chromium regression tests pass. Three fixtures verify union/intersection results, keyboard activation, single-selection hiding, Clear reset and mobile layout; screenshot reviewed. Additional Chromium desktop/mobile, save and offline checks verify category filtering and the toggle after offline reload. Versions, asset queries, cache, manifests, deployment workflow, Help and release notes align at .61. Existing unrelated staged/manual changes preserved. Preview stopped before handoff; no commit or push performed.
+
 ## Latest Update — Tag Checklists and Synced Brand Favorites (0.0.1.60)
 
 Subcategory tags appear vertically in alphabetical order. Each row is a native checkbox label: clicking its name, bracketed preset properties on the right, or row whitespace toggles it. Space toggles the focused checkbox; Down Arrow enters the picker. Selected rows remain white and multi-selection behavior is retained. The list scrolls vertically without wrapping into columns. Category icons shrink to 1.15rem and labels no longer wrap or shrink vertically. Focused pickers reposition on scrolling.

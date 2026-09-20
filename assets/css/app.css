@@ -1191,3 +1191,6 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .inventory-heading .category-card .sf-symbol { width: 1.15rem; height: 1.15rem; }
 .inventory-heading .category-card > span { flex-shrink: 0; white-space: nowrap; overflow-wrap: normal; line-height: 1.2; }
 .inventory-heading .category-card small { flex-shrink: 0; }
+
+.category-match-toggle { display: inline-flex; gap: .15rem; margin-right: .3rem; }
+.category-match-toggle [aria-pressed="true"] { background: var(--text); color: var(--surface); border-color: var(--text); }

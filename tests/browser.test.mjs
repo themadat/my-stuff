@@ -1360,7 +1360,7 @@ test('quick categories combine selections and keep preset details visible', { ti
   await page.locator('[data-category-tag="Phone"]').press('Space');
   assert.match(await page.locator('.category-tag-option:has([data-category-tag="Cables"]) .preset-description').innerText(),/^\[Length .*End B\]$/);
   assert.equal(await page.locator('#categoryTags input:checked').count(), 2);
-  assert.equal(await page.locator('#selectedCategories button').count(), 3);
+  assert.equal(await page.locator('#selectedCategories [data-remove-category]').count(), 3);
   assert.equal(await page.locator('.category-tag-option:has([data-category-tag="Cables"]) .preset-description').isVisible(), true);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#categoryTags').isVisible(), false);
@@ -1376,4 +1376,41 @@ test('quick categories combine selections and keep preset details visible', { ti
   await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   assert.equal(await page.locator('[data-category-preset="2"] .preset-description').isVisible(), true);
   assert.equal(await page.locator('[data-category-preset="2"]').getAttribute('title'), null);
+});
+
+test('ANY and ALL category matching switches results and resets with Clear', { timeout: 30000 }, async t => {
+  const {page}=await fixture(t);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  for (const [name,tags] of [['Both fixture',['Hiking','Cables']],['Activity fixture',['Hiking']],['Tech fixture',['Cables']]]) {
+    await page.locator('#addItemButton').click();
+    await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+    await page.locator('#itemName').fill(name);
+    for (const tag of tags) { await page.locator('#itemTagSearch').fill(tag); await page.locator('#itemTagSearch').press('Enter'); }
+    await page.locator('#saveItemButton').click();
+  }
+  await page.locator('[data-category-group="group:Activity"]').click();
+  assert.equal(await page.locator('[data-category-match]').count(),0);
+  await page.locator('[data-category-group="group:Tech"]').click();
+  const any=page.locator('[data-category-match="any"]'), all=page.locator('[data-category-match="all"]');
+  assert.equal(await any.getAttribute('aria-pressed'),'true');
+  assert.match(await page.locator('#inventoryList').innerText(),/Activity fixture/);
+  assert.match(await page.locator('#inventoryList').innerText(),/Tech fixture/);
+  await all.click();
+  assert.equal(await all.getAttribute('aria-pressed'),'true');
+  assert.match(await page.locator('#inventoryList').innerText(),/Both fixture/);
+  assert.doesNotMatch(await page.locator('#inventoryList').innerText(),/Activity fixture|Tech fixture/);
+  await any.focus(); await page.keyboard.press('Space');
+  assert.match(await page.locator('#inventoryList').innerText(),/Tech fixture/);
+  await page.setViewportSize({width:390,height:844});
+  await all.click();
+  assert.doesNotMatch(await page.locator('#inventoryList').innerText(),/Activity fixture|Tech fixture/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.screenshot({path:'/tmp/category-match-mobile.png'});
+  await page.locator('[data-remove-category="group:Activity"]').click();
+  assert.equal(await page.locator('[data-category-match]').count(),0);
+  assert.match(await page.locator('#inventoryList').innerText(),/Tech fixture/);
+  await page.locator('#clearInventoryFilters').click();
+  await page.locator('[data-category-group="group:Activity"]').click();
+  await page.locator('[data-category-group="group:Tech"]').click();
+  assert.equal(await any.getAttribute('aria-pressed'),'true');
 });
