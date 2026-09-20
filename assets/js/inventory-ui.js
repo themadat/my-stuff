@@ -168,7 +168,7 @@
       const card = event.target.closest('[data-category-filter]');
       if (card) { const group=card.dataset.categoryGroup; toggleCategory(card.dataset.categoryFilter); hoveredCategory = group; renderList(); $$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===group; })?.focus({preventScroll:true}); }
     });
-    $('#categoryTags').addEventListener('click', function (event) {
+    $('#categoryTags').addEventListener('change', function (event) {
       const tag = event.target.closest('[data-category-tag]'); if (!tag) return;
       const value=tag.dataset.categoryTag;
       const selected=selectedCategories().filter(function (entry) { return entry!==hoveredCategory; });
@@ -193,7 +193,7 @@
       surface.addEventListener('focusout',function (event) { if (event.relatedTarget) { if (!insideTags(event.relatedTarget)) closeTagMenu(); } else { setTimeout(function () { if (!insideTags(document.activeElement)) closeTagMenu(); },0); } });
       surface.addEventListener('keydown',function (event) {
         if (event.key==='Escape') { const group=hoveredCategory; closeTagMenu(); $$('#categoryCards [data-category-group]').find(function (card) { return card.dataset.categoryGroup===group; })?.focus(); closeTagMenu(); event.stopPropagation(); }
-        if (event.key==='ArrowDown' && surface===quickControls && !tagMenu.hidden) { event.preventDefault(); tagMenu.querySelector('button')?.focus(); }
+        if (event.key==='ArrowDown' && surface===quickControls) { event.preventDefault(); showCategory(event); tagMenu.querySelector('input')?.focus({preventScroll:true}); }
       });
     });
     document.addEventListener('pointerdown',function (event) { if (!insideTags(event.target)) closeTagMenu(); });
@@ -231,8 +231,9 @@
       const target = {h:'have',w:'want',r:'research',d:'previous'}[event.key.toLowerCase()];
       if (target) { event.preventDefault(); view=target; render(); $('#inventoryTitle').focus({preventScroll:true}); }
     });
-    $('.inventory-toolbar-scroll').addEventListener('scroll',function () { hoveredCategory=''; renderCategoryTags(); });
-    window.addEventListener('scroll',function () { closeTagMenu(); },{passive:true});
+    function repositionTagMenu() { if (insideTags(document.activeElement)) renderCategoryTags(); else closeTagMenu(); }
+    $('.inventory-toolbar-scroll').addEventListener('scroll',repositionTagMenu);
+    window.addEventListener('scroll',repositionTagMenu,{passive:true});
     window.addEventListener('resize',closeTagMenu);
     const divider = $('#locationDivider'); let resizing = false;
     function setSidebarWidth(width) { width = Math.round(Math.max(160,Math.min(420,width))); $('#inventoryBody').style.setProperty('--location-sidebar-width',width+'px'); divider.setAttribute('aria-valuenow',width); }
@@ -662,11 +663,11 @@
     root.hidden = !group;
     if (group) { const card=$$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===hoveredCategory; }), bounds=(card || $('.category-quick-controls')).getBoundingClientRect(), width=Math.min(500,innerWidth-16); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=width+'px'; root.style.maxHeight=Math.max(80,innerHeight-bounds.bottom-8)+'px'; }
     if (group && root.dataset.group===hoveredCategory) {
-      $$('[data-category-tag]',root).forEach(function (button) { const active=selected.includes(button.dataset.categoryTag); button.setAttribute('aria-pressed',String(active)); button.querySelector('span').textContent=(active?'✓ ':'')+button.dataset.categoryTag; });
+      $$('[data-category-tag]',root).forEach(function (input) { input.checked=selected.includes(input.dataset.categoryTag); });
       return;
     }
     root.dataset.group=hoveredCategory;
-    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+' · Select any tags</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).map(function (tag) { const description=App.inventoryCatalog.presetDescription(tag); return '<button type="button" class="button small category-tag-option" aria-pressed="'+selected.includes(tag)+'" data-category-tag="'+esc(tag)+'"><span>'+ (selected.includes(tag)?'✓ ':'')+esc(tag)+'</span>'+(description?'<small class="preset-description">'+esc(description)+'</small>':'')+'</button>'; }).join('') : '';
+    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+' · Select any tags</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).sort(function (a,b) { return a.localeCompare(b,undefined,{sensitivity:'base'}); }).map(function (tag) { const description=App.inventoryCatalog.presetDescription(tag).replace(/^Preset properties: /,''); return '<label class="category-tag-option"><input type="checkbox" data-category-tag="'+esc(tag)+'"'+(selected.includes(tag)?' checked':'')+'><span>'+esc(tag)+'</span>'+(description?'<small class="preset-description">['+esc(description)+']</small>':'')+'</label>'; }).join('') : '';
   }
   function renderCategoryCards(items) {
     const selected = selectedCategories();

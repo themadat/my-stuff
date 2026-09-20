@@ -186,6 +186,7 @@
     const next = u.clone(state);
     const defaults = createDefaultState();
     next.preferences = defaults.preferences;
+    next.preferences.favoriteBrands = state.preferences.favoriteBrands.slice();
     next.ui.search = "";
     next.ui.supportTab = "settings";
     next.modules.roadmap = defaults.modules.roadmap;
@@ -203,14 +204,14 @@
   }
 
   function syncPayload(state) {
-    const normalized = normalize(state), data = { inventory: normalized.inventory };
+    const normalized = normalize(state), data = { inventory: normalized.inventory, favoriteBrands: normalized.preferences.favoriteBrands.slice().sort(function (a,b) { return a.localeCompare(b); }) };
     data.inventory.items.sort(function (a, b) { return a.id.localeCompare(b.id); });
     if (normalized.notes.text) data.notes = normalized.notes.text;
-    // Schema 6 makes Notes-only clients reject inventory data instead of erasing it.
-    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 6, data: data };
+    // Schema 7 prevents older clients from discarding synced brand favorites.
+    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 7, data: data };
   }
 
-  function syncHash(state) { return "data-v2:" + u.fingerprint(syncPayload(state)); }
+  function syncHash(state) { return "data-v3:" + u.fingerprint(syncPayload(state)); }
 
   function prepareSync(input) {
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("The cloud data must be an object.");
@@ -221,22 +222,26 @@
       if (typeof source.notes.text !== "string" || source.notes.text.length > config.controls.maxTextLength) throw new Error("The older cloud copy has invalid or oversized Notes. Notes must be plain text within the supported size limit; nothing has been replaced.");
       const prepared = prepare(input);
       if (!source.inventory) prepared.state.syncNotesOnly = true;
+      prepared.state.syncFavoritesMissing = true;
       return Object.assign({}, prepared, { legacy: true });
     }
-    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
+    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6, 7].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
     const data = input.data;
-    const keys = input.schemaVersion === 5 ? ["notes"] : ["notes", "inventory"];
+    const keys = input.schemaVersion === 5 ? ["notes"] : input.schemaVersion === 6 ? ["notes", "inventory"] : ["notes", "inventory", "favoriteBrands"];
     if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).some(function (key) { return !keys.includes(key); })) throw new Error("The cloud data contains unsupported content.");
     if ("notes" in data && (typeof data.notes !== "string" || data.notes.length > config.controls.maxTextLength)) throw new Error("Cloud Notes are invalid or too large.");
-    if (input.schemaVersion === 6 && !data.inventory) throw new Error("Cloud inventory is missing.");
-    const state = normalize({ notes: { text: data.notes || "" }, inventory: data.inventory });
+    if (input.schemaVersion >= 6 && !data.inventory) throw new Error("Cloud inventory is missing.");
+    if (input.schemaVersion === 7 && (!Array.isArray(data.favoriteBrands) || data.favoriteBrands.length > 200 || data.favoriteBrands.some(function (name) { return typeof name !== 'string' || !name.trim() || name.length > 300; }))) throw new Error("Cloud brand favorites are invalid.");
+    const state = normalize({ notes: { text: data.notes || "" }, inventory: data.inventory, preferences: {favoriteBrands: data.favoriteBrands || []} });
+    if (input.schemaVersion < 7) state.syncFavoritesMissing = true;
     if (input.schemaVersion === 5) state.syncNotesOnly = true;
-    return { state: state, legacy: input.schemaVersion === 5, contentOnly: true, migrations: [], validation: validate(state) };
+    return { state: state, legacy: input.schemaVersion < 7, contentOnly: true, migrations: [], validation: validate(state) };
   }
 
   function applySync(localState, remoteState) {
     const next = normalize(localState);
     next.notes = normalize(remoteState).notes;
+    if (!remoteState.syncFavoritesMissing && !remoteState.syncNotesOnly) next.preferences.favoriteBrands = normalize(remoteState).preferences.favoriteBrands;
     if (!remoteState.syncNotesOnly) next.inventory = normalize(remoteState).inventory;
     return normalize(touch(next));
   }
@@ -246,7 +251,8 @@
     if (local.notes.text && remote.notes.text && local.notes.text !== remote.notes.text) throw new Error("Notes differ. Choose which copy to keep.");
     const next = applySync(local, local.notes.text ? local : remote);
     next.inventory = remoteState.syncNotesOnly ? local.inventory : App.inventoryModel.merge(local.inventory, remote.inventory);
-    return next;
+    next.preferences.favoriteBrands = Array.from(new Map(local.preferences.favoriteBrands.concat(remoteState.syncFavoritesMissing || remoteState.syncNotesOnly ? [] : remote.preferences.favoriteBrands).map(function (name) { return [name.toLowerCase(),name]; })).values());
+    return normalize(next);
   }
 
   function canMerge(localState, remoteState) {
@@ -264,7 +270,7 @@
     exportEnvelope: exportEnvelope,
     syncPayload: syncPayload,
     syncHash: syncHash,
-    syncHashPrefix: "data-v2:",
+    syncHashPrefix: "data-v3:",
     prepareSync: prepareSync,
     applySync: applySync,
     canMerge: canMerge,

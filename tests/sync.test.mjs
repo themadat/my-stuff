@@ -101,7 +101,7 @@ test('current and archived inventory round trip through backup, cloud and recove
   const expected = JSON.stringify(h.state.inventory), hash = model.syncHash(h.state);
   assert.equal(JSON.stringify(model.prepare(model.exportEnvelope(h.state)).state.inventory), expected);
   const payload = model.syncPayload(h.state);
-  assert.equal(payload.schemaVersion, 6); assert.equal(payload.data.inventory.items.length, 2);
+  assert.equal(payload.schemaVersion, 7); assert.equal(payload.data.inventory.items.length, 2);
   assert.doesNotMatch(JSON.stringify(payload), /test-token|preferences|cloudSync|baseline/);
   const prepared = model.prepareSync(payload);
   h.remote = prepared.state; h.remote.preferences.appearance.mode = 'dark';
@@ -387,7 +387,7 @@ test('first upload still requires a choice; a synchronized copy needs no write',
 test('empty inventories sync only content, independent of device, UI, or save metadata', () => {
   const h = harness(), model = h.App.stateModel;
   const original = JSON.stringify(model.syncPayload(h.state));
-  assert.deepEqual(JSON.parse(original), { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: { currency: 'USD', items: [] } } });
+  assert.deepEqual(JSON.parse(original), { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 7, data: { inventory: { currency: 'USD', items: [] }, favoriteBrands: [] } });
   assert.ok(Buffer.byteLength(JSON.stringify(model.syncPayload(h.state), null, 2)) < 250);
   h.App.storage.mutate(state => {
     state.preferences.appearance.mode = 'dark'; state.ui.search = 'cloud'; state.ui.supportTab = 'storage';
@@ -428,11 +428,11 @@ test('legacy whole-state files migrate without false conflicts and compact on ex
   h.respond = (url, options) => options.method === 'PUT' ? response(200, { content: { sha: 'compact-sha' } }) : h.file();
   await h.sync.check(true);
   assert.equal(h.sync.getInfo().state, 'upToDate');
-  assert.match(h.state.modules.cloudSync.baselineHash, /^data-v2:/);
+  assert.match(h.state.modules.cloudSync.baselineHash, /^data-v3:/);
   assert.ok(h.requests.every(request => request.options.method !== 'PUT'));
   await h.sync.syncNow();
   const written = JSON.parse(Buffer.from(JSON.parse(h.requests.find(r => r.options.method === 'PUT').options.body).content, 'base64').toString());
-  assert.deepEqual(written.data, { inventory: { currency: 'USD', items: [] } });
+  assert.deepEqual(written.data, { inventory: { currency: 'USD', items: [] }, favoriteBrands: [] });
   assert.equal(written.syncVersion, 1);
   assert.equal(h.state.preferences.appearance.mode, 'system');
 });
@@ -641,13 +641,13 @@ test('Cable aliases merge and missing prices/values mirror without replacing dis
  const unknown=inventoryItem(h,{price:null,value:null}); assert.equal(unknown.price,null); assert.equal(unknown.value,null);
 });
 
-test('favorite brands survive device-state normalization without entering the inventory sync payload', () => {
+test('favorite brands survive normalization and enter the cloud sync payload', () => {
  const {App}=harness(); const state=App.stateModel.createDefaultState();
  state.preferences.favoriteBrands=['Ryobi','OXO','Ryobi'];
  const normalized=App.stateModel.normalize(state);
  assert.deepEqual(Array.from(normalized.preferences.favoriteBrands),['Ryobi','OXO']);
  assert.deepEqual(Array.from(App.stateModel.normalize(JSON.parse(JSON.stringify(normalized))).preferences.favoriteBrands),['Ryobi','OXO']);
- assert.equal(JSON.stringify(App.stateModel.syncPayload(normalized)).includes('favoriteBrands'),false);
+ assert.deepEqual(Array.from(App.stateModel.syncPayload(normalized).data.favoriteBrands),['OXO','Ryobi']);
 });
 
 test('favorite brands tag matching records on normalization and tag order survives sync payloads', () => {
@@ -687,4 +687,42 @@ test('sidebar proportion is normalized and remains device-only', () => {
  assert.equal(JSON.stringify(App.stateModel.syncPayload(state)).includes('locationSidebarPercent'),false);
  state.preferences.controls.locationSidebarPercent='bad';
  assert.equal(App.stateModel.normalize(state).preferences.controls.locationSidebarPercent,null);
+});
+
+test('brand favorites sync across browsers including removals, without syncing appearance', async () => {
+  const first=harness(), model=first.App.stateModel;
+  first.state.preferences.favoriteBrands=['Apple','Ryobi'];
+  first.choice='upload'; first.respond=()=>response(404);
+  await first.sync.check();
+  first.respond=(_url,options)=> options.method==='PUT' ? response(200,{content:{sha:'favorites'}}) : response(404);
+  await first.sync.syncNow();
+  const upload=first.requests.find(r=>r.options.method==='PUT');
+  assert.ok(upload);
+  const payload=JSON.parse(Buffer.from(JSON.parse(upload.options.body).content,'base64').toString());
+  assert.deepEqual(payload.data.favoriteBrands,['Apple','Ryobi']);
+  const second=harness(); second.state.preferences.appearance.mode='dark';
+  second.remote=second.App.stateModel.prepareSync(payload).state;
+  second.confirmation=true; await second.sync.restoreFromCloud();
+  assert.deepEqual(Array.from(second.state.preferences.favoriteBrands),['Apple','Ryobi']);
+  assert.equal(second.state.preferences.appearance.mode,'dark');
+  const before=model.syncHash(first.state);
+  first.state.preferences.favoriteBrands=[];
+  assert.notEqual(model.syncHash(first.state),before);
+  second.remote=second.App.stateModel.prepareSync(model.syncPayload(first.state)).state;
+  await second.sync.restoreFromCloud();
+  assert.deepEqual(Array.from(second.state.preferences.favoriteBrands),[]);
+});
+
+test('legacy cloud files preserve favorites and merges combine favorites', () => {
+  const {App,state}=harness(), model=App.stateModel;
+  state.preferences.favoriteBrands=['Apple'];
+  const legacy=model.prepareSync({syncFormat:'local-first-app-data',syncVersion:1,schemaVersion:6,data:{inventory:{currency:'USD',items:[]}}}).state;
+  assert.deepEqual(Array.from(model.applySync(state,legacy).preferences.favoriteBrands),['Apple']);
+  const remote=model.createDefaultState();remote.preferences.favoriteBrands=['Ryobi'];
+  assert.deepEqual(Array.from(model.merge(state,remote).preferences.favoriteBrands),['Apple','Ryobi']);
+  assert.deepEqual(Array.from(model.resetPreferences(state).preferences.favoriteBrands),['Apple']);
+  for (const favoriteBrands of [null,'Apple',[3],[''],Array(201).fill('Apple')]) {
+    const payload=model.syncPayload(state);payload.data.favoriteBrands=favoriteBrands;
+    assert.throws(()=>model.prepareSync(payload),/favorites are invalid/);
+  }
 });
