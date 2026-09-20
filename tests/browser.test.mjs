@@ -1414,3 +1414,42 @@ test('ANY and ALL category matching switches results and resets with Clear', { t
   await page.locator('[data-category-group="group:Tech"]').click();
   assert.equal(await any.getAttribute('aria-pressed'),'true');
 });
+
+test('subcategory counts and supplied symbols appear in checklists and filter chips', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1440,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
+  {id:'strip-a',name:'First strip',categories:['Strip']},
+  {id:'strip-b',name:'Second strip',categories:['Strip','Bulb']},
+  {id:'old-strip',name:'Old strip',categories:['Strip'],archive:{date:'2023-09-02',reason:'Broken'}}
+ ].map(item=>window.LocalApp.inventoryModel.normalizeItem({...item,owner:'me'}));}));
+ const lighting=page.locator('[data-category-group="group:Lighting"]');
+ await lighting.hover();
+ const strip=page.locator('.category-tag-option:has([data-category-tag="Strip"])');
+ assert.equal(await strip.locator('[data-tag-count]').textContent(),'(2)');
+ assert.match(await strip.innerText(),/Strip \(2\)/);
+ assert.equal(await strip.evaluate(el=>[...el.children].slice(0,3).map(el=>el.tagName.toLowerCase()).join(',')),'input,svg,span');
+ assert.equal(await strip.locator('svg').getAttribute('viewBox'),'0 0 33.1094 29.9284');
+ const symbolBox=await strip.locator('svg').boundingBox(); await page.mouse.click(symbolBox.x+symbolBox.width/2,symbolBox.y+symbolBox.height/2);
+ assert.equal(await strip.locator('input').isChecked(),true);
+ const chip=page.locator('[data-remove-category="Strip"]');
+ assert.equal(await chip.locator('svg').getAttribute('viewBox'),'0 0 33.1094 29.9284');
+ assert.equal(await chip.evaluate(el=>el.firstElementChild.tagName.toLowerCase()),'svg');
+ await page.screenshot({path:'/private/tmp/my-stuff62-desktop.png'});
+ await page.locator('#inventorySearch').fill('First');await lighting.hover();
+ assert.equal(await strip.locator('[data-tag-count]').textContent(),'(2)');
+ await page.locator('#clearInventoryFilters').click();
+ await lighting.focus();await page.keyboard.press('ArrowDown');
+ await strip.locator('input').focus();await page.keyboard.press('Space');
+ assert.equal(await strip.locator('input').isChecked(),true);
+ await page.keyboard.press('Escape');
+ await page.setViewportSize({width:390,height:844});await lighting.click();await lighting.focus();await page.keyboard.press('ArrowDown');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ assert.equal(await strip.locator('svg').isVisible(),true);
+ await page.screenshot({path:'/private/tmp/my-stuff62-mobile.png'});
+ await page.keyboard.press('Escape');await page.locator('#clearInventoryFilters').click();
+ await page.locator('#inventorySearch').blur();await page.keyboard.press('d');await lighting.hover();
+ assert.equal(await strip.locator('[data-tag-count]').textContent(),'(1)');
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items.push(window.LocalApp.inventoryModel.normalizeItem({id:'another-old',name:'Another old strip',categories:['Strip'],owner:'me',archive:{date:'2023-09-02',reason:'Broken'}}));}));
+ assert.equal(await strip.locator('[data-tag-count]').textContent(),'(2)');
+});

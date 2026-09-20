@@ -1,3 +1,11 @@
+## Latest Update — Subcategory Counts and Symbols (0.0.1.62)
+
+Subcategory checkbox rows now display checkbox, shared SVG symbol, then Name (count). Counts use all objects in the current Have or Had view, matching category-card totals, and refresh while the same picker remains open. Counts remain independent of search/category filters. Selected group/tag filter chips carry the same symbol before their name; checkbox, label-click, keyboard, multi-selection and ANY/ALL behavior remain intact.
+
+Installed the eleven supplied SVGs for Strip, Decor, Fan, Humidifier, Floor Lamp, Table Lamp, Night Light, Fridge, Bulb, Lighting and String Lights. Existing Night and String labels use the supplied Night Light and String Lights symbols; their stored labels remain unchanged. Added Floor Lamp/Table Lamp under Lighting, Humidifier under Tech and Fridge under Other. String Lights uses currentColor and accessible decorative SVG attributes, with fixed dimensions and XML/DOCTYPE wrappers removed.
+
+Verification: 117 non-browser checks and four targeted Chromium tests passed, covering live Have/Had counts, symbol order and chip reuse, clicking the symbol area, keyboard selection, search-independent totals, multiple selections, ANY/ALL and offline reload/edit. Desktop/mobile screenshots reviewed; all eleven supplied SVGs parse, script syntax and version/manifest/cache/workflow checks pass. The first new browser test timed out because decorative SVGs deliberately pass pointer events to their labels; corrected the test to click the symbol's screen coordinates, then verified the label toggles normally. Existing staged and manual changes preserved. Preview stopped before handoff. No commit or push performed.
+
 ## Latest Update — Match Any or All Categories (0.0.1.61)
 
 With multiple category/group/tag selections, the selected-filter row shows keyboard-accessible ANY and ALL buttons with pressed states. ANY is the default and matches at least one selection; ALL requires each selected group or tag (a group still matches any of its members). The mode survives removing selections down to one, where the toggle hides; clearing all category selections resets it to ANY. Filtering remains combined with search, location and ownership. Mode is session-only and not synced.

@@ -663,13 +663,15 @@
   function renderCategoryTags() {
     const group = categoryGroups.get(hoveredCategory), root = $('#categoryTags'), selected=selectedCategories();
     root.hidden = !group;
+    const items=inventory().items.filter(function (item) { return Boolean(item.archive)===(view==='previous'); });
+    const count=function (tag) { return items.filter(function (item) { return matchesCategory(item,tag); }).length; };
     if (group) { const card=$$('#categoryCards [data-category-group]').find(function (entry) { return entry.dataset.categoryGroup===hoveredCategory; }), bounds=(card || $('.category-quick-controls')).getBoundingClientRect(), width=Math.min(500,innerWidth-16); root.style.left=Math.max(8,Math.min(bounds.left,innerWidth-width-8))+'px'; root.style.top=bounds.bottom+'px'; root.style.width=width+'px'; root.style.maxHeight=Math.max(80,innerHeight-bounds.bottom-8)+'px'; }
     if (group && root.dataset.group===hoveredCategory) {
-      $$('[data-category-tag]',root).forEach(function (input) { input.checked=selected.includes(input.dataset.categoryTag); });
+      $$('[data-category-tag]',root).forEach(function (input) { input.checked=selected.includes(input.dataset.categoryTag); input.closest('label').querySelector('[data-tag-count]').textContent='('+count(input.dataset.categoryTag)+')'; });
       return;
     }
     root.dataset.group=hoveredCategory;
-    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+' · Select any tags</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).sort(function (a,b) { return a.localeCompare(b,undefined,{sensitivity:'base'}); }).map(function (tag) { const description=App.inventoryCatalog.presetDescription(tag).replace(/^Preset properties: /,''); return '<label class="category-tag-option"><input type="checkbox" data-category-tag="'+esc(tag)+'"'+(selected.includes(tag)?' checked':'')+'><span>'+esc(tag)+'</span>'+(description?'<small class="preset-description">['+esc(description)+']</small>':'')+'</label>'; }).join('') : '';
+    root.innerHTML = group ? '<span class="category-tag-heading">'+esc(hoveredCategory.slice(6))+' · Select any tags</span>' + group.values.filter(function (tag) { return tag!==hoveredCategory.slice(6); }).sort(function (a,b) { return a.localeCompare(b,undefined,{sensitivity:'base'}); }).map(function (tag) { const description=App.inventoryCatalog.presetDescription(tag).replace(/^Preset properties: /,''); return '<label class="category-tag-option"><input type="checkbox" data-category-tag="'+esc(tag)+'"'+(selected.includes(tag)?' checked':'')+'>'+App.icons.category(tag)+'<span>'+esc(tag)+' <span data-tag-count>('+count(tag)+')</span></span>'+(description?'<small class="preset-description">['+esc(description)+']</small>':'')+'</label>'; }).join('') : '';
   }
   function renderCategoryCards(items) {
     const selected = selectedCategories();
@@ -679,7 +681,7 @@
       return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(group)+'" aria-pressed="'+selected.includes(group)+'" data-active="'+active+'" aria-label="'+esc(group.slice(6))+' — toggle entire group; down arrow for tags">'+App.icons.category(group)+'<span>'+esc(group.slice(6))+'</span><small>'+items.filter(function (item) { return matchesCategory(item,group); }).length+'</small></button>';
     }).join('');
     const summary=$('#selectedCategories'); summary.hidden=!selected.length;
-    summary.innerHTML=(selected.length>1 ? '<span>Match:</span><span class="category-match-toggle" role="group" aria-label="Category matching">'+['any','all'].map(function (mode) { return '<button type="button" class="button small" data-category-match="'+mode+'" aria-pressed="'+(categoryMatchMode===mode)+'" aria-label="Match '+mode.toUpperCase()+' selected categories">'+mode.toUpperCase()+'</button>'; }).join('')+'</span>' : '<span>Matching:</span>')+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
+    summary.innerHTML=(selected.length>1 ? '<span>Match:</span><span class="category-match-toggle" role="group" aria-label="Category matching">'+['any','all'].map(function (mode) { return '<button type="button" class="button small" data-category-match="'+mode+'" aria-pressed="'+(categoryMatchMode===mode)+'" aria-label="Match '+mode.toUpperCase()+' selected categories">'+mode.toUpperCase()+'</button>'; }).join('')+'</span>' : '<span>Matching:</span>')+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+App.icons.category(value)+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
     renderCategoryTags();
   }
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
