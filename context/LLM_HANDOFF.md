@@ -1,3 +1,11 @@
+## Latest Update — Activity, Power and Systems Refinements (0.0.1.63)
+
+Removed Hiking and Fridge through configured removedTags so they disappear from existing item assignments instead of resurfacing as Custom Tags. Coax and Ethernet normalize case-insensitively to one Coax/Ethernet tag, deduplicating items that carried both; existing cable-end properties, item details and archive records remain intact. Paddles moves from Other to Activity. Systems gains Gas.
+
+Installed the supplied symbols for Golfing, Coax/Ethernet, Fire, Gas, Remote, Tech Lights, Dishware, Memorabilia and Paddles. The supplied Coax/Ethernet artwork is identical to Golfing and is used unchanged, as noted to the user. Tech Lights maps to the existing Lights tag. Paddles preserves the supplied paths while using currentColor and transparent masks for its white details, keeping contrast across themes; every rendered instance gets its own mask ID.
+
+Verification: all 118 non-browser checks and five targeted Chromium checks pass. Coverage includes current/archived migration, duplicate cable tags, retained notes and cable-end properties, category membership and counts, filter chips, multiple/ANY/ALL filters, keyboard behavior, save/reload and offline editing. Nine new SVGs validate as XML; scripts, asset paths, manifest/version/cache/workflow surfaces and diff checks pass. Desktop/light and mobile/dark screenshots reviewed. Browser approval initially timed out; a narrower retry succeeded. Existing staged/manual changes remain untouched. Preview stopped before handoff; no commit or push performed.
+
 ## Latest Update — Subcategory Counts and Symbols (0.0.1.62)
 
 Subcategory checkbox rows now display checkbox, shared SVG symbol, then Name (count). Counts use all objects in the current Have or Had view, matching category-card totals, and refresh while the same picker remains open. Counts remain independent of search/category filters. Selected group/tag filter chips carry the same symbol before their name; checkbox, label-click, keyboard, multi-selection and ANY/ALL behavior remain intact.

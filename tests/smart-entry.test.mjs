@@ -23,7 +23,7 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
   assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 19);
   assert.equal(c.tagGroups.length, 8);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 68);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 66);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 
@@ -96,4 +96,19 @@ test('direct Had purchase line separates amounts, brand and departure details',(
  assert.equal(result.fields.price,'90');assert.equal(result.fields.value,'90');assert.equal(result.fields.obtainedDate,undefined);
  assert.equal(result.fields.goneDate,'2023-09-02');assert.equal(result.fields.goneReason,'Broken');assert.equal(result.fields.goneNotes,'replaced');
  assert.match(result.fields.name,/^TV LED Backlights/);assert.ok(!result.fields.name.includes('Broken'));
+});
+
+
+test('consolidated tags migrate without losing object details',()=>{
+ const input={id:'merged-tags',name:'Network kit',owner:'me',description:'Keep these notes',categories:['Coax','Ethernet','coax/ethernet','Hiking','Fridge','Paddles'],properties:[{name:'End A',value:'Ethernet (RJ45)'}]};
+ for (const archive of [null,{date:'2023-09-02',reason:'Broken'}]) {
+  const item=app.inventoryModel.normalizeItem({...input,archive});
+  assert.deepEqual(Array.from(item.categories),['Coax/Ethernet','Paddles']);
+  assert.equal(item.description,input.description);assert.equal(item.properties[0].value,'Ethernet (RJ45)');
+  assert.equal(item.archive?.reason,archive?.reason);
+ }
+ const groups=app.config.inventory.tagGroups;
+ assert.ok(groups.find(g=>g.name==='Activity').tags.includes('Paddles'));
+ assert.ok(!groups.find(g=>g.name==='Other').tags.includes('Paddles'));
+ assert.ok(groups.find(g=>g.name==='Systems').tags.includes('Gas'));
 });

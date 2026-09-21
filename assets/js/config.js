@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.62",
-      buildId: "0.0.1.62",
+      version: "0.0.1.63",
+      buildId: "0.0.1.63",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -29,7 +29,7 @@
       defaultCurrency: "USD",
       currencies: ["USD"],
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": []}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling", "Wash Pouch"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk", "Cabinent"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
-      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Hiking"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footwear", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Coax", "Ethernet", "Extension"]}, {"name": "Systems", "tags": ["Fire", "Climate", "Smart", "Electrical", "Plumbing", "Security"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "Floor Lamp", "Table Lamp", "Strip", "Night", "String"]}, {"name": "Tech", "tags": ["Lights", "Fan", "Humidifier", "Switch", "Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Paddles", "Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Fridge", "Tools", "Water Bottles"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
+      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Paddles"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footwear", "Clothing", "Scarf"]}, {"name": "Power", "tags": ["Coax/Ethernet", "Extension"]}, {"name": "Systems", "tags": ["Fire", "Gas", "Climate", "Smart", "Electrical", "Plumbing", "Security"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "Floor Lamp", "Table Lamp", "Strip", "Night", "String"]}, {"name": "Tech", "tags": ["Lights", "Fan", "Humidifier", "Switch", "Curtain", "Hub", "Lock", "Remote", "Sensor", "Shades", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools", "Water Bottles"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
       brands: ["Govee", "Beats", "Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
       brandCompanies: { Beats: "Apple", Govee: "Govee" },
       retailers: ["Amazon", "Target", "Walmart", "Costco", "IKEA", "eBay", "Best Buy"],
@@ -52,8 +52,8 @@
       ],
       cableEnds: ["USB-C", "USB-A", "USB-B", "Micro-USB", "Mini-USB", "Lightning", "HDMI", "Mini HDMI", "Micro HDMI", "DisplayPort", "Mini DisplayPort", "Thunderbolt", "Ethernet (RJ45)", "Coax (F-type)", "3.5 mm", "6.35 mm", "RCA", "XLR", "Optical (TOSLINK)", "DC Barrel", "AC Plug", "IEC C7", "IEC C13"],
       commonProperties: [{ name: "Size", unit: "", values: ["XS", "S", "M", "L", "XL", "XXL"] },{ name: "Color", unit: "", values: ["Black", "White", "Gray", "Silver", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Brown", "Beige", "Clear", "Multicolor"] }],
-      removedTags: ["HVAC", "Fixture"],
-      tagAliases: { "temperature": "Climate", "led": "Strip", "backpacking gear": "Backpacking", "shoes": "Footwear", "footware": "Footwear", "water bottle": "Water Bottles", "powerbank": "Powerbanks", "charger": "Chargers", "water": "Water Bottles" },
+      removedTags: ["HVAC", "Fixture", "Hiking", "Fridge"],
+      tagAliases: { "coax": "Coax/Ethernet", "ethernet": "Coax/Ethernet", "coax/ethernet": "Coax/Ethernet", "temperature": "Climate", "led": "Strip", "backpacking gear": "Backpacking", "shoes": "Footwear", "footware": "Footwear", "water bottle": "Water Bottles", "powerbank": "Powerbanks", "charger": "Chargers", "water": "Water Bottles" },
       categories: [
         { name: "Footwear", properties: [{ name: "Size", unit: "" }, { name: "Color", unit: "" }, { name: "Weight", unit: "oz" }] },
         { name: "Backpacking", properties: [{ name: "Weight", unit: "oz" }] },
@@ -84,6 +84,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.63", date: "2026-09-20T20:00:00.000Z", title: "Refined Activity and Systems Tags",
+      summary: "Combined cable tags, Gas in Systems, Paddles in Activity and updated household symbols.",
+      features: ["Gas under Systems"], improvements: ["Coax and Ethernet merge into Coax/Ethernet", "Paddles moves to Activity", "Updated Golfing, Fire, Remote, Lights, Dishware, Memorabilia and Paddles symbols"], fixes: ["Remove Hiking and Fridge tags"], knownIssues: []
+    }, {
       version: "0.0.1.62", date: "2026-09-20T18:00:00.000Z", title: "Subcategory Counts and Symbols",
       summary: "See subcategory counts and symbols in the checkbox list and selected filter chips.",
       features: ["Counts beside each subcategory name", "Supplied household and lighting symbols"], improvements: ["Selected filter chips retain category symbols", "Floor Lamp, Table Lamp, Humidifier and Fridge tags"], fixes: [], knownIssues: []

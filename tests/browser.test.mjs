@@ -1198,13 +1198,13 @@ test('copy controls clear shared overrides, tags align with Notes, and Command E
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.locator('#itemName').fill('Copy alignment');
- await page.locator('#itemCategories').evaluate(el=>{el.value='Apple, Hiking, Biking, Float';});
+ await page.locator('#itemCategories').evaluate(el=>{el.value='Apple, Golfing, Biking, Float';});
  await page.locator('#itemBrand').fill('Apple');
  assert.equal(await page.locator('[data-move-tag]').count(),0);
  assert.equal(await page.locator('[data-order-tag="Apple"]').getAttribute('draggable'),'false');
  assert.equal(await page.locator('[data-order-tag="Float"]').getAttribute('data-fixed'),'true');
  await page.locator('[data-order-tag="Biking"]').press('Alt+ArrowLeft');
- assert.equal(await page.locator('#itemCategories').inputValue(),'Apple, Biking, Hiking, Float');
+ assert.equal(await page.locator('#itemCategories').inputValue(),'Apple, Biking, Golfing, Float');
  await page.locator('#itemCopies').fill('2'); await page.locator('#itemCopies').press('Tab');
  assert.equal(await page.locator('[data-copy-location] > strong').first().textContent(),'#1');
  assert.equal(await page.locator('#itemCopyLocations > p').count(),0);
@@ -1332,7 +1332,7 @@ test('add directly to Had parses departure and never enters current inventory', 
 test('quick categories combine selections and keep preset details visible', { timeout: 30000 }, async t => {
   const { page } = await fixture(t);
   await page.locator('[data-close-dialog="supportDialog"]').click();
-  for (const [name, tag] of [['Cable fixture', 'Cables'], ['Hiking fixture', 'Hiking'], ['Book fixture', 'Books']]) {
+  for (const [name, tag] of [['Cable fixture', 'Cables'], ['Golfing fixture', 'Golfing'], ['Book fixture', 'Books']]) {
     await page.locator('#addItemButton').click();
     await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
     await page.locator('#itemName').fill(name);
@@ -1345,7 +1345,7 @@ test('quick categories combine selections and keep preset details visible', { ti
   assert.equal(await page.locator('.category-card[aria-pressed="true"]').count(), 2);
   for (const card of [activity, tech]) assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
   assert.match(await page.locator('#inventoryList').innerText(), /Cable fixture/);
-  assert.match(await page.locator('#inventoryList').innerText(), /Hiking fixture/);
+  assert.match(await page.locator('#inventoryList').innerText(), /Golfing fixture/);
   assert.doesNotMatch(await page.locator('#inventoryList').innerText(), /Book fixture/);
   const labels=await page.locator('#categoryTags [data-category-tag]').evaluateAll(inputs=>inputs.map(input=>input.dataset.categoryTag));
   assert.deepEqual(labels,labels.slice().sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'})));
@@ -1381,7 +1381,7 @@ test('quick categories combine selections and keep preset details visible', { ti
 test('ANY and ALL category matching switches results and resets with Clear', { timeout: 30000 }, async t => {
   const {page}=await fixture(t);
   await page.locator('[data-close-dialog="supportDialog"]').click();
-  for (const [name,tags] of [['Both fixture',['Hiking','Cables']],['Activity fixture',['Hiking']],['Tech fixture',['Cables']]]) {
+  for (const [name,tags] of [['Both fixture',['Golfing','Cables']],['Activity fixture',['Golfing']],['Tech fixture',['Cables']]]) {
     await page.locator('#addItemButton').click();
     await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
     await page.locator('#itemName').fill(name);
@@ -1452,4 +1452,45 @@ test('subcategory counts and supplied symbols appear in checklists and filter ch
  assert.equal(await strip.locator('[data-tag-count]').textContent(),'(1)');
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items.push(window.LocalApp.inventoryModel.normalizeItem({id:'another-old',name:'Another old strip',categories:['Strip'],owner:'me',archive:{date:'2023-09-02',reason:'Broken'}}));}));
  assert.equal(await strip.locator('[data-tag-count]').textContent(),'(2)');
+});
+
+test('updated activity power and system tags keep migrated counts and supplied symbols', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1440,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
+  {id:'network-one',name:'Network kit',categories:['Coax','Ethernet','Hiking','Fridge']},
+  {id:'paddle-one',name:'Paddle kit',categories:['Paddles']},
+  {id:'gas-one',name:'Gas fixture',categories:['Gas']}
+ ].map(item=>window.LocalApp.inventoryModel.normalizeItem({...item,owner:'me'}));}));
+ const activity=page.locator('[data-category-group="group:Activity"]');await activity.hover();
+ assert.equal(await page.locator('[data-category-tag="Hiking"]').count(),0);
+ const paddles=page.locator('.category-tag-option:has([data-category-tag="Paddles"])');
+ assert.equal(await paddles.locator('[data-tag-count]').textContent(),'(1)');
+ await paddles.locator('input').check();
+ assert.match(await page.locator('#inventoryList').innerText(),/Paddle kit/);
+ const masks=await page.locator('mask[id^="paddles-cutout-"]').evaluateAll(els=>els.map(el=>el.id));
+ assert.ok(masks.length>=2);assert.equal(new Set(masks).size,masks.length);
+ await page.screenshot({path:'/private/tmp/my-stuff63-activity-desktop.png'});
+ await page.keyboard.press('Escape');await page.locator('#clearInventoryFilters').click();
+ await page.locator('[data-category-group="group:Power"]').hover();
+ assert.equal(await page.locator('[data-category-tag="Coax"]').count(),0);
+ assert.equal(await page.locator('[data-category-tag="Ethernet"]').count(),0);
+ const network=page.locator('.category-tag-option:has([data-category-tag="Coax/Ethernet"])');
+ assert.equal(await network.locator('[data-tag-count]').textContent(),'(1)');
+ assert.equal(await network.locator('svg').getAttribute('viewBox'),'0 0 18.752 35.0098');
+ await network.locator('input').check();assert.match(await page.locator('#inventoryList').innerText(),/Network kit/);
+ await page.keyboard.press('Escape');await page.locator('#clearInventoryFilters').click();
+ await page.locator('[data-category-group="group:Systems"]').hover();
+ assert.equal(await page.locator('.category-tag-option:has([data-category-tag="Gas"]) [data-tag-count]').textContent(),'(1)');
+ await page.keyboard.press('Escape');await page.locator('[data-category-group="group:Other"]').hover();
+ assert.equal(await page.locator('[data-category-tag="Fridge"], [data-category-tag="Paddles"]').count(),0);
+ await page.keyboard.press('Escape');
+ await page.emulateMedia({colorScheme:'dark'});await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+ await page.setViewportSize({width:390,height:844});await activity.focus();await page.keyboard.press('ArrowDown');
+ await paddles.locator('input').focus();await page.keyboard.press('Space');
+ assert.equal(await paddles.locator('input').isChecked(),true);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff63-activity-mobile-dark.png'});
+ await page.keyboard.press('Escape');await page.reload();
+ assert.deepEqual(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(item=>item.id==='network-one').categories),['Coax/Ethernet']);
 });
