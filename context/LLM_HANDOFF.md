@@ -1,3 +1,9 @@
+## Latest Update — Ownership Brand Colors and Adidas (0.0.1.66)
+
+Inventory title-row Brand labels now use a deeper House yellow or Me red than the object name, with separate readable light/dark theme shades (including system theme). Added Adidas to the brand vocabulary and registered the exact supplied A symbol in the shared category icon map.
+
+Verification: all 122 non-browser checks pass. Local Chromium checks confirm darker brand colors for both owners in both themes, Adidas registration/artwork, functional brand filtering and mobile layout without horizontal overflow. Screenshot reviewed. Versions, asset queries, manifests, cache and workflow align at .66; diff checks pass. Unrelated staged/manual changes preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Smart Devices and Expanded Activities (0.0.1.65)
 
 Smart is a top category immediately after Lighting; Power follows Systems. Curtain, Fan, Hub, Humidifier, Lights, Lock, Sensor, Shade and Switch move from Tech to Smart, which also gains Air Purifier. Existing Shades assignments normalize and deduplicate to Shade. Explicit Smart assignments still match the Smart category. Outlet is in Tech, following the final instruction in the supplied request (the opening instruction also listed it under Smart; clarification was requested without a response).

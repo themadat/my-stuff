@@ -1200,3 +1200,14 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .category-tag-option [data-tag-count] { font-variant-numeric: tabular-nums; }
 #selectedCategories [data-remove-category] > .sf-symbol { flex: 0 0 1rem; width: 1rem; height: 1rem; }
 @media(max-width: 500px) { .category-tag-option > span { flex-shrink: 1; min-width: 0; } }
+
+/* Brand labels use a deeper shade of their item's ownership color. */
+.inventory-table tr[data-item-owner="house"] { --ownership-brand: #684500; }
+.inventory-table tr[data-item-owner="me"] { --ownership-brand: #86190f; }
+.inventory-table tr[data-item-owner] .object-title [data-instant-filter="property:brand"] { color: var(--ownership-brand); }
+[data-theme="dark"] .inventory-table tr[data-item-owner="house"] { --ownership-brand: #d2a43d; }
+[data-theme="dark"] .inventory-table tr[data-item-owner="me"] { --ownership-brand: #e46458; }
+@media(prefers-color-scheme:dark) {
+ :root:not([data-theme="light"]) .inventory-table tr[data-item-owner="house"] { --ownership-brand: #d2a43d; }
+ :root:not([data-theme="light"]) .inventory-table tr[data-item-owner="me"] { --ownership-brand: #e46458; }
+}
