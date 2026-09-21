@@ -1,3 +1,11 @@
+## Latest Update — Active Tab Totals and Had Editing (0.0.1.67)
+
+All, House and Me Everything counts/values now aggregate only items in the active Have or Had tab, independently of filters. Previously they always excluded archived items. Category and subcategory counts already scoped to the active tab; regression coverage confirms this. Filtered totals remain scoped to matching items within that tab.
+
+Editing a saved Had item shows editable Gone Date, What Happened and Departure Notes directly in Item Details, prefilled from its archive record and saved with other item edits. The separate Edit Departure action remains available. Existing archive status is preserved, copies remain disabled, and the redundant read-only departure summary is hidden.
+
+Verification: 122 non-browser checks and targeted Chromium tests pass for ownership/category counts, values, filtering, departure save/reload/reopen, mobile editor width and offline operation. Version/query/cache/manifests/workflow aligned at .67; diff checks pass. Existing unrelated staged/manual changes preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Ownership Brand Colors and Adidas (0.0.1.66)
 
 Inventory title-row Brand labels now use a deeper House yellow or Me red than the object name, with separate readable light/dark theme shades (including system theme). Added Adidas to the brand vocabulary and registered the exact supplied A symbol in the shared category icon map.

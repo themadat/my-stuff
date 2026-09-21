@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.66",
-      buildId: "0.0.1.66",
+      version: "0.0.1.67",
+      buildId: "0.0.1.67",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -84,6 +84,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.67", date: "2026-09-21T13:00:00.000Z", title: "Have and Had Totals and Departure Editing",
+      summary: "Ownership totals follow the active tab, and saved Had departure details are editable in Item Details.",
+      features: [], improvements: ["Edit departure date, reason and notes alongside item details"], fixes: ["All, House and Me Everything totals use the active Have or Had tab"], knownIssues: []
+    }, {
       version: "0.0.1.66", date: "2026-09-21T12:00:00.000Z", title: "Ownership Brand Colors and Adidas",
       summary: "Brand labels use deeper House yellow and Me red, with a supplied Adidas symbol.",
       features: ["Adidas brand and symbol"], improvements: ["Ownership-colored brand labels in light and dark themes"], fixes: [], knownIssues: []

@@ -623,8 +623,9 @@
     $("#roomOverview").hidden = !active; $("#locationDivider").hidden = !active; $("#inventoryBody").classList.toggle("previous-view", view === "previous");
     if (!active) $("#inventoryComingSoon").innerHTML = icon(view === "want" ? "inventoryWant" : "inventoryResearch") + '<h2>' + (view === "want" ? "Your Someday List, Coming Later" : "Good Decisions Start with a Little Research") + '</h2><p>We’re focusing on the stuff you have first. ' + (view === "want" ? "Wish-list tracking" : "Research and comparison tools") + ' will live here in a future update.</p>';
     $(".inventory-filterbar").hidden = !active;
+    const viewStats = m.stats(data.items.filter(function (item) { return Boolean(item.archive) === (view === "previous"); }).map(function (item) { return Object.assign({},item,{archive:null}); }));
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
-      const total = stats[entry[0]];
+      const total = viewStats[entry[0]];
       return '<div class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label"><button type="button" class="ownership-select" aria-label="Filter ' + entry[1] + '">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></button></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span><button type="button" class="ownership-toggle" data-ownership-toggle="' + entry[0] + '" aria-label="Toggle ' + entry[1] + ' totals">⌄</button></div>';
 
     }).join("");
@@ -870,13 +871,13 @@
       return m.sameObject(entry,item);
     }).map(function (entry) { return JSON.parse(JSON.stringify(entry)); }) : [];
     editingCopies.sort(function (a, b) { return a.id === id ? -1 : b.id === id ? 1 : 0; });
-    directArchive=!id && !copy && (draft ? Boolean(draft._archiveMode) : view==='previous');
+    directArchive=Boolean(item?.archive) || (!id && !copy && (draft ? Boolean(draft._archiveMode) : view==='previous'));
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
     $('#itemDirectArchive').hidden=!directArchive;
     $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) { input.disabled=!directArchive; });
     $('#itemDirectGoneReason').required=directArchive; $('#itemDirectGoneDate').max=m.today();
-    $("#itemDialogTitle").textContent = directArchive ? "Add to Stuff I Had" : id ? "Item Details" : copy ? "Add a Copy" : "Add an Item";
+    $("#itemDialogTitle").textContent = id ? "Item Details" : directArchive ? "Add to Stuff I Had" : copy ? "Add a Copy" : "Add an Item";
     $("#itemCopiesField").hidden = Boolean(item?.archive || (directArchive && !draft)); $("#itemCopies").disabled = Boolean(item?.archive || (directArchive && !draft));
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
@@ -885,7 +886,7 @@
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#deleteItemButton").hidden = !id;
     $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || "", color:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || ''), size:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || ''), notes:entry.description === item.description ? null : entry.description}; }));
-    if (directArchive && draft) { $('#itemDirectGoneDate').value=draft.archive?.date || ''; $('#itemDirectGoneReason').value=draft.archive?.reason || ''; $('#itemDirectGoneNotes').value=draft.archive?.notes || ''; }
+    if (directArchive) { const departure=(draft || item)?.archive; $('#itemDirectGoneDate').value=departure?.date || ''; $('#itemDirectGoneReason').value=departure?.reason || ''; $('#itemDirectGoneNotes').value=departure?.notes || ''; }
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
@@ -914,7 +915,7 @@
     $("#archiveItemButton").hidden = !id;
     $("#archiveItemButton").innerHTML = icon("inventoryArchive") + (item?.archive ? " Edit Departure…" : " Archive…");
     $("#restoreItemButton").hidden = !item?.archive;
-    $("#itemArchiveSummary").hidden = !item?.archive;
+    $("#itemArchiveSummary").hidden = !item?.archive || directArchive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
 
     suggestProperties(); fillMissingAmount(); syncDateUnknown();

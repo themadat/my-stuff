@@ -1562,3 +1562,27 @@ test('Smart category order, moved device counts and supplied symbols work on des
  await page.keyboard.press('Escape');await page.reload();
  assert.deepEqual(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(item=>item.id==='shade-smart').categories),['Shade']);
 });
+
+test('ownership and category totals follow Have and Had and departure fields save in Item Details',async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>LocalApp.storage.mutate(s=>{s.inventory.items=[
+ {id:'have-house',owner:'house',value:100,categories:['Fan']},
+ {id:'have-me',owner:'me',value:20,categories:['Phone']},
+ {id:'had-house',owner:'house',value:300,categories:['Fan'],archive:{date:'2026-01-01',reason:'Sold',notes:'Original'}},
+ {id:'had-me',owner:'me',value:40,categories:['Fan'],archive:{date:'2026-01-01',reason:'Sold',notes:''}}
+ ].map(x=>LocalApp.inventoryModel.normalizeItem({...x,name:x.id}));}));
+ const total=async key=>page.locator(`[data-inventory-total="${key}"] .stat-row`).first().innerText();
+ assert.match(await total('house'),/1\s*objects.*\$100/s);assert.match(await total('me'),/1\s*objects.*\$20/s);
+ assert.equal(await page.locator('[data-category-group="group:Smart"] small').textContent(),'1');
+ await page.locator('[data-inventory-view="previous"]').click();
+ assert.match(await total('all'),/2\s*objects.*\$340/s);assert.match(await total('house'),/1\s*objects.*\$300/s);assert.match(await total('me'),/1\s*objects.*\$40/s);
+ assert.equal(await page.locator('[data-category-group="group:Smart"] small').textContent(),'2');
+ await page.locator('#inventorySearch').fill('had-me');assert.match(await total('house'),/1\s*objects.*\$300/s);assert.match(await page.locator('[data-filtered-total="house"]').innerText(),/0.*\$0/s);
+ await page.locator('#clearInventoryFilters').click();await page.locator('[data-edit-item="had-house"]').click();
+ assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),'Original');
+ await page.locator('#itemDirectGoneDate').fill('2026-02-02');await page.locator('#itemDirectGoneReason').selectOption('Donated');await page.locator('#itemDirectGoneNotes').fill('Updated departure');
+ await page.setViewportSize({width:390,height:844});await page.locator('#itemDirectGoneNotes').scrollIntoViewIfNeeded();assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);
+ await page.locator('#saveItemButton').click();await page.reload();
+ assert.deepEqual(await page.evaluate(()=>LocalApp.storage.getState().inventory.items.find(x=>x.id==='had-house').archive),{date:'2026-02-02',reason:'Donated',notes:'Updated departure'});
+ await page.locator('[data-inventory-view="previous"]').click();await page.locator('[data-edit-item="had-house"]').click();assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),'Updated departure');
+});
