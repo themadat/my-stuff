@@ -1,3 +1,11 @@
+## Latest Update — Smart Devices and Expanded Activities (0.0.1.65)
+
+Smart is a top category immediately after Lighting; Power follows Systems. Curtain, Fan, Hub, Humidifier, Lights, Lock, Sensor, Shade and Switch move from Tech to Smart, which also gains Air Purifier. Existing Shades assignments normalize and deduplicate to Shade. Explicit Smart assignments still match the Smart category. Outlet is in Tech, following the final instruction in the supplied request (the opening instruction also listed it under Smart; clarification was requested without a response).
+
+Power gains Powerstrip; Activity gains Soccer, Climbing and Gym. Installed all nine supplied symbols for Coax/Ethernet, Powerstrip, Air Purifier, Soccer, Climbing, Biking, Gym, Outlet and Brands. Existing assignments and inventory records remain intact.
+
+Verification: 122 non-browser checks and six targeted Chromium checks pass, covering category ordering, saved tag migration, counts, multi-category ANY/ALL filters, supplied symbols, desktop/mobile and offline reload/editing. Desktop/mobile screenshots reviewed. The new mobile test waits for viewport rendering to settle before entering the picker. Scripts, SVG XML, manifests, version/cache/workflow surfaces and diffs pass. Existing unrelated staged/manual edits preserved. Preview stopped before handoff; no commit or push performed.
+
 ## Latest Update — Household Bulk Parsing and Long Fields (0.0.1.64)
 
 Archive Smart Complete recognizes the supplied household TSV structure while retaining empty cells: configured room, optional category cells/acquired date, dollar value, optional blank separators, object, three ignored columns, Gone Date, ignored duration, and full departure explanation. The object alone goes through seller/brand/measurement parsing; ignored columns cannot override the leading value or enter its name. Both price and value use that leading amount, consistent with existing missing-amount fallback. Invalid dates remain visible in review warnings and Notes. The existing parser handles other formats and Have entries.

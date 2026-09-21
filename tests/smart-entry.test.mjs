@@ -22,8 +22,8 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   assert.equal(c.locations.length, 23);
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
   assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 19);
-  assert.equal(c.tagGroups.length, 8);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 66);
+  assert.equal(c.tagGroups.length, 9);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 71);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 
@@ -111,4 +111,18 @@ test('consolidated tags migrate without losing object details',()=>{
  assert.ok(groups.find(g=>g.name==='Activity').tags.includes('Paddles'));
  assert.ok(!groups.find(g=>g.name==='Other').tags.includes('Paddles'));
  assert.ok(groups.find(g=>g.name==='Systems').tags.includes('Gas'));
+});
+
+test('Smart is a top category after Lighting and existing device assignments survive the move',()=>{
+ const groups=app.config.inventory.tagGroups, group=name=>groups.find(g=>g.name===name);
+ assert.deepEqual(Array.from(groups,g=>g.name),['Activity','Apparel','Systems','Power','Lighting','Smart','Tech','Other','Brands']);
+ assert.ok(!group('Systems').tags.includes('Smart'));
+ for (const tag of ['Curtain','Fan','Hub','Humidifier','Lights','Lock','Sensor','Shade','Switch','Air Purifier']) {
+  assert.ok(group('Smart').tags.includes(tag));assert.ok(!group('Tech').tags.includes(tag));
+ }
+ for (const tag of ['Soccer','Climbing','Gym']) assert.ok(group('Activity').tags.includes(tag));
+ assert.ok(group('Power').tags.includes('Powerstrip'));
+ assert.ok(group('Tech').tags.includes('Outlet'));assert.ok(!group('Smart').tags.includes('Outlet'));
+ const item=app.inventoryModel.normalizeItem({id:'smart-move',name:'Existing device',owner:'me',categories:['Smart','Fan','Shades','Shade','Outlet']});
+ assert.deepEqual(Array.from(item.categories),['Smart','Fan','Shade','Outlet']);
 });

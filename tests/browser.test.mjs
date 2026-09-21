@@ -1027,7 +1027,7 @@ test('top navigation and global search reach current items, archived items, Note
 });
 
 test('wide catalog links return to filtered Have; grouped categories and aligned totals share the compact layout', {timeout:30000}, async t => {
- const {page}=await fixture(t,{viewport:{width:1600,height:1000}});
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});page.setDefaultTimeout(5000);
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[
  {id:'catalog-water',name:'Bottle',owner:'me',room:'Nook',value:12,source:'Amazon',description:'Trail bottle',categories:['Water Bottles'],properties:[{name:'Brand',value:'Vapur'},{name:'Space',value:'Sling Bag'},{name:'Volume',value:'23',unit:'oz'}]},
  {id:'catalog-cable',name:'USB cable',owner:'house',room:'Office',value:8,categories:['Cables'],properties:[{name:'Color',value:'Black'}]}
@@ -1137,7 +1137,7 @@ test('desktop ownership defaults expand, toggles persist, and room-only rows pre
 });
 
 test('sidebar percentage survives reload locally and scales on resize', {timeout:30000}, async t=>{
- const {page}=await fixture(t,{viewport:{width:1600,height:1000}});
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});page.setDefaultTimeout(5000);
  await page.locator('[data-close-dialog="supportDialog"]').click();
  const divider=page.locator('#locationDivider');
  await divider.focus(); await divider.press('ArrowRight'); await divider.press('ArrowRight');
@@ -1279,7 +1279,7 @@ test('weight defaults, unknown date dashes, smart location and aligned location 
 });
 
 test('sidebar right click filters exact location paths without dropdowns', {timeout:30000},async t=>{
- const {page}=await fixture(t,{viewport:{width:1600,height:1000}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});page.setDefaultTimeout(5000);await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=[['Office','Closet'],['Guest Room','Closet'],['Office','Desk']].map(([room,space],i)=>window.LocalApp.inventoryModel.normalizeItem({id:'context-'+i,name:'Object '+i,room,owner:'me',categories:['Books'],properties:[{name:'Zone',value:'Upstairs'},{name:'Space',value:space}]}));}));
  assert.equal(await page.locator('select#inventoryRoomFilter, select#inventoryCategoryFilter').count(),0);
  const target=page.locator(`[data-location-filter='["Upstairs","Office","Closet"]']`);
@@ -1296,7 +1296,7 @@ test('sidebar right click filters exact location paths without dropdowns', {time
 });
 
 test('sidebar number tracks align for large totals and category property hints are immediate', {timeout:30000},async t=>{
- const {page}=await fixture(t,{viewport:{width:1600,height:1000}}); await page.locator('[data-close-dialog="supportDialog"]').click();
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});page.setDefaultTimeout(5000); await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{state.inventory.items=Array.from({length:123},(_,i)=>window.LocalApp.inventoryModel.normalizeItem({id:'wide-'+i,name:'Object '+i,room:i<120?'Den':'Office',owner:'me',value:i<120?100:10,properties:[{name:'Zone',value:i<120?'Main Level':'Upstairs'}]}));}));
  for(const selector of ['.location-object-count','.location-object-value']) { const boxes=await page.locator(selector).evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {right:r.right,width:r.width,scroll:el.scrollWidth};}));assert.ok(Math.max(...boxes.map(b=>b.right))-Math.min(...boxes.map(b=>b.right))<1);assert.ok(boxes.every(b=>b.scroll<=b.width+1)); }
  await page.locator('[data-category-group="group:Tech"]').hover(); await page.locator('[data-category-tag="Powerbanks"]').hover();
@@ -1478,7 +1478,7 @@ test('updated activity power and system tags keep migrated counts and supplied s
  assert.equal(await page.locator('[data-category-tag="Ethernet"]').count(),0);
  const network=page.locator('.category-tag-option:has([data-category-tag="Coax/Ethernet"])');
  assert.equal(await network.locator('[data-tag-count]').textContent(),'(1)');
- assert.equal(await network.locator('svg').getAttribute('viewBox'),'0 0 18.752 35.0098');
+ assert.equal(await network.locator('svg').getAttribute('viewBox'),'0 0 51.8457 17.2168');
  await network.locator('input').check();assert.match(await page.locator('#inventoryList').innerText(),/Network kit/);
  await page.keyboard.press('Escape');await page.locator('#clearInventoryFilters').click();
  await page.locator('[data-category-group="group:Systems"]').hover();
@@ -1529,4 +1529,36 @@ test('household bulk Had rows preserve long text through pause resume save and r
  assert.equal(dishwasher.name,longName.trim());assert.equal(dishwasher.archive.notes,longNotes);
  assert.equal(await page.evaluate(()=>window.LocalApp.inventoryModel.stats(window.LocalApp.storage.getState().inventory.items).all.count),0);
  await page.reload();assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),21);
+});
+
+test('Smart category order, moved device counts and supplied symbols work on desktop and mobile', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1600,height:1000}});page.setDefaultTimeout(5000);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(state=>{
+  state.preferences.favoriteBrands=['Apple'];state.inventory.items=[
+   {id:'fan-smart',name:'Fan fixture',categories:['Fan']},
+   {id:'shade-smart',name:'Shade fixture',categories:['Shades']},
+   {id:'legacy-smart',name:'Legacy smart fixture',categories:['Smart']},
+   {id:'phone-tech',name:'Phone fixture',categories:['Phone']},
+   {id:'power-strip',name:'Powerstrip fixture',categories:['Powerstrip']}
+  ].map(item=>window.LocalApp.inventoryModel.normalizeItem({...item,owner:'me'}));
+ }));
+ assert.deepEqual(await page.locator('[data-category-group]').evaluateAll(els=>els.map(el=>el.dataset.categoryGroup)),['group:Activity','group:Apparel','group:Systems','group:Power','group:Lighting','group:Smart','group:Tech','group:Other','group:Brands']);
+ const smart=page.locator('[data-category-group="group:Smart"]');await smart.click();
+ assert.equal(await smart.locator('small').textContent(),'3');
+ const names=await page.locator('#inventoryList').innerText();assert.match(names,/Fan fixture/);assert.match(names,/Shade fixture/);assert.match(names,/Legacy smart fixture/);assert.doesNotMatch(names,/Phone fixture|Powerstrip fixture/);
+ assert.equal(await page.locator('[data-category-tag="Shade"]').count(),1);assert.equal(await page.locator('[data-category-tag="Shades"]').count(),0);
+ assert.equal(await page.locator('.category-tag-option:has([data-category-tag="Air Purifier"]) svg').getAttribute('viewBox'),'0 0 29.5969 31.1719');
+ await page.screenshot({path:'/private/tmp/my-stuff65-smart-desktop.png'});
+ await page.keyboard.press('Escape');await page.locator('#clearInventoryFilters').click();
+ await page.locator('[data-category-group="group:Tech"]').hover();assert.equal(await page.locator('[data-category-tag="Fan"]').count(),0);
+ await page.keyboard.press('Escape');await page.locator('[data-category-group="group:Power"]').hover();
+ assert.equal(await page.locator('.category-tag-option:has([data-category-tag="Powerstrip"]) svg').getAttribute('viewBox'),'0 0 51.8457 17.2168');
+ await page.keyboard.press('Escape');await page.setViewportSize({width:390,height:844});await page.waitForTimeout(250);await smart.focus();await page.keyboard.press('ArrowDown');
+ await page.locator('[data-category-tag="Air Purifier"]').check();
+ assert.equal(await page.locator('[data-remove-category="Air Purifier"] svg').getAttribute('viewBox'),'0 0 29.5969 31.1719');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff65-smart-mobile.png'});
+ await page.keyboard.press('Escape');await page.reload();
+ assert.deepEqual(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(item=>item.id==='shade-smart').categories),['Shade']);
 });
