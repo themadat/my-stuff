@@ -26,7 +26,7 @@
   function tags(value) {
     const list = Array.isArray(value) ? value : String(value || "").split(",");
     const seen = new Set();
-    return list.map(function (tag) { const clean = u.cleanLine(tag, 60); return App.config.inventory.tagAliases?.[clean.toLowerCase()] || App.config.inventory.categories.find(function (category) { return category.name.toLowerCase() === clean.toLowerCase(); })?.name || (/^cables?$/i.test(clean) ? "Cables" : clean); }).filter(function (tag) {
+    return list.map(function (tag) { const clean = u.cleanLine(tag, Infinity); return App.config.inventory.tagAliases?.[clean.toLowerCase()] || App.config.inventory.categories.find(function (category) { return category.name.toLowerCase() === clean.toLowerCase(); })?.name || (/^cables?$/i.test(clean) ? "Cables" : clean); }).filter(function (tag) {
       if (!tag || App.config.inventory.removedTags?.some(function (name) { return name.toLowerCase() === tag.toLowerCase(); }) || seen.has(tag.toLowerCase())) return false;
       seen.add(tag.toLowerCase()); return true;
     }).slice(0, 30);
@@ -45,7 +45,7 @@
   }
   function normalizeItem(input) {
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("An inventory item is invalid.");
-    const id = u.cleanLine(input.id, 100), name = u.cleanLine(input.name, 160);
+    const id = u.cleanLine(input.id, 100), name = u.cleanLine(input.name, Infinity);
     if (!id || !name) throw new Error("Every item needs an ID and a name.");
     if (!["house", "me"].includes(input.owner)) throw new Error("Choose whether the item belongs to the house or to you.");
     const obtainedDate = dateOnly(input.obtainedDate);
@@ -54,19 +54,19 @@
       const date = dateOnly(input.archive.date);
       if (!date || !reasons.includes(input.archive.reason)) throw new Error("An archived item needs a gone date and reason.");
       if (obtainedDate && date < obtainedDate) throw new Error("The gone date cannot be before the obtained date.");
-      archive = { date: date, reason: input.archive.reason, notes: u.cleanText(input.archive.notes, 2000) };
+      archive = { date: date, reason: input.archive.reason, notes: u.cleanText(input.archive.notes, Infinity) };
     }
     if (input.properties != null && (!Array.isArray(input.properties) || input.properties.length > 40)) throw new Error("Use up to 40 properties per item.");
     const properties = (input.properties || []).map(function (property) {
       if (!property || typeof property !== "object") throw new Error("An item property is invalid.");
-      const name = u.cleanLine(property.name, 60);
+      const name = u.cleanLine(property.name, Infinity);
       if (!name) throw new Error("Give every property a name, or remove its row.");
-      return { name: name, value: u.cleanLine(property.value, 300), unit: u.cleanLine(property.unit, 30) };
+      return { name: name, value: u.cleanLine(property.value, Infinity), unit: u.cleanLine(property.unit, Infinity) };
     });
     const propertyNames = properties.map(function (property) { return property.name.toLowerCase(); });
     if (new Set(propertyNames).size !== propertyNames.length) throw new Error("Property names must be unique within an item.");
     const hierarchy = App.config.inventory.locations;
-    const rawRoom = u.cleanLine(input.room, 80);
+    const rawRoom = u.cleanLine(input.room, Infinity);
     const property = function (name) { return properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
     let room = hierarchy.find(function (l) { return l.room.toLowerCase() === rawRoom.toLowerCase(); });
     let space = property('space');
@@ -90,10 +90,10 @@
     }
     cleanProperties.forEach(function (p) { if (p.name.toLowerCase() === "size") p.unit = ""; });
     return {
-      id: id, name: name, description: u.cleanText(input.description, 4000), owner: input.owner,
+      id: id, name: name, description: u.cleanText(input.description, Infinity), owner: input.owner,
       room: room?.room || '', categories: orderTags(tags(input.categories).concat(knownSpace === "Floating" ? ["Float"] : []),properties.filter(function (p) { return p.name.toLowerCase()==="brand"; }).map(function (p) { return p.value; })), obtainedDate: obtainedDate,
       obtainedHow: methods.includes(input.obtainedHow) ? input.obtainedHow : "",
-      source: u.cleanLine(input.source, 240), value: amount(input.value) ?? amount(input.price), price: amount(input.price) ?? amount(input.value),
+      source: u.cleanLine(input.source, Infinity), value: amount(input.value) ?? amount(input.price), price: amount(input.price) ?? amount(input.value),
       properties: cleanProperties, archive: archive,
       ...(u.cleanLine(input.copyGroup, 100) ? { copyGroup: u.cleanLine(input.copyGroup, 100) } : {})
     };
@@ -105,10 +105,10 @@
     return Array.from({ length: count }, function (_, index) {
       const item = normalizeItem(Object.assign({}, template, { id: u.uid("item"), archive: null }));
       const override = rooms?.[index], requestedRoom = typeof override === 'object' ? override?.room : override;
-      const zone = u.cleanLine(typeof override === 'object' ? override?.zone : '',80);
+      const zone = u.cleanLine(typeof override === 'object' ? override?.zone : '',Infinity);
       if (zone && !requestedRoom && !(typeof override === 'object' && override?.space)) { item.room = ''; item.properties = item.properties.filter(function (p) { return !['zone','space'].includes(p.name.toLowerCase()); }); item.properties.push({name:'Zone',value:zone,unit:''}); }
-      const space = u.cleanLine(typeof override === 'object' ? override?.space : '', 80);
-      let room = u.cleanLine(requestedRoom, 80);
+      const space = u.cleanLine(typeof override === 'object' ? override?.space : '', Infinity);
+      let room = u.cleanLine(requestedRoom, Infinity);
       if (space && !room) {
         const matches = App.config.inventory.locations.filter(function (l) { return l.spaces.some(function (s) { return s.toLowerCase() === space.toLowerCase(); }); });
         if (matches.length === 1) room = matches[0].room;
@@ -132,12 +132,12 @@
       }
       if (typeof override?.color === 'string') {
         item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'color'; });
-        const color = u.cleanLine(override.color,300);
+        const color = u.cleanLine(override.color,Infinity);
         if (color) item.properties.push({name:'Color',value:color,unit:''});
       }
       if (typeof override?.size === 'string') {
         item.properties = item.properties.filter(function (p) { return p.name.toLowerCase() !== 'size'; });
-        const size = u.cleanLine(override.size,300);
+        const size = u.cleanLine(override.size,Infinity);
         if (size) item.properties.push({name:'Size',value:size,unit:''});
       }
       if (typeof override?.notes === 'string') item.description = override.notes;

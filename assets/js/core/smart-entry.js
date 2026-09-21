@@ -2,9 +2,67 @@
   "use strict";
   const App = window.LocalApp;
   const example = "08/03/26\t($62.77)\tChase Prime: 125.54\tAmazon Mktplace - Final Touch Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand [65] [O]";
+  // Recognize the household archive export by its column structure, keeping blank cells.
+  function householdRow(text, knownBrands) {
+    const cells=text.split('\t');
+    if (cells.length<10 || /\n/.test(text)) return null;
+    const valueIndex=cells.findIndex(function (cell,index) { return index>0 && /^\$[\d,]+(?:\.\d{1,2})?$/.test(cell.trim()); });
+    if (valueIndex<1) return null;
+    let objectIndex=valueIndex+1;
+    while (objectIndex<cells.length && !cells[objectIndex].trim()) objectIndex++;
+    const goneIndex=objectIndex+4;
+    if (objectIndex>=cells.length || cells.length<goneIndex+3) return null;
+    const isDate=function (value) { return /^(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})$/.test(value.trim()); };
+    if (cells[goneIndex].trim() && !isDate(cells[goneIndex])) return null;
+    if (cells[goneIndex+1].trim() && !/^\s*(?:\d+\s*y\s*)?(?:\d+\s*m\s*)?(?:\d+\s*d\s*)?$/i.test(cells[goneIndex+1])) return null;
+    const product=parse(cells[objectIndex],knownBrands), fields=Object.assign({},product.fields), spans=[], warnings=[];
+    const offsets=[]; let offset=0; cells.forEach(function (cell) { offsets.push(offset); offset+=cell.length+1; });
+    function mark(index,field) { const raw=cells[index]; if (raw.trim()) spans.push({start:offsets[index],end:offsets[index]+raw.length,field:field}); }
+    function date(index,field,label) {
+      const raw=cells[index].trim(); if (!raw) { fields[field]=''; return; }
+      const parts=raw.split('/'), iso=parts.length===3?(parts[2].length===2?'20'+parts[2]:parts[2])+'-'+parts[0].padStart(2,'0')+'-'+parts[1].padStart(2,'0'):raw;
+      try { fields[field]=App.inventoryModel.dateOnly(iso); mark(index,field); }
+      catch (_) { fields[field]=''; warnings.push('Check '+label+': '+raw); }
+    }
+    const location=App.config.inventory.locations.find(function (entry) { return entry.room.toLowerCase()===cells[0].trim().toLowerCase(); });
+    if (!location) return null;
+    fields.room=location.room; fields.zone=location.zone; mark(0,'room');
+    fields.obtainedDate=''; const tags=[];
+    for (let index=1;index<valueIndex;index++) {
+      const raw=cells[index].trim(); if (!raw) continue;
+      if (isDate(raw)) date(index,'obtainedDate','Date Obtained');
+      else { tags.push(...App.inventoryModel.tags(raw.replace(/;/g,','))); mark(index,'categories'); }
+    }
+    fields.categories=App.inventoryModel.tags(tags.concat(fields.categories || [])).join(', ');
+    const brands=knownBrands || App.config.inventory.brands;
+    if (!fields.brand) fields.brand=tags.find(function (tag) { return brands.some(function (brand) { return brand.toLowerCase()===tag.toLowerCase(); }); }) || '';
+    fields.value=cells[valueIndex].trim().replace(/[$,]/g,''); fields.price=fields.value; mark(valueIndex,'value');
+    product.spans.forEach(function (span) { spans.push({start:offsets[objectIndex]+span.start,end:offsets[objectIndex]+span.end,field:span.field}); });
+    date(goneIndex,'goneDate','Gone Date');
+    const explanation=cells.slice(goneIndex+2).join('\t').trim();
+    fields.goneNotes=explanation;
+    fields.goneReason=departureReason(explanation);
+    for (let index=goneIndex+2;index<cells.length;index++) mark(index,'goneNotes');
+    if (warnings.length) fields.description=[fields.description,...warnings].filter(Boolean).join('\n');
+    return {fields:fields,spans:spans.sort(function (a,b) { return a.start-b.start; }),warnings:warnings};
+  }
+  function departureReason(text) {
+    const exact=App.inventoryModel.reasons.find(function (reason) { return reason.toLowerCase()===text.trim().toLowerCase(); });
+    if (exact) return exact;
+    if (!text.trim()) return '';
+    if (/\bunknown\b|lost\s*\/\s*trash/i.test(text)) return 'Other';
+    if (/\bbroke(?:n)?\b|\bchipped\b|\bleaks?\b/i.test(text)) return 'Broken';
+    if (/\bmissing\b|\blost\b|\bleft at\b/i.test(text)) return 'Lost';
+    if (/\btrashed?\b|\bthrew (?:out|away)\b/i.test(text)) return 'Trashed';
+    if (/\bdonated\b/i.test(text)) return 'Donated';
+    if (/\bsold\b/i.test(text)) return 'Sold';
+    if (/\bgave away\b|\bgiven away\b/i.test(text)) return 'Given away';
+    return 'Other';
+  }
   // Match only known brands or explicit labels. Unrecognized metadata remains in notes.
   function parse(text, knownBrands, options) {
     const archiveMode=Boolean(options?.archive);
+    if (archiveMode) { const household=householdRow(text,knownBrands); if (household) return household; }
     const fields = {}, spans = []; let rest = text.split("");
     function take(start, length, field, value) {
       if (spans.some(function (span) { return start < span.end && start + length > span.start; })) return;

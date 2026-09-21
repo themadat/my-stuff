@@ -26,7 +26,7 @@
     return '<fieldset class="item-segments"><legend>' + title + '</legend><input type="hidden" id="' + id + '"><div class="segment-track">' + values.map(function (entry) { return '<label><input type="radio" name="' + id + 'Choice" value="' + esc(entry[0]) + '"><span>' + esc(entry[1]) + '</span></label>'; }).join("") + '</div></fieldset>';
   }
   function picker(id, title, placeholder, hint) {
-    return '<div class="field picker"><label for="' + id + '">' + title + (hint || '') + '</label><input id="' + id + '" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + 'Options" autocomplete="off" maxlength="80" placeholder="' + placeholder + '"><div id="' + id + 'Options" class="picker-options" role="listbox" aria-label="' + title + ' Suggestions" hidden></div></div>';
+    return '<div class="field picker"><label for="' + id + '">' + title + (hint || '') + '</label><input id="' + id + '" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + 'Options" autocomplete="off" placeholder="' + placeholder + '"><div id="' + id + 'Options" class="picker-options" role="listbox" aria-label="' + title + ' Suggestions" hidden></div></div>';
   }
   function init() {
     $("#inventoryWorkspace").innerHTML = `
@@ -58,14 +58,14 @@
         <div class="dialog-body"><p id="itemFormError" class="inventory-error" role="alert" tabindex="-1" hidden></p>
           <section class="smart-entry" aria-label="Smart Complete">
             <div class="smart-heading"><label for="itemSmartEntry">Smart Complete</label><p id="smartHint">Highlights show what goes where. Edit any field below.</p><button type="button" id="smartExample" class="button small">Try Example</button></div>
-            <textarea id="itemSmartEntry" rows="1" maxlength="12000" placeholder="Paste a purchase line, or type an item…" aria-describedby="smartHint"></textarea>
+            <textarea id="itemSmartEntry" rows="1" placeholder="Paste a purchase line, or type an item…" aria-describedby="smartHint"></textarea>
             <div id="smartPreview" class="smart-preview" hidden></div><div id="smartDestinations" class="smart-destinations" aria-live="polite"></div>
           </section>
           <div class="item-form-grid compact-item-grid">
             <div class="full item-identity-row">
-              ${field("itemSource", "Seller", 'type="text" maxlength="240" placeholder="Seller"')}
+              ${field("itemSource", "Seller", 'type="text" placeholder="Seller"')}
               <div>${picker("itemBrand", "Brand", "Brand")}<small id="itemBrandCompany" hidden></small></div>
-              <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required maxlength="160" placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
+              <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
             <div class="full item-purchase-row">
               ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
@@ -77,7 +77,7 @@
             <div class="full item-location-row">
               ${picker("itemZone", "Zone", "Search zones…")}${picker("itemRoom", "Room", "Unknown location")}${picker("itemSpace", "Space", "Search spaces…")}
             </div><div class="full item-tags-notes-row">
-              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…", '<small class="tag-order-hint">Drag Tags or Use Alt+Arrow Keys to Reorder</small>')}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div><label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="1" maxlength="4000" placeholder="Details and unrecognized purchase text"></textarea></label>
+              <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…", '<small class="tag-order-hint">Drag Tags or Use Alt+Arrow Keys to Reorder</small>')}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div><label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="1" placeholder="Details and unrecognized purchase text"></textarea></label>
             </div>
           </div>
           <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
@@ -92,7 +92,7 @@
           <fieldset id="itemDirectArchive" class="item-fieldset" hidden><legend>Departure Details</legend><div class="item-form-grid">
             ${field("itemDirectGoneDate", "Gone Date", 'type="date" required disabled')}
             ${select("itemDirectGoneReason", "What Happened?", '<option value="">Choose a Reason</option>' + options(m.reasons))}
-            <label class="field full"><span>Departure Notes</span><textarea id="itemDirectGoneNotes" rows="2" maxlength="2000" disabled></textarea></label>
+            <label class="field full"><span>Departure Notes</span><textarea id="itemDirectGoneNotes" rows="2" disabled></textarea></label>
           </div></fieldset>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
@@ -101,7 +101,7 @@
       <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
         ${field("itemGoneDate", "Gone Date", 'type="date" required')}
         ${select("itemGoneReason", "What Happened?", '<option value="">Choose a reason</option>' + options(m.reasons))}
-        <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" maxlength="2000" rows="3" placeholder="Anything you want to remember"></textarea></label>
+        <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" rows="3" placeholder="Anything you want to remember"></textarea></label>
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
     document.body.insertAdjacentHTML('beforeend','<dialog id="locationDateDialog" class="app-dialog small-dialog" aria-labelledby="locationDateTitle"><form id="locationDateForm" class="dialog-shell"><header class="dialog-header"><h2 id="locationDateTitle">Last Updated Date</h2></header><div class="dialog-body"><p id="locationDateName"></p><p>The contents of this location are correct as of this date.</p><label class="unknown-date-choice"><input id="locationDateUnknown" type="checkbox"> UNKNOWN</label><label class="field"><span>Last Updated Date</span><input id="locationDateValue" type="text" placeholder="MM/DD/YYYY or YYYY-MM-DD"></label><p id="locationDateError" role="alert"></p></div><footer class="dialog-footer"><button id="locationDateCancel" class="button" type="button">Cancel</button><button class="button primary" type="submit">Save</button></footer></form></dialog>');
@@ -124,7 +124,7 @@
     $("#inventoryStats").before(actions);
     ["#inventoryStats", "#clearInventoryFilters", "#addItemButton"].forEach(function (selector) { actions.append($(selector)); });
     mobileInventory.addEventListener("change", renderList);
-    initSmartControls(); $("#itemBrand").maxLength = 300;
+    initSmartControls();
     ["#itemPrice","#itemValue"].forEach(function (id) { $(id).addEventListener("blur", function () { setTimeout(fillMissingAmount,0); }); });
     initObjectWords();
     $("#itemGoneReason").required = true;
@@ -401,7 +401,7 @@
     if (!word) return;
     const input = $("#itemName"), brand = $("#itemBrand"), before = { name: input.value, brand: brand.value };
     const nextBrand = [brand.value.trim(), word.text].filter(Boolean).join(" ");
-    if (!remove && nextBrand.length > brand.maxLength) {
+    if (!remove && brand.maxLength >= 0 && nextBrand.length > brand.maxLength) {
       $("#objectWordStatus").textContent = "Brand is full. Shorten it before moving this word.";
       return;
     }
@@ -788,7 +788,7 @@
   function addProperty(property, focus) {
     if ($$(".item-property").length >= 40) return formError("#itemFormError", "Use up to 40 properties per item.");
     const row = document.createElement("div"); row.className = "item-property";
-    row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" maxlength="60" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value maxlength="300" placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit (optional)</span><input data-property-unit maxlength="30" placeholder="Optional" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
+    row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit (optional)</span><input data-property-unit placeholder="Optional" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
     const equivalent=document.createElement('small'); equivalent.className='property-equivalent'; equivalent.setAttribute('aria-live','polite'); row.appendChild(equivalent);
     row.addEventListener('input',function () { updateMeasurement(row,false); });
     row.addEventListener('change',function () { updateMeasurement(row,true); });
@@ -825,7 +825,7 @@
     root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
     root.innerHTML = '<div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      return '<div data-copy-location><strong>#' + (index+1)  + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" maxlength="300" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" maxlength="300" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" maxlength="4000" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
+      return '<div data-copy-location><strong>#' + (index+1)  + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
     }).join('') + '</div>';
     $$('[data-copy-location]').forEach(function (row,index) {
       ['Zone','Room','Space'].forEach(function (name) { const input = $('#copy'+index+name); input.setAttribute('data-copy-'+name.toLowerCase(),''); input.value = old[index]?.[name.toLowerCase()] || ''; });

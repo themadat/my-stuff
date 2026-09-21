@@ -93,8 +93,8 @@ test('direct Had purchase line separates amounts, brand and departure details',(
  const sample='Den\tLights\t\t$90\t\tGovee TV LED Backlights with Camera, DreamView T1 RGBIC Wi-Fi TV Backlights for 55-65 inch TVs PC\t\t$90\t\t09/02/23\t\tBroken; replaced';
  const result=app.smartEntry.parse(sample,null,{archive:true});
  assert.equal(result.fields.room,'Den');assert.equal(result.fields.brand,'Govee');assert.equal(result.fields.categories,'Lights');
- assert.equal(result.fields.price,'90');assert.equal(result.fields.value,'90');assert.equal(result.fields.obtainedDate,undefined);
- assert.equal(result.fields.goneDate,'2023-09-02');assert.equal(result.fields.goneReason,'Broken');assert.equal(result.fields.goneNotes,'replaced');
+ assert.equal(result.fields.price,'90');assert.equal(result.fields.value,'90');assert.equal(result.fields.obtainedDate,'');
+ assert.equal(result.fields.goneDate,'2023-09-02');assert.equal(result.fields.goneReason,'Broken');assert.equal(result.fields.goneNotes,'Broken; replaced');
  assert.match(result.fields.name,/^TV LED Backlights/);assert.ok(!result.fields.name.includes('Broken'));
 });
 

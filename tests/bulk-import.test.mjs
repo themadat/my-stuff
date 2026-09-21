@@ -41,7 +41,7 @@ test('bulk raw annotations retain ownership and acquisition, and vocabulary sugg
  const d = bulk.prepare([['Blue sensor; owner: house; obtained: Gift;']], false, [], [])[0].draft;
  assert.equal(d.owner, 'house'); assert.equal(d.obtainedHow, 'Gift'); assert.ok(d.categories.includes('Sensor'));
  assert.ok(!bulk.prepare([['Nightstand']], false, [], [])[0].draft.categories.includes('Night'));
- assert.throws(() => bulk.parseDelimited(Array(81).fill('x').join(',')), /80 columns/);
+ assert.equal(bulk.parseDelimited(Array(81).fill('x').join(','))[0].length,81);
 });
 test('bulk inventory row retains its source for Smart Complete and Water includes Volume', () => {
  const source = 'Floating\tWater\t09/22/24\t$12\t\tAmazon - Vapur Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, 23 Ounce, Fire, Pack of 2 [24], Float';
@@ -69,4 +69,47 @@ test('bulk rows use separate Seller and Brand with explicit column precedence', 
  assert.equal(draft.source,'Amazon');assert.equal(draft.properties.find(p=>p.name==='Brand').value,'Beats');
  const inferred=bulk.prepare([['Amazon - Beats Studio Pro']],false,[],[])[0].draft;
  assert.equal(inferred.source,'Amazon');assert.equal(inferred.properties.find(p=>p.name==='Brand').value,'Beats');
+});
+
+test('household Had export parses all supplied rows without mixing ignored columns into the object',()=>{
+ const source=readFileSync(new URL('./fixtures/household-had.tsv',import.meta.url),'utf8');
+ const cells=bulk.parseDelimited(source), rows=bulk.prepare(cells,false,[],[],{archive:true});
+ assert.equal(rows.length,21);
+ const expectedReasons=['Broken','Broken','Lost','Trashed','Other','Other','Other','Other','Other','Broken','Lost','Broken','Broken','Trashed','Trashed','Trashed','Other','Other','Other','Other','Broken'];
+ rows.forEach((row,index)=>{
+  const d=row.draft, raw=cells[index];
+  assert.equal(d.room,'Kitchen');assert.equal(d.value,raw[3].slice(1));assert.equal(d.price,d.value);
+  assert.equal(d.archive.notes,raw[11]);assert.equal(d.archive.reason,expectedReasons[index]);
+  assert.equal(d.archive.date,app.inventoryModel.dateOnly(raw[9].replace(/(\d+)\/(\d+)\/(\d+)/,(_,m,d,y)=>'20'+y+'-'+m+'-'+d)));
+  assert.equal(d.obtainedDate,raw[2]?raw[2].replace(/(\d+)\/(\d+)\/(\d+)/,(_,m,d,y)=>'20'+y+'-'+m+'-'+d):'');
+  assert.ok(!d.name.includes(raw[11]));assert.ok(!/\d+y \d+m \d+d/.test(d.name));
+  const saved=app.inventoryModel.normalizeItem({...d,id:row.id});assert.equal(saved.archive.notes,raw[11]);
+ });
+ assert.equal(rows[1].draft.source,'Home Depot');assert.equal(rows[1].draft.brand,'GE Profile');
+ assert.match(rows[1].draft.name,/Model PDT715SFN3DS; Serial FS858403B$/);
+ assert.equal(rows[2].draft.brand,'Gatorade');assert.equal(rows[2].draft.source,'Dicks Sporting Goods');
+ assert.ok(rows[0].draft.categories.includes('Appliances'));assert.ok(rows[2].draft.categories.includes('Water Bottles'));
+ assert.equal(rows[4].draft.brand,'CamelBak');assert.match(rows[4].draft.name,/\(1 of 5\)$/);
+ assert.equal(rows[20].draft.brand,'Nordic');
+});
+
+test('long import fields survive preparation and model round trips; ignored columns never override value',()=>{
+ const name='Long object '+ 'x'.repeat(13000), notes='Reason '+ 'y'.repeat(6000);
+ const cells=['Kitchen','Appliance','','$200','',name,'ignored text','$999','08/08/20','12/15/25','2y 1m 1d',notes];
+ const d=bulk.prepare([cells],false,[],[],{archive:true})[0].draft;
+ assert.equal(d.name,name);assert.equal(d.value,'200');assert.equal(d.obtainedDate,'');assert.equal(d.archive.notes,notes);
+ const saved=app.inventoryModel.normalizeItem({...d,id:'long'});assert.equal(saved.name,name);assert.equal(saved.archive.notes,notes);
+ assert.equal(bulk.parseDelimited(Array(100).fill('cell').join('\t'))[0].length,100);
+ const withProperties=bulk.prepare([['Object','Seller','Notes','Custom'],[name,'s'.repeat(600),'n'.repeat(6000),'p'.repeat(1000)]],true,['name','source','description','property'],[])[0].draft;
+ const round=app.inventoryModel.normalizeItem({...withProperties,id:'long-props'});
+ assert.equal(round.source.length,600);assert.ok(round.description.length>6000);assert.equal(round.properties.find(p=>p.name==='Custom').value.length,1000);
+});
+
+test('household layout supports extra category cells and surfaces invalid dates for review',()=>{
+ const row=['Kitchen','Appliance','Smart','02/30/25','$20','Leviton Switch','','','999','02/30/26','','Replaced with something better'];
+ const d=bulk.prepare([row],false,[],[],{archive:true})[0];
+ assert.deepEqual(plain(d.draft.categories),['Appliances','Smart']);
+ assert.equal(d.draft.obtainedDate,'');assert.equal(d.draft.archive.date,'');assert.equal(d.warnings.length,2);
+ assert.match(d.draft.description,/02\/30\/25/);assert.match(d.draft.description,/02\/30\/26/);
+ assert.equal(d.draft.value,'20');assert.equal(d.draft.name,'Switch');
 });

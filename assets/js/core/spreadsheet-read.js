@@ -72,7 +72,6 @@
             if (!uses1904 && serial === 60) value = 'Invalid Excel date (1900-02-29)';
             else { const epoch = uses1904 ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, 31); const milliseconds = epoch + (serial - (!uses1904 && serial > 60 ? 1 : 0)) * 86400000; const d = new Date(milliseconds); value = Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : value; }
           }
-          if (column > 80 && value.trim()) throw new Error('Use up to 80 columns per sheet.');
           if (column <= 80) cells[column - 1] = value;
         }
         if (cells.some(function (value) { return value?.trim(); })) { rows.push(Array.from({ length: cells.length }, function (_, i) { return cells[i] || ''; })); if (rows.length > 501) throw new Error('Review up to 500 rows per sheet. Split the spreadsheet into smaller batches.'); }

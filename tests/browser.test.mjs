@@ -1,5 +1,6 @@
 // Optional browser QA: run against a local preview server; no real GitHub calls.
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import { test, before, after } from 'node:test';
 import { pathToFileURL } from 'node:url';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright');
@@ -565,7 +566,7 @@ test('Object pointer actions append to Brand, remove only clicked words, preserv
   assert.equal(await page.locator('#itemBrand').inputValue(), 'Existing Acme');
 });
 
-test('Object actions target scrolled text on mobile, support keyboard undo and refuse Brand overflow', { timeout: 30000 }, async t => {
+test('Object actions target scrolled text on mobile, support keyboard undo and long Brand text', { timeout: 30000 }, async t => {
   const { page } = await fixture(t, { viewport: { width: 320, height: 900 } });
   await page.locator('[data-close-dialog="supportDialog"]').click();
   await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
@@ -585,9 +586,9 @@ test('Object actions target scrolled text on mobile, support keyboard undo and r
   await page.keyboard.press('Control+z'); assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
   await page.locator('#itemBrand').fill('x'.repeat(300)); await page.locator('#itemName').focus();
   await page.locator('#itemName').evaluate(input => input.setSelectionRange(1, 1)); await page.keyboard.press('Alt+ArrowUp');
-  assert.equal(await page.locator('#itemName').inputValue(), 'Lamp');
-  assert.equal((await page.locator('#itemBrand').inputValue()).length, 300);
-  assert.match(await page.locator('#objectWordStatus').textContent(), /Brand is full/);
+  assert.equal(await page.locator('#itemName').inputValue(), '');
+  assert.equal((await page.locator('#itemBrand').inputValue()).length, 305);
+  assert.equal(await page.locator('#itemName').inputValue(), '');
 });
 
 test('multiple copies save independently across rooms and Color is reusable without duplicate properties', { timeout: 30000 }, async t => {
@@ -662,7 +663,7 @@ test('bulk review suggests fields, saves only approved objects, resumes edits an
   assert.equal(await page.locator('#itemBrand').inputValue(), 'Final Touch');
   assert.equal(await page.locator('#itemRoom').inputValue(), 'Den');
   assert.match(await page.locator('#bulkReviewInfo').textContent(), /Barware \(Other\)/);
-  assert.equal(await page.locator('#saveItemButton').textContent(), 'Save & Next');
+  assert.equal(await page.locator('#saveItemButton').textContent(), 'Save All Copies & Next');
   await page.locator('#itemName').fill('Reviewed Glass'); await page.locator('#saveItemButton').click();
   await page.waitForFunction(() => document.querySelector('#itemName').value === 'Trail Backpack 300 g');
   assert.equal(await page.locator('[data-edit-item]').count(), 1);
@@ -675,7 +676,7 @@ test('bulk review suggests fields, saves only approved objects, resumes edits an
   assert.equal(await page.locator('#itemDescription').inputValue(), 'Keep this review edit');
   await page.locator('#skipBulkRow').click();
   await page.waitForFunction(() => !document.querySelector('#itemDialog').open); await page.locator('#bulkEntryButton').click();
-  assert.match(await page.locator('#bulkQueueStatus').textContent(), /2 saved.*0 awaiting review.*1 skipped/);
+  assert.match(await page.locator('#bulkQueueStatus').textContent(), /1 saved.*0 awaiting review.*2 skipped/);
   await page.locator('#reviewSkippedButton').click();
   await page.waitForFunction(() => document.activeElement.id === 'itemName');
   assert.equal(await page.locator('#itemDescription').inputValue(), 'Keep this review edit');
@@ -869,15 +870,15 @@ test('bulk copies save together with their locations and separate notes', { time
  await page.locator('#bulkPaste').fill('Floating\tWater\t09/22/24\t$12\tAmazon - Vapur Bottle 23 Ounce [24], Float');
  await page.locator('#readBulkPaste').click(); await page.locator('#startBulkReview').click(); await page.waitForFunction(()=>document.activeElement.id==='itemName');
  assert.equal(await page.locator('#categoryPresets button').filter({hasText:'Water'}).getAttribute('aria-pressed'),'true');
- assert.match(await page.locator('#itemDescription').inputValue(),/Float/);
+ assert.match(await page.locator('#itemCategories').inputValue(),/Float/);
  await page.locator('#itemCopies').fill('2'); await page.locator('[data-copy-room]').nth(0).fill('Nook'); await page.locator('[data-copy-space]').nth(0).fill('Sling Bag');
  await page.locator('[data-copy-room]').nth(1).fill('Office'); await page.locator('[data-copy-space]').nth(1).fill('Desk');
  await page.locator('[data-copy-shared-notes]').nth(1).uncheck();
  await page.locator('[data-copy-notes]').nth(1).fill('Office copy');
  await page.locator('#saveItemButton').click(); await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
  const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
- assert.equal(items.length,2); assert.ok(items.every(i=>!i.categories.includes('Float'))); assert.ok(items[0].copyGroup); assert.equal(items[1].copyGroup,items[0].copyGroup);
- assert.deepEqual(items.map(i=>i.properties.find(p=>p.name==='Space').value),['Sling Bag','Desk']);
+ assert.equal(items.length,2); assert.ok(items.every(i=>i.categories.includes('Float'))); assert.ok(items[0].copyGroup); assert.equal(items[1].copyGroup,items[0].copyGroup);
+ assert.deepEqual(items.map(i=>i.properties.find(p=>p.name==='Space').value),['Sling','Desk']);
  assert.equal(items[1].description,'Office copy');
 });
 
@@ -1311,7 +1312,7 @@ test('add directly to Had parses departure and never enters current inventory', 
  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  assert.equal(await page.locator('#itemDialogTitle').textContent(),'Add to Stuff I Had');
  await page.locator('#itemSmartEntry').fill('Den\tLights\t\t$90\t\tGovee TV LED Backlights with Camera, DreamView T1 RGBIC Wi-Fi TV Backlights for 55-65 inch TVs PC\t\t$90\t\t09/02/23\t\tBroken; replaced');
- assert.equal(await page.locator('#itemBrand').inputValue(),'Govee');assert.equal(await page.locator('#itemDirectGoneDate').inputValue(),'2023-09-02');assert.equal(await page.locator('#itemDirectGoneReason').inputValue(),'Broken');assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),'replaced');
+ assert.equal(await page.locator('#itemBrand').inputValue(),'Govee');assert.equal(await page.locator('#itemDirectGoneDate').inputValue(),'2023-09-02');assert.equal(await page.locator('#itemDirectGoneReason').inputValue(),'Broken');assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),'Broken; replaced');
  assert.equal(await page.locator('#itemObtainedDate').inputValue(),'');
  await page.locator('#itemDirectArchive').scrollIntoViewIfNeeded();
  await page.screenshot({path:'/private/tmp/my-stuff57-had-editor.png'});
@@ -1493,4 +1494,39 @@ test('updated activity power and system tags keep migrated counts and supplied s
  await page.screenshot({path:'/private/tmp/my-stuff63-activity-mobile-dark.png'});
  await page.keyboard.press('Escape');await page.reload();
  assert.deepEqual(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(item=>item.id==='network-one').categories),['Coax/Ethernet']);
+});
+
+test('household bulk Had rows preserve long text through pause resume save and reload', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1440,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();await page.keyboard.press('d');
+ await page.locator('#bulkEntryButton').click();
+ const text=readFileSync(new URL('./fixtures/household-had.tsv',import.meta.url),'utf8');
+ await page.locator('#bulkPaste').fill(text);await page.locator('#readBulkPaste').click();
+ assert.equal(await page.locator('#bulkHeaders').isChecked(),false);
+ await page.locator('#startBulkReview').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ assert.equal(await page.locator('#itemName').inputValue(),'Garbage Disposal');
+ assert.equal(await page.locator('#itemDirectGoneReason').inputValue(),'Broken');
+ await page.locator('#saveItemButton').click();
+ assert.equal(await page.locator('#itemBrand').inputValue(),'GE Profile');
+ assert.match(await page.locator('#itemName').inputValue(),/Serial FS858403B/);
+ const longName=(await page.locator('#itemName').inputValue())+' '+ 'long detail '.repeat(40);
+ const longNotes='Departure explanation '+ 'retained text '.repeat(350);
+ await page.locator('#itemName').fill(longName);await page.locator('#itemDirectGoneNotes').fill(longNotes);
+ await page.getByRole('button',{name:'Pause',exact:true}).click();await page.reload();
+ await page.keyboard.press('d');await page.locator('#bulkEntryButton').click();await page.locator('#resumeBulkButton').click();
+ await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ assert.equal(await page.locator('#itemName').inputValue(),longName);
+ assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),longNotes);
+ await page.setViewportSize({width:390,height:844});await page.locator('#itemDirectArchive').scrollIntoViewIfNeeded();
+ assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'/private/tmp/my-stuff64-bulk-mobile.png'});
+ await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'/private/tmp/my-stuff64-bulk-desktop.png'});
+ for (let i=1;i<21;i++) { await page.locator('#saveItemButton').click(); }
+ assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,21);assert.ok(items.every(item=>item.archive));
+ const dishwasher=items.find(item=>item.properties.some(p=>p.name==='Brand'&&p.value==='GE Profile'));
+ assert.equal(dishwasher.name,longName.trim());assert.equal(dishwasher.archive.notes,longNotes);
+ assert.equal(await page.evaluate(()=>window.LocalApp.inventoryModel.stats(window.LocalApp.storage.getState().inventory.items).all.count),0);
+ await page.reload();assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),21);
 });

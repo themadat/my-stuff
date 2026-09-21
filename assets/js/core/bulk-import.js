@@ -24,7 +24,7 @@
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (c === '"' && (quoted || !cell)) { if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted; }
-      else if (!quoted && c === delimiter) { row.push(cell); cell = ""; if (row.length >= 80) throw new Error("Use up to 80 columns."); }
+      else if (!quoted && c === delimiter) { row.push(cell); cell = ""; }
       else if (!quoted && (c === '\r' || c === '\n')) { if (c === '\r' && text[i + 1] === '\n') i++; finish(); }
       else cell += c;
     }
@@ -66,7 +66,7 @@
     const added = m.tags(tags).filter(function (tag) { return !draft.categories.some(function (old) { return old.toLowerCase() === tag.toLowerCase(); }); });
     if (!locked.has('categories')) { draft.categories = m.tags(draft.categories.concat(added)); added.forEach(function (tag) { const group = App.config.inventory.tagGroups.find(function (g) { return g.tags.includes(tag); }); suggested.push(tag + (group ? ' (' + group.name + ')' : ' (Preset)')); }); }
     if (!locked.has('color')) {
-      const color = App.config.inventory.commonProperties[0].values.find(function (v) { return new RegExp('\\b' + v.toLowerCase() + '\\b').test(text); });
+      const color = App.config.inventory.commonProperties.find(function (p) { return p.name === "Color"; }).values.find(function (v) { return new RegExp('\\b' + v.toLowerCase() + '\\b').test(text); });
       if (color) property('Color', color);
     }
     const size = /\bsize\s*[:=]?\s*(\d+(?:\.\d+)?|xs|s|m|l|xl|xxl)\b/i.exec(text);
@@ -82,17 +82,18 @@
     const brands = App.config.inventory.brands.concat((items || []).flatMap(function (item) { return item.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }).map(function (p) { return p.value; }); }));
     records.forEach(function (row, index) {
       if (!row.some(function (cell) { return String(cell).trim(); })) return;
-      const source = row.map(String).join('\t'); if (source.length > 12000) throw new Error('Row ' + (index + 1) + ' is too long. Split it into smaller entries.');
+      const source = row.map(String).join('\t');
       const mapped = {}, notes = [], properties = [], locked = new Set(), warnings = [];
       if (headers) row.forEach(function (value, column) {
         value = String(value).trim(); if (!value) return;
         const key = columns[column] || 'description';
         if (key === 'ignore') return;
-        if (key === 'property') { properties.push({ name: u.cleanLine(names[column] || 'Property ' + (column + 1), 60), value: value, unit: '' }); return; }
+        if (key === 'property') { properties.push({ name: u.cleanLine(names[column] || 'Property ' + (column + 1), Infinity), value: value, unit: '' }); return; }
         if (key === 'description') notes.push((names[column] ? names[column] + ': ' : '') + value);
         else { mapped[key] = mapped[key] ? mapped[key] + ' ' + value : value; locked.add(key); }
       });
-      const parsed = App.smartEntry.parse(headers ? mapped.raw || mapped.name || '' : source, brands.concat(mapped.brand || []),options).fields;
+      const result = App.smartEntry.parse(headers ? mapped.raw || mapped.name || '' : source, brands.concat(mapped.brand || []),options), parsed=result.fields;
+      warnings.push(...(result.warnings || []));
       const draft = { name: parsed.name || '', brand: parsed.brand || '', source: parsed.source || '', owner: parsed.owner || 'me', obtainedHow: parsed.obtainedHow || 'Purchased', obtainedDate: parsed.obtainedDate || '', price: parsed.price ?? '', value: parsed.value ?? '', room: parsed.room || '', categories: m.tags(parsed.categories || ''), properties: properties, description: [parsed.description, ...notes].filter(Boolean).join('\n') };
       if (options?.archive) { draft._archiveMode=true; draft.archive={date:parsed.goneDate || '',reason:parsed.goneReason || '',notes:parsed.goneNotes || ''}; }
       if (parsed.categories) locked.add('categories');
@@ -124,7 +125,6 @@
         category.properties.forEach(function (property) { if (!properties.some(function (p) { return p.name.toLowerCase() === property.name.toLowerCase(); })) properties.push({ name: property.name, value: '', unit: property.unit || '' }); });
       });
       const seen = new Set(); draft.properties = properties.filter(function (p) { const key = p.name.toLowerCase(); if (seen.has(key)) { warnings.push('Repeated property: ' + p.name); draft.description += '\n' + p.name + ': ' + p.value; return false; } seen.add(key); return true; });
-      if (draft.name.length > 160 || draft.source.length > 240 || draft.room.length > 80 || draft.description.length > 4000 || draft.properties.length > 40 || draft.properties.some(function (p) { return p.value.length > 300; })) throw new Error('Row ' + (index + 1) + ' exceeds item field limits. Shorten it before importing.');
       let quantity = mapped.quantity ? Number(mapped.quantity) : 1;
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error('Row ' + (index + 1) + ': Copies must be an integer from 1 to 100.');
       if (output.length + quantity > 500) throw new Error('Review up to 500 objects per batch, including copies. Split this spreadsheet into smaller batches.');
