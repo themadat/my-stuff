@@ -1211,3 +1211,14 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
  :root:not([data-theme="light"]) .inventory-table tr[data-item-owner="house"] { --ownership-brand: #d2a43d; }
  :root:not([data-theme="light"]) .inventory-table tr[data-item-owner="me"] { --ownership-brand: #e46458; }
 }
+
+/* A locally saved, fully synchronized copy gets a distinct green status. */
+.floating-status[data-sync-state="upToDate"][data-local-storage="available"] {
+ --sync-tint: color-mix(in srgb, var(--sync-success) 55%, #159447);
+ border-color: var(--sync-tint);
+ background: color-mix(in srgb, var(--sync-tint) 18%, var(--surface));
+ color: var(--sync-tint);
+}
+.floating-status[data-sync-state="upToDate"][data-local-storage="available"]:hover { background: color-mix(in srgb, var(--sync-tint) 27%, var(--surface)); }
+.floating-status[data-sync-state="upToDate"][data-local-storage="available"] .floating-status-copy strong,
+.floating-status[data-sync-state="upToDate"][data-local-storage="available"] .floating-status-copy small { color: color-mix(in srgb, var(--sync-tint) 75%, var(--text)); }

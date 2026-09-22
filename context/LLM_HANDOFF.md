@@ -1,3 +1,9 @@
+## Latest Update — Greener Sync Confirmation (0.0.1.69)
+
+The combined local/GitHub status has a greener cloud icon, border, tinted background and text when its existing sync state is upToDate and local storage is available. Hover deepens the green tint. Other sync states and unavailable storage keep their existing presentation; no sync logic changed.
+
+Verification: 64 static/sync checks pass. Local Chromium simulated display states verify light/dark and mobile presentation and that unavailable storage or non-synced states do not receive the green background. Screenshot reviewed; no real GitHub requests or writes. Version/query/cache/manifests/workflow aligned at .69 and diff checks pass. Unrelated staged/manual changes preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Router Tech Tag (0.0.1.68)
 
 Added Router under Tech with the supplied four-path wireless router SVG in the shared symbol registry. Updated the configured tag-count expectation and aligned version, asset queries, manifests, cache and deployment workflow.

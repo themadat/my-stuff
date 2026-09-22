@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.68",
-      buildId: "0.0.1.68",
+      version: "0.0.1.69",
+      buildId: "0.0.1.69",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -84,6 +84,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.69", date: "2026-09-21T22:00:00.000Z", title: "Greener Sync Confirmation",
+      summary: "The cloud status button turns green when locally saved and up to date with GitHub.",
+      features: [], improvements: ["Greener cloud icon, border, background and labels for fully saved and synchronized data"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.68", date: "2026-09-21T14:00:00.000Z", title: "Router Tech Tag",
       summary: "Router is available under Tech with its supplied wireless router symbol.",
       features: ["Router subcategory and symbol"], improvements: [], fixes: [], knownIssues: []
