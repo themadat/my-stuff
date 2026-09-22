@@ -1,3 +1,9 @@
+## Latest Update — Router Tech Tag (0.0.1.68)
+
+Added Router under Tech with the supplied four-path wireless router SVG in the shared symbol registry. Updated the configured tag-count expectation and aligned version, asset queries, manifests, cache and deployment workflow.
+
+Verification: 18 static and smart-entry checks pass; supplied SVG parses as XML. Chromium verifies Router in desktop/mobile Tech pickers and selected filter icons. Diff checks pass. Unrelated staged/manual edits preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Active Tab Totals and Had Editing (0.0.1.67)
 
 All, House and Me Everything counts/values now aggregate only items in the active Have or Had tab, independently of filters. Previously they always excluded archived items. Category and subcategory counts already scoped to the active tab; regression coverage confirms this. Filtered totals remain scoped to matching items within that tab.

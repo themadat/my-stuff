@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.67",
-      buildId: "0.0.1.67",
+      version: "0.0.1.68",
+      buildId: "0.0.1.68",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -29,7 +29,7 @@
       defaultCurrency: "USD",
       currencies: ["USD"],
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": []}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling", "Wash Pouch"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk", "Cabinent"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
-      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Paddles", "Soccer", "Climbing", "Gym"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footwear", "Clothing", "Scarf"]}, {"name": "Systems", "tags": ["Fire", "Gas", "Climate", "Electrical", "Plumbing", "Security"]}, {"name": "Power", "tags": ["Coax/Ethernet", "Extension", "Powerstrip"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "Floor Lamp", "Table Lamp", "Strip", "Night", "String"]}, {"name": "Smart", "tags": ["Curtain", "Fan", "Hub", "Humidifier", "Lights", "Lock", "Sensor", "Shade", "Switch", "Air Purifier"]}, {"name": "Tech", "tags": ["Outlet", "Remote", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools", "Water Bottles"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
+      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Paddles", "Soccer", "Climbing", "Gym"]}, {"name": "Apparel", "tags": ["Headware", "Eyewear", "Handware", "Footwear", "Clothing", "Scarf"]}, {"name": "Systems", "tags": ["Fire", "Gas", "Climate", "Electrical", "Plumbing", "Security"]}, {"name": "Power", "tags": ["Coax/Ethernet", "Extension", "Powerstrip"]}, {"name": "Lighting", "tags": ["Bulb", "Decor", "Floor Lamp", "Table Lamp", "Strip", "Night", "String"]}, {"name": "Smart", "tags": ["Curtain", "Fan", "Hub", "Humidifier", "Lights", "Lock", "Sensor", "Shade", "Switch", "Air Purifier"]}, {"name": "Tech", "tags": ["Router", "Outlet", "Remote", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Soccer Balls", "Bags", "Books", "Games", "Art", "Memorabilia", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools", "Water Bottles"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
       brands: ["Adidas", "GE Profile", "Hamilton Beach", "Gatorade", "CamelBak", "HGN", "Leviton", "Nordic", "Govee", "Beats", "Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
       brandCompanies: { Beats: "Apple", Govee: "Govee" },
       retailers: ["Amazon", "Target", "Walmart", "Costco", "IKEA", "eBay", "Best Buy"],
@@ -84,6 +84,10 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.68", date: "2026-09-21T14:00:00.000Z", title: "Router Tech Tag",
+      summary: "Router is available under Tech with its supplied wireless router symbol.",
+      features: ["Router subcategory and symbol"], improvements: [], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.67", date: "2026-09-21T13:00:00.000Z", title: "Have and Had Totals and Departure Editing",
       summary: "Ownership totals follow the active tab, and saved Had departure details are editable in Item Details.",
       features: [], improvements: ["Edit departure date, reason and notes alongside item details"], fixes: ["All, House and Me Everything totals use the active Have or Had tab"], knownIssues: []
