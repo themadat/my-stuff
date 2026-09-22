@@ -101,7 +101,7 @@ a { color: var(--accent-strong); }
 .global-search-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent); }
 .global-search-wrap input { width: 100%; height: 100%; min-width: 0; padding: 0 2.3rem 0 2.25rem; border: 0; outline: 0; background: transparent; }
 .search-icon { position: absolute; left: .75rem; color: var(--muted); font-size: 1.15rem; }
-.global-search-wrap > kbd { position: absolute; right: .65rem; min-width: 22px; padding: 2px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: .68rem; text-align: center; }
+.global-search-wrap > kbd, .inventory-search-wrap > kbd { position: absolute; right: .65rem; min-width: 22px; padding: 2px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: .68rem; text-align: center; }
 .global-search-results { position: absolute; z-index: 70; top: calc(100% + .45rem); right: 0; left: 0; max-height: min(60vh, 440px); overflow-y: auto; padding: .35rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
 .global-search-results button { display: flex; align-items: center; width: 100%; min-height: 48px; padding: .55rem .65rem; border: 0; border-radius: 8px; background: transparent; text-align: left; }
 .global-search-results button:hover { background: var(--accent-soft); }
@@ -1222,3 +1222,7 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .floating-status[data-sync-state="upToDate"][data-local-storage="available"]:hover { background: color-mix(in srgb, var(--sync-tint) 27%, var(--surface)); }
 .floating-status[data-sync-state="upToDate"][data-local-storage="available"] .floating-status-copy strong,
 .floating-status[data-sync-state="upToDate"][data-local-storage="available"] .floating-status-copy small { color: color-mix(in srgb, var(--sync-tint) 75%, var(--text)); }
+
+.inventory-search-wrap { position: relative; }
+.inventory-search-wrap > kbd { top: 50%; transform: translateY(-50%); pointer-events: none; }
+#inventorySearch { padding-right: 2.6rem; }

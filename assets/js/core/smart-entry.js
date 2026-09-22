@@ -2,20 +2,22 @@
   "use strict";
   const App = window.LocalApp;
   const example = "08/03/26\t($62.77)\tChase Prime: 125.54\tAmazon Mktplace - Final Touch Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand [65] [O]";
-  // Recognize the household archive export by its column structure, keeping blank cells.
-  function householdRow(text, knownBrands) {
+  // Recognize household Have/Had exports by column structure, keeping blank cells.
+  function householdRow(text, knownBrands, archiveMode) {
     const cells=text.split('\t');
-    if (cells.length<10 || /\n/.test(text)) return null;
+    if (cells.length<(archiveMode?10:4)) return null;
     const valueIndex=cells.findIndex(function (cell,index) { return index>0 && /^\$[\d,]+(?:\.\d{1,2})?$/.test(cell.trim()); });
     if (valueIndex<1) return null;
     let objectIndex=valueIndex+1;
     while (objectIndex<cells.length && !cells[objectIndex].trim()) objectIndex++;
     const goneIndex=objectIndex+4;
-    if (objectIndex>=cells.length || cells.length<goneIndex+3) return null;
+    if (objectIndex>=cells.length || (archiveMode ? cells.length<goneIndex+3 : cells.slice(objectIndex+1).some(function (cell) { return cell.trim(); }))) return null;
     const isDate=function (value) { return /^(\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})$/.test(value.trim()); };
-    if (cells[goneIndex].trim() && !isDate(cells[goneIndex])) return null;
-    if (cells[goneIndex+1].trim() && !/^\s*(?:\d+\s*y\s*)?(?:\d+\s*m\s*)?(?:\d+\s*d\s*)?$/i.test(cells[goneIndex+1])) return null;
-    const product=parse(cells[objectIndex],knownBrands), fields=Object.assign({},product.fields), spans=[], warnings=[];
+    if (archiveMode && cells[goneIndex].trim() && !isDate(cells[goneIndex])) return null;
+    if (archiveMode && cells[goneIndex+1].trim() && !/^\s*(?:\d+\s*y\s*)?(?:\d+\s*m\s*)?(?:\d+\s*d\s*)?$/i.test(cells[goneIndex+1])) return null;
+    const objectText=cells[objectIndex], productText=objectText.replace(/^"|"$/g,'');
+    const firstLine=productText.split(/\r?\n/)[0], extraNotes=productText.slice(firstLine.length).trim();
+    const product=parse(firstLine,knownBrands), fields=Object.assign({},product.fields), spans=[], warnings=[];
     const offsets=[]; let offset=0; cells.forEach(function (cell) { offsets.push(offset); offset+=cell.length+1; });
     function mark(index,field) { const raw=cells[index]; if (raw.trim()) spans.push({start:offsets[index],end:offsets[index]+raw.length,field:field}); }
     function date(index,field,label) {
@@ -25,24 +27,28 @@
       catch (_) { fields[field]=''; warnings.push('Check '+label+': '+raw); }
     }
     const location=App.config.inventory.locations.find(function (entry) { return entry.room.toLowerCase()===cells[0].trim().toLowerCase(); });
-    if (!location) return null;
-    fields.room=location.room; fields.zone=location.zone; mark(0,'room');
+    const zone=App.config.inventory.locations.find(function (entry) { return entry.zone.toLowerCase()===cells[0].trim().toLowerCase(); })?.zone;
+    if (!location && !zone) return null;
+    if (location) fields.room=location.room; fields.zone=location?.zone || zone; mark(0,location?'room':'zone');
     fields.obtainedDate=''; const tags=[];
     for (let index=1;index<valueIndex;index++) {
       const raw=cells[index].trim(); if (!raw) continue;
       if (isDate(raw)) date(index,'obtainedDate','Date Obtained');
-      else { tags.push(...App.inventoryModel.tags(raw.replace(/;/g,','))); mark(index,'categories'); }
+      else { tags.push(...App.inventoryModel.tags(raw.replace(/\bHVAC\b/gi,'Climate').replace(/;/g,','))); mark(index,'categories'); }
     }
     fields.categories=App.inventoryModel.tags(tags.concat(fields.categories || [])).join(', ');
     const brands=knownBrands || App.config.inventory.brands;
     if (!fields.brand) fields.brand=tags.find(function (tag) { return brands.some(function (brand) { return brand.toLowerCase()===tag.toLowerCase(); }); }) || '';
     fields.value=cells[valueIndex].trim().replace(/[$,]/g,''); fields.price=fields.value; mark(valueIndex,'value');
-    product.spans.forEach(function (span) { spans.push({start:offsets[objectIndex]+span.start,end:offsets[objectIndex]+span.end,field:span.field}); });
+    product.spans.forEach(function (span) { spans.push({start:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.start,end:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.end,field:span.field}); });
+    if (extraNotes) fields.description=[fields.description,extraNotes].filter(Boolean).join('\n');
+    if (archiveMode) {
     date(goneIndex,'goneDate','Gone Date');
     const explanation=cells.slice(goneIndex+2).join('\t').trim();
     fields.goneNotes=explanation;
     fields.goneReason=departureReason(explanation);
     for (let index=goneIndex+2;index<cells.length;index++) mark(index,'goneNotes');
+    }
     if (warnings.length) fields.description=[fields.description,...warnings].filter(Boolean).join('\n');
     return {fields:fields,spans:spans.sort(function (a,b) { return a.start-b.start; }),warnings:warnings};
   }
@@ -62,7 +68,7 @@
   // Match only known brands or explicit labels. Unrecognized metadata remains in notes.
   function parse(text, knownBrands, options) {
     const archiveMode=Boolean(options?.archive);
-    if (archiveMode) { const household=householdRow(text,knownBrands); if (household) return household; }
+    if (text.includes("\t")) { const household=householdRow(text,knownBrands,archiveMode); if (household) return household; }
     const fields = {}, spans = []; let rest = text.split("");
     function take(start, length, field, value) {
       if (spans.some(function (span) { return start < span.end && start + length > span.start; })) return;
@@ -145,6 +151,8 @@
       if (key === "price" || key === "value") { if (!/^\$?[\d,]+(?:\.\d{1,2})?$/.test(value)) continue; value = value.replace(/[$,]/g, ""); }
       take(found.index, found[0].length, key, value);
     }
+    const conveyed=/\[CONVEYED\]/i.exec(rest.join(''));
+    if (conveyed) { take(conveyed.index,conveyed[0].length,null); fields.obtainedHow='Other'; }
     // Payment/account columns are notes, never the obtaining price.
     match = /\b[^\t\n;]*?:\s*\$?[\d,]+\.\d{2}(?=\s*(?:\t|;|\n|$))/.exec(rest.join(""));
     if (match) { const lead = match[0].length - match[0].trimStart().length; take(match.index + lead, match[0].length - lead, null); }

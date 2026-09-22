@@ -1586,3 +1586,11 @@ test('ownership and category totals follow Have and Had and departure fields sav
  assert.deepEqual(await page.evaluate(()=>LocalApp.storage.getState().inventory.items.find(x=>x.id==='had-house').archive),{date:'2026-02-02',reason:'Donated',notes:'Updated departure'});
  await page.locator('[data-inventory-view="previous"]').click();await page.locator('[data-edit-item="had-house"]').click();assert.equal(await page.locator('#itemDirectGoneNotes').inputValue(),'Updated departure');
 });
+
+test('period focuses item search without intercepting typing and household Smart Add fills fields',async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();await page.waitForTimeout(250);await page.locator('#inventoryTitle').focus();await page.keyboard.press('.');assert.equal(await page.locator('#inventorySearch').evaluate(e=>e===document.activeElement),true);await page.keyboard.type('hose.');assert.equal(await page.locator('#inventorySearch').inputValue(),'hose.');assert.equal(await page.locator('.inventory-search-wrap kbd').textContent(),'.');
+ await page.locator('#clearInventoryFilters').click();await page.locator('#addItemButton').click();await page.locator('#itemSmartEntry').fill('Outside\tSmart\t02/09/21\t$216\t\tApple - Logitech Circle View Wired Doorbell');
+ await page.locator('#itemSmartEntry').press('Tab');
+ assert.equal(await page.locator('#itemName').inputValue(),'Circle View Wired Doorbell');assert.equal(await page.locator('#itemBrand').inputValue(),'Logitech');assert.equal(await page.locator('#itemSource').inputValue(),'Apple');
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/private/tmp/smart70-mobile.png'});
+});

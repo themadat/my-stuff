@@ -97,7 +97,8 @@
       const draft = { name: parsed.name || '', brand: parsed.brand || '', source: parsed.source || '', owner: parsed.owner || 'me', obtainedHow: parsed.obtainedHow || 'Purchased', obtainedDate: parsed.obtainedDate || '', price: parsed.price ?? '', value: parsed.value ?? '', room: parsed.room || '', categories: m.tags(parsed.categories || ''), properties: properties, description: [parsed.description, ...notes].filter(Boolean).join('\n') };
       if (options?.archive) { draft._archiveMode=true; draft.archive={date:parsed.goneDate || '',reason:parsed.goneReason || '',notes:parsed.goneNotes || ''}; }
       if (parsed.categories) locked.add('categories');
-      if (parsed.room) locked.add('room');
+      if (parsed.room || parsed.zone) locked.add('room');
+      if (parsed.zone) locked.add('zone');
       ['zone','space'].forEach(function (key) { if (parsed[key] && !mapped[key]) properties.push({ name: key[0].toUpperCase() + key.slice(1), value: parsed[key], unit: '' }); });
       if (parsed.volume) properties.push({ name: 'Volume', value: parsed.volume, unit: parsed.volumeUnit || 'oz' });
       draft._smartEntry = source;

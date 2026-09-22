@@ -37,7 +37,7 @@
         <button class="inventory-tab" type="button" data-inventory-view="previous" aria-keyshortcuts="D" title="Previous (D)">${icon("inventoryArchive")}<span class="inventory-tab-label">Ha<u>d</u></span><span class="inventory-tab-meta"><small id="previousCount">0</small></span></button>
       </nav>
       <div class="inventory-toolbar-scroll"><header class="inventory-heading"><div class="visually-hidden"><h1 id="inventoryTitle" tabindex="-1">Stuff I Have</h1><p id="inventorySubtitle"></p></div><div class="inventory-filterbar">
-            ${field("inventorySearch", "Find an Item", 'type="search" placeholder="Find an Item…" maxlength="200"')}
+            <label class="field inventory-search-wrap" data-shortcut="."><span>Find an Item</span><input id="inventorySearch" type="search" placeholder="Find an Item…" maxlength="200" aria-keyshortcuts="."><kbd aria-hidden="true">.</kbd></label>
             <input type="hidden" id="inventoryOwnerFilter" value="">
             <input type="hidden" id="inventoryRoomFilter" value="">
             <input type="hidden" id="inventoryCategoryFilter" value="">
@@ -228,6 +228,7 @@
         if (selector) { const button=$(selector); if (button && !button.disabled && !button.hidden) { event.preventDefault(); button.click(); } return; }
       }
       if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.target.isContentEditable || event.target.closest('input,textarea,select')) || document.querySelector('dialog[open]')) return;
+      if (event.key==='.' && ['have','previous'].includes(view)) { event.preventDefault(); $('#inventorySearch').focus(); return; }
       const row=$('#inventoryList tr:hover'), action={e:'[data-edit-item]',a:'[data-row-archive]'}[event.key.toLowerCase()];
       if (row && action) { const button=row.querySelector(action); if (button) { event.preventDefault(); button.click(); return; } }
       const target = {h:'have',w:'want',r:'research',d:'previous'}[event.key.toLowerCase()];

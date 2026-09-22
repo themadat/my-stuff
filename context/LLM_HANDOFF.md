@@ -1,3 +1,11 @@
+## Latest Update — Household Smart Add and Item Search Shortcut (0.0.1.70)
+
+Extended household column recognition to Have: location, optional comma-separated tags/date, dollar value, optional blanks, seller/object. Rooms and zones are distinguished; an explicit Outside zone blocks inferred rooms. Leading value supplies price/value, optional dates stay unknown, LED/HVAC import tags become Strip/Climate, and new known brands separate from sellers. Multiline product/warranty text retains the first line as the name and remaining text as Notes. CONVEYED maps to existing Other acquisition type and retains its marker in Notes. Unknown narrative remains intact. The 15 supplied rows are regression fixtures; no inventory data was imported.
+
+Period focuses Find an Item in Have/Had when outside text fields/dialogs. Its visible keycap shares top search styling and aria-keyshortcuts documents the control. No interception while typing.
+
+Verification: 123 non-browser checks pass, including all supplied Have rows and the existing 21 Had examples. Targeted Chromium checks pass for shortcut focus/typing, seller/brand/name auto-fill, mobile editor rendering and offline reload/editing. Version/query/cache/manifests/workflow aligned at .70; diff checks pass. Existing unrelated staged/manual edits preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Greener Sync Confirmation (0.0.1.69)
 
 The combined local/GitHub status has a greener cloud icon, border, tinted background and text when its existing sync state is upToDate and local storage is available. Hover deepens the green tint. Other sync states and unavailable storage keep their existing presentation; no sync logic changed.
