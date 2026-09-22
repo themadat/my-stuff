@@ -23,7 +23,7 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
   assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 19);
   assert.equal(c.tagGroups.length, 9);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 72);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 78);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 
@@ -125,4 +125,10 @@ test('Smart is a top category after Lighting and existing device assignments sur
  assert.ok(group('Tech').tags.includes('Outlet'));assert.ok(!group('Smart').tags.includes('Outlet'));
  const item=app.inventoryModel.normalizeItem({id:'smart-move',name:'Existing device',owner:'me',categories:['Smart','Fan','Shades','Shade','Outlet']});
  assert.deepEqual(Array.from(item.categories),['Smart','Fan','Shade','Outlet']);
+});
+
+
+test('apparel spelling migrates and new household tags belong to requested groups',()=>{
+ assert.deepEqual(Array.from(app.inventoryModel.tags(['Headware','Headwear','Handware','Handwear'])),['Headwear','Handwear']);
+ for(const [tag,group] of [['Doorbell','Smart'],['Flashlight','Lighting'],['Headlamp','Lighting'],['Furniture','Other'],['Speaker','Tech'],['Battery','Other']]) assert.ok(app.config.inventory.tagGroups.find(g=>g.name===group).tags.includes(tag));
 });

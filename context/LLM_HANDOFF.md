@@ -1,3 +1,9 @@
+## Latest Update — Apparel Spelling and Household Tags (0.0.1.71)
+
+Renamed Headware to Headwear and Handware to Handwear with normalization aliases that preserve and deduplicate existing assignments. Corrected labels retain the existing symbols. Added Doorbell to Smart; Flashlight and Headlamp to Lighting; Furniture and Battery to Other; Speaker to Tech. All six use the exact supplied SVG artwork through the shared icon registry.
+
+Verification: 124 non-browser checks pass, including spelling migration and group membership. Six SVGs validate as XML. Chromium verifies desktop/mobile pickers, supplied viewBoxes, selection/filter icons and corrected labels. Versions, asset queries, manifests, cache and workflow align at .71; diffs pass. Unrelated staged/manual edits preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Household Smart Add and Item Search Shortcut (0.0.1.70)
 
 Extended household column recognition to Have: location, optional comma-separated tags/date, dollar value, optional blanks, seller/object. Rooms and zones are distinguished; an explicit Outside zone blocks inferred rooms. Leading value supplies price/value, optional dates stay unknown, LED/HVAC import tags become Strip/Climate, and new known brands separate from sellers. Multiline product/warranty text retains the first line as the name and remaining text as Notes. CONVEYED maps to existing Other acquisition type and retains its marker in Notes. Unknown narrative remains intact. The 15 supplied rows are regression fixtures; no inventory data was imported.
