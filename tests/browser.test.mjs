@@ -1594,3 +1594,43 @@ test('period focuses item search without intercepting typing and household Smart
  assert.equal(await page.locator('#itemName').inputValue(),'Circle View Wired Doorbell');assert.equal(await page.locator('#itemBrand').inputValue(),'Logitech');assert.equal(await page.locator('#itemSource').inputValue(),'Apple');
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/private/tmp/smart70-mobile.png'});
 });
+
+test('complete household sidebar shows empty spaces and dated review progress', { timeout: 30000 }, async t => {
+  const {page,context}=await fixture(t,{serviceWorkers:'allow'});
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  const path=parts=>JSON.stringify(parts);
+  const row=parts=>page.locator('.location-nav-row').filter({has:page.locator('[data-location-filter='+JSON.stringify(path(parts))+']')});
+  const roots=await page.locator('#roomStats nav > .location-branch > .location-nav-row .location-jump').allTextContents();
+  assert.deepEqual(roots,['Outside','Main Level','Upstairs']);
+  assert.equal(await row(['Upstairs','Guest Room','Closet']).locator('.location-object-count').innerText(),'0');
+  assert.equal(await row(['Main Level','Kitchen','Fridge']).count(),1);
+  assert.equal(await row(['Outside','Nest','Box']).count(),1);
+  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'0% spaces');
+  await page.evaluate(()=>LocalApp.storage.mutate(state=>{
+    state.inventory.locationReviews={
+      '["Main Level","Kitchen"]':{date:'2026-09-25',updatedAt:'2026-09-25T12:00:00Z'},
+      '["Main Level","Kitchen","Fridge"]':{date:'2026-09-25',updatedAt:'2026-09-25T12:00:00Z'}
+    };
+  }));
+  assert.equal(await row(['Main Level','Kitchen']).getAttribute('data-reviewed'),'true');
+  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'50% spaces');
+  await row(['Upstairs','Guest Room','Closet']).locator('.location-jump').click();
+  assert.match(await page.locator('#inventoryResultCount').innerText(),/Guest Room.*Closet/);
+  await page.locator('#clearInventoryFilters').click();
+  await row(['Main Level','Kitchen','Pantry']).locator('[data-location-date]').click();
+  await page.locator('#locationDateValue').fill('09/26/2026');
+  await page.locator('#locationDateForm button[type="submit"]').click();
+  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'100% spaces');
+  await page.reload();
+  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'100% spaces');
+  await row(['Main Level','Kitchen']).scrollIntoViewIfNeeded();
+  await page.screenshot({path:'/tmp/house72-desktop.png'});
+  const icons=await page.evaluate(()=>Object.fromEntries(['Coax/Ethernet','Gym','Plug','Outlet','Thermostat','Mediabox','TV','Detector','Button','Puck','Health'].map(tag=>{const root=document.createElement('div');root.innerHTML=LocalApp.icons.category(tag);return [tag,root.querySelector('svg').getAttribute('viewBox')];})));
+  assert.equal(icons.Gym,'0 0 26.1444 28.418');assert.equal(icons.TV,'0 0 32.6416 26.5137');assert.equal(icons.Mediabox,'0 0 40.3418 34.1113');
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'/tmp/house72-mobile.png'});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.evaluate(()=>navigator.serviceWorker.ready); await page.reload(); await context.setOffline(true); await page.reload();
+  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'100% spaces');
+  assert.equal(await row(['Outside','Nest','Box']).count(),1);
+});

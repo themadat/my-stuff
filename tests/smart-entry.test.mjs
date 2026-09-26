@@ -21,9 +21,9 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   const c = app.config.inventory;
   assert.equal(c.locations.length, 23);
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
-  assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 19);
+  assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 21);
   assert.equal(c.tagGroups.length, 9);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 78);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 84);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 
@@ -120,9 +120,9 @@ test('Smart is a top category after Lighting and existing device assignments sur
  for (const tag of ['Curtain','Fan','Hub','Humidifier','Lights','Lock','Sensor','Shade','Switch','Air Purifier']) {
   assert.ok(group('Smart').tags.includes(tag));assert.ok(!group('Tech').tags.includes(tag));
  }
- for (const tag of ['Soccer','Climbing','Gym']) assert.ok(group('Activity').tags.includes(tag));
+ for (const tag of ['Soccer','Climbing']) assert.ok(group('Activity').tags.includes(tag));
  assert.ok(group('Power').tags.includes('Powerstrip'));
- assert.ok(group('Tech').tags.includes('Outlet'));assert.ok(!group('Smart').tags.includes('Outlet'));
+ assert.ok(group('Smart').tags.includes('Outlet'));assert.ok(!group('Tech').tags.includes('Outlet')); assert.ok(group('Other').tags.includes('Gym'));
  const item=app.inventoryModel.normalizeItem({id:'smart-move',name:'Existing device',owner:'me',categories:['Smart','Fan','Shades','Shade','Outlet']});
  assert.deepEqual(Array.from(item.categories),['Smart','Fan','Shade','Outlet']);
 });
@@ -131,4 +131,19 @@ test('Smart is a top category after Lighting and existing device assignments sur
 test('apparel spelling migrates and new household tags belong to requested groups',()=>{
  assert.deepEqual(Array.from(app.inventoryModel.tags(['Headware','Headwear','Handware','Handwear'])),['Headwear','Handwear']);
  for(const [tag,group] of [['Doorbell','Smart'],['Flashlight','Lighting'],['Headlamp','Lighting'],['Furniture','Other'],['Speaker','Tech'],['Battery','Other']]) assert.ok(app.config.inventory.tagGroups.find(g=>g.name===group).tags.includes(tag));
+});
+
+test('household renames migrate tags, rooms and review dates and expose new spaces', () => {
+  const item=app.inventoryModel.normalizeItem({id:'renamed',name:'Wall piece',owner:'me',room:'Dining Room',categories:['Art','Decoration','Decor','Fixture','Memorabilia']});
+  assert.equal(item.room,'Game Room');
+  assert.deepEqual(Array.from(item.categories),['Decoration','Fixture']);
+  const old=JSON.stringify(['Main Level','Dining Room']), next=JSON.stringify(['Main Level','Game Room']);
+  const inventory=app.inventoryModel.normalize({currency:'USD',items:[item],locationReviews:{[old]:{date:'2026-09-20',updatedAt:'2026-09-20T00:00:00Z'},[next]:{date:'2026-09-21',updatedAt:'2026-09-21T00:00:00Z'}}});
+  assert.equal(inventory.locationReviews[next].date,'2026-09-21');
+  assert.equal(inventory.locationReviews[old],undefined);
+  assert.ok(app.config.inventory.locations.find(l=>l.room==='Kitchen').spaces.includes('Fridge'));
+  assert.ok(app.config.inventory.locations.find(l=>l.room==='Nest').spaces.includes('Box'));
+  for (const [group, names] of Object.entries({Smart:['Outlet','Thermostat','Mediabox','Detector','Button'],Power:['Plug'],Lighting:['Fixture','Puck'],Other:['Decoration','Gym','Health']})) {
+    for (const name of names) assert.ok(app.config.inventory.tagGroups.find(g=>g.name===group).tags.includes(name));
+  }
 });

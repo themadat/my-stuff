@@ -66,14 +66,14 @@
     const propertyNames = properties.map(function (property) { return property.name.toLowerCase(); });
     if (new Set(propertyNames).size !== propertyNames.length) throw new Error("Property names must be unique within an item.");
     const hierarchy = App.config.inventory.locations;
-    const rawRoom = u.cleanLine(input.room, Infinity);
+    const originalRoom = u.cleanLine(input.room, Infinity), rawRoom = App.config.inventory.roomAliases?.[originalRoom.toLowerCase()] || originalRoom;
     const property = function (name) { return properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
     let room = hierarchy.find(function (l) { return l.room.toLowerCase() === rawRoom.toLowerCase(); });
     let space = property('space');
     if (room?.room==='Nook' && space.toLowerCase()==='sling bag') space='Sling';
     // Resolve known alternate location fields only when the parent is unambiguous.
     const alternate = property('location') || property('area');
-    if (!room && alternate) room = hierarchy.find(function (l) { return l.room.toLowerCase() === alternate.toLowerCase(); });
+    if (!room && alternate) room = hierarchy.find(function (l) { return l.room.toLowerCase() === (App.config.inventory.roomAliases?.[alternate.toLowerCase()] || alternate).toLowerCase(); });
     if (!space && alternate && !room) space = alternate;
     if (!room && space) {
       const parents = hierarchy.filter(function (l) { return l.spaces.some(function (v) { return v.toLowerCase() === space.toLowerCase(); }); });
@@ -152,6 +152,7 @@
         const path=JSON.parse(key), record=value[key];
         if (!Array.isArray(path) || !path.length || path.length>3 || path.some(function (part) { return typeof part!=='string' || !part.trim() || part.length>80; }) || !record || typeof record!=='object') return;
         const stamp=typeof record.updatedAt==='string' && Number.isFinite(Date.parse(record.updatedAt)) ? new Date(record.updatedAt).toISOString() : '1970-01-01T00:00:00.000Z';
+        if (path[1]) path[1]=App.config.inventory.roomAliases?.[path[1].toLowerCase()] || path[1];
         if (path[0]==='Main Level' && path[1]==='Nook' && path[2]==='Sling Bag') path[2]='Sling';
         const target=JSON.stringify(path), next={date:dateOnly(record.date),updatedAt:stamp};
         if (!result[target] || next.updatedAt>result[target].updatedAt || (next.updatedAt===result[target].updatedAt && next.date>result[target].date)) result[target]=next;

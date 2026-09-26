@@ -1226,3 +1226,14 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .inventory-search-wrap { position: relative; }
 .inventory-search-wrap > kbd { top: 50%; transform: translateY(-50%); pointer-events: none; }
 #inventorySearch { padding-right: 2.6rem; }
+
+/* Compact review rows retain every configured room and space. */
+.location-nav-row { grid-template-columns: 16px minmax(4ch,1fr) auto var(--location-count-width,4ch) var(--location-value-width,9ch); column-gap: .2rem; padding-left: calc(var(--location-depth)*.4rem); min-height: 26px; }
+.location-nav-row .location-toggle, .location-nav-row .location-toggle-space { width: 16px; min-height: 26px; }
+.location-nav-row .location-jump { padding-block: .1rem; font-size: .75rem; }
+.location-nav-row .location-review-date { font-size: .58rem; padding-block: .1rem; line-height: 1.15; }
+.location-review-progress { display: block; color: var(--text); font-size: .58rem; }
+.location-nav-row .location-object-count, .location-nav-row .location-object-value { min-width: 0; font-size: .65rem; }
+.location-nav-row[data-reviewed="true"] { background: color-mix(in srgb,var(--success) 15%,var(--surface)); border-radius: 4px; }
+.location-nav-row[data-reviewed="true"] .location-jump { color: var(--success); font-weight: 700; }
+@media(max-width:700px) { .location-nav-row { min-height: 32px; } .location-nav-row .location-toggle, .location-nav-row .location-review-date { min-height: 32px; } }

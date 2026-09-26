@@ -219,6 +219,7 @@
       if (toggle) { const key=toggle.dataset.locationToggle; if (collapsedLocations.has(key)) collapsedLocations.delete(key); else collapsedLocations.add(key); renderList(); $$('#roomStats [data-location-toggle]').find(function (button) { return button.dataset.locationToggle===key; })?.focus({preventScroll:true}); return; }
       const link = event.target.closest('[data-location-jump]'); if (!link) return;
       let target = document.getElementById(link.dataset.locationJump);
+      if (!target) { $('#inventoryRoomFilter').value='path:'+link.dataset.locationFilter; renderList(); return; }
       if (target) { const path=JSON.parse(target.closest('[data-table-location-path]').dataset.tableLocationPath); path.forEach(function (_,index) { collapsedTableLocations.delete(JSON.stringify(path.slice(0,index+1))); }); renderList(); target=document.getElementById(link.dataset.locationJump); }
       if (target) { target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'}); target.focus({preventScroll:true}); }
     });
@@ -689,6 +690,10 @@
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
   function renderLocationNavigation(sections) {
     const nodes = new Map();
+    function addPath(path) {
+      path.forEach(function (name,index) { const prefix=path.slice(0,index+1), key=JSON.stringify(prefix); if (name && !nodes.has(key)) nodes.set(key,{path:prefix,name:name,count:0,valueCents:0,unknown:0}); });
+    }
+    App.config.inventory.locations.forEach(function (location) { addPath([location.zone,location.room]); location.spaces.forEach(function (space) { addPath([location.zone,location.room,space]); }); });
     sections.forEach(function (section) {
       section.path.forEach(function (name,index) {
         if (!name) return;
@@ -698,12 +703,15 @@
         section.items.forEach(function (item) { if (item.value===null) node.unknown++; else node.valueCents+=Math.round(item.value*100); });
       });
     });
-    const values=Array.from(nodes.values());
-    $('#roomStats').style.setProperty('--location-count-width',Math.max(4,...values.map(function (node) { return String(node.count).length; }))+'ch');
-    $('#roomStats').style.setProperty('--location-value-width',Math.max(9,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
+    const zoneOrder=App.config.inventory.zoneOrder;
+    const values=Array.from(nodes.values()).sort(function (a,b) { const rank=function (zone) { const index=zoneOrder.indexOf(zone); return index<0?zoneOrder.length:index; }; return rank(a.path[0])-rank(b.path[0]) || a.path.join('/').localeCompare(b.path.join('/')); });
+    $('#roomStats').style.setProperty('--location-count-width',Math.max(2,...values.map(function (node) { return String(node.count).length; }))+'ch');
+    $('#roomStats').style.setProperty('--location-value-width',Math.max(4,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
-      return '<div class="location-branch"><div class="location-nav-row" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="'+esc(node.name)+' — Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(inventory().locationReviews?.[key]?.date || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+      const review=inventory().locationReviews?.[key]?.date || '', spaces=node.path.length===2 ? children : [], completed=spaces.filter(function (space) { return Boolean(inventory().locationReviews?.[JSON.stringify(space.path)]?.date); }).length;
+      const progress=spaces.length ? Math.round(completed/spaces.length*100) : null;
+      return '<div class="location-branch"><div class="location-nav-row" data-reviewed="'+Boolean(review)+'" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="'+esc(node.name)+' — Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(review || 'UNKNOWN')+(progress===null?'':'; '+completed+' of '+spaces.length+' spaces reviewed, '+progress+'%')+'" title="Set Last Updated Date">'+esc(review || 'UNKNOWN')+(progress===null?'':'<span class="location-review-progress">'+progress+'% spaces</span>')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
     return nodes;

@@ -1,3 +1,13 @@
+## Latest Update — Household Locations and Review Progress (0.0.1.72)
+
+Art → Decoration and Decor → Fixture normalize/deduplicate existing assignments; Memorabilia is removed during normalization. Fixture is removed from the old removed-tags list so it can be saved again. Dining Room normalizes to Game Room in saved items, alternate location properties and review keys, retaining the newest review on collisions; Smart Add recognizes the alias. Kitchen gains Fridge and Nest gains Box.
+
+Gym moves from Activity to Other; Outlet moves from Tech to Smart. Other gains Health; Power gains Plug; Smart gains Thermostat, Mediabox, Detector and Button; Lighting gains Puck. Coax/Ethernet, Gym, Plug, Outlet, Thermostat, Mediabox, TV, Detector, Button, Puck and Health use all 11 supplied SVGs, with pasted markdown namespace URLs repaired and original geometry retained. Decoration and Fixture keep their corresponding existing artwork.
+
+Around the House seeds every configured zone/room/space even when empty or filtered out. Zones order Outside, Main Level, Upstairs. Empty-location clicks filter that path; populated paths retain jump behavior. Compact desktop rows are 26px, mobile 32px; number tracks size to actual totals so room names have more room. Dated locations receive a green tint and stronger name color. Rooms with spaces display the percentage of direct configured spaces that have review dates; rooms without spaces omit the percentage. Room review dates and space completion are independent. Counts/value totals still reflect active filters.
+
+Verification: 125 non-browser checks pass, including migration, review-key collisions, group membership and new spaces. All 11 SVGs parse as XML. Four targeted Chromium tests pass for empty locations, zone order, 0/50/100% review progress, editing dates, reload/offline persistence, supplied viewBoxes, mobile overflow, existing location filters, table collapsing and totals. Desktop/mobile screenshots reviewed. Version/query/cache/manifests/workflow aligned at .72; diffs pass. Existing unrelated staged/manual edits preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Apparel Spelling and Household Tags (0.0.1.71)
 
 Renamed Headware to Headwear and Handware to Handwear with normalization aliases that preserve and deduplicate existing assignments. Corrected labels retain the existing symbols. Added Doorbell to Smart; Flashlight and Headlamp to Lighting; Furniture and Battery to Other; Speaker to Tech. All six use the exact supplied SVG artwork through the shared icon registry.
