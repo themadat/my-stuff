@@ -48,3 +48,12 @@ test('bulk copies retain different colors and descriptions in one save',()=>{
  assert.deepEqual(h.state.inventory.items.map(item=>item.description),['Travel','Desk']);
  assert.equal(h.writes,1);assert.equal(h.homes,1);
 });
+
+test('bulk copies preserve individual dates and pieces and store allocated amounts as per-item values',()=>{
+ const h=setup(2);
+ h.app.bulkEntry.accept(h.item(),2,[{piece:'Base',room:'Kitchen',obtainedDate:'2020-12-17',price:5.01,value:5.01},{piece:'Sensor',room:'Yard',obtainedDate:'',price:5,value:5}]);
+ assert.equal(h.state.inventory.items[0].price,5.01);assert.equal(h.state.inventory.items[1].price,5);
+ assert.equal(h.state.inventory.items[0].obtainedDate,'2020-12-17');assert.equal(h.state.inventory.items[1].obtainedDate,'');
+ assert.equal(h.state.inventory.items[1].properties.find(p=>p.name==='Set Piece').value,'Sensor');
+ assert.ok(h.app.bulkEntry.testRows().every(row=>row.draft._priceMode==='each'));
+});

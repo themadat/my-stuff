@@ -75,7 +75,7 @@ test('household Had export parses all supplied rows without mixing ignored colum
  const source=readFileSync(new URL('./fixtures/household-had.tsv',import.meta.url),'utf8');
  const cells=bulk.parseDelimited(source), rows=bulk.prepare(cells,false,[],[],{archive:true});
  assert.equal(rows.length,21);
- const expectedReasons=['Broken','Broken','Lost','Trashed','Other','Other','Other','Other','Other','Broken','Lost','Broken','Broken','Trashed','Trashed','Trashed','Other','Other','Other','Other','Broken'];
+ const expectedReasons=['Broken','Broken','Lost','Trashed','Other','Other','Other','Other','Other','Broken','Lost','Broken','Broken','Trashed','Trashed','Trashed','Replaced','Replaced','Replaced','Replaced','Broken'];
  rows.forEach((row,index)=>{
   const d=row.draft, raw=cells[index];
   assert.equal(d.room,'Kitchen');assert.equal(d.value,raw[3].slice(1));assert.equal(d.price,d.value);
@@ -117,13 +117,13 @@ test('household layout supports extra category cells and surfaces invalid dates 
 test('household Have examples preserve column values, zones, seller/brand and warranty notes',()=>{
  const cells=bulk.parseDelimited(readFileSync(new URL('./fixtures/household-have.tsv',import.meta.url),'utf8'));
  const rows=bulk.prepare(cells,false,[],[]);assert.equal(rows.length,15);
- rows.forEach((row,i)=>{const d=row.draft;assert.equal(d.value,cells[i][3].slice(1));assert.equal(d.price,d.value);assert.ok(d.properties.some(p=>p.name==='Zone'&&p.value==='Outside'));assert.equal(d.room,'');assert.ok(!d.archive);assert.ok(!d.name.startsWith('Outside'));});
+ rows.forEach((row,i)=>{const d=row.draft;assert.equal(d.value,cells[i][3].slice(1));assert.equal(d.price,[9,10].includes(i)?'0':d.value);assert.ok(d.properties.some(p=>p.name==='Zone'&&p.value==='Outside'));assert.equal(d.room,'');assert.ok(!d.archive);assert.ok(!d.name.startsWith('Outside'));});
  const d=rows.map(r=>r.draft);
  assert.deepEqual(plain(d[0].categories),['Lights','Strip','Smart']);assert.equal(d[0].brand,'Govee');assert.equal(d[0].source,'Govee');assert.equal(d[0].obtainedDate,'2026-07-01');
  assert.ok(d[2].categories.includes('Climate'));assert.equal(d[2].brand,'American Standard');assert.equal(d[2].source,'SetPoint');assert.match(d[2].name,/Serial# 232824KMHF/);assert.doesNotMatch(d[2].name,/Compressor/);assert.match(d[2].description,/07\/27\/2035.*07\/27\/2033/);
  assert.equal(d[4].source,'Apple');assert.equal(d[4].brand,'Logitech');assert.match(d[6].name,/Cash to Jake/);
  assert.equal(d[8].obtainedDate,'');assert.equal(d[8].name,'Doormat, Wipe Your Paws');
- for(const i of [9,10]) {assert.equal(d[i].obtainedHow,'Other');assert.match(d[i].description,/CONVEYED/);assert.doesNotMatch(d[i].name,/CONVEYED/);}
+ for(const i of [9,10]) {assert.equal(d[i].obtainedHow,'Conveyed');assert.equal(d[i].obtainedDate,'2020-12-17');assert.match(d[i].description,/CONVEYED/);assert.doesNotMatch(d[i].name,/CONVEYED/);}
  assert.equal(d[12].source,'Amazon');assert.equal(d[12].brand,'Walensee');assert.match(d[12].description,/Home Improvement/);assert.match(d[12].name,/Back/);assert.match(d[13].name,/Front/);assert.equal(d[14].brand,'Ryobi');
  const invalid=app.smartEntry.parse('Outside\tSmart\t02/30/26\t$20\t\tGovee - Lamp');assert.match(invalid.warnings[0],/Date Obtained/);
 });

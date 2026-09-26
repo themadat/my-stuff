@@ -608,8 +608,8 @@ test('multiple copies save independently across rooms and Color is reusable with
   assert.deepEqual(items.map(i => i.room), ['Den', 'Office', 'Guest Room']);
   assert.equal(items[1].properties.find(p => p.name === 'Zone').value, 'Upstairs');
   assert.ok(items.every(i => i.properties.find(p => p.name === 'Color').value === 'Teal'));
-  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120/);
-  await page.locator('[data-edit-item]').first().click();
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*40/);
+  await page.locator('[data-edit-item]').first().click(); await page.waitForFunction(()=>document.activeElement.id==='itemName');
   assert.equal(await page.locator('#itemCopies').inputValue(), '3');
   await page.locator('#itemCopies').fill('4');
   await page.locator('[data-copy-room]').nth(3).fill('Kitchen');
@@ -621,11 +621,11 @@ test('multiple copies save independently across rooms and Color is reusable with
   await page.locator('#saveItemButton').click(); await page.reload();
   items = await page.evaluate(() => window.LocalApp.storage.getState().inventory.items);
   assert.equal(items.length, 4); assert.equal(new Set(items.map(i=>i.copyGroup)).size,1);
-  assert.equal(items[1].room,'Nook'); assert.equal(items[1].properties.find(p=>p.name==='Space').value,'Sling Bag');
+  assert.equal(items[1].room,'Nook'); assert.equal(items[1].properties.find(p=>p.name==='Space').value,'Sling');
   assert.equal(items[3].room,'Kitchen');
-  await page.locator('[data-edit-item]').first().click(); await page.locator('#archiveItemButton').click();
+  await page.locator('[data-edit-item]').first().click(); await page.waitForFunction(()=>document.activeElement.id==='itemName'); await page.locator('#archiveItemButton').click();
   await page.locator('#itemGoneReason').selectOption('Sold'); await page.locator('#archiveForm button[type="submit"]').click();
-  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*120/);
+  assert.match(await page.locator('[data-inventory-total="all"]').textContent(), /3objects.*40/);
   const payload = await page.evaluate(() => window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()));
   assert.equal(payload.data.inventory.items.length, 4);
   assert.equal(payload.data.inventory.items.filter(i => i.archive).length, 1);
@@ -1605,7 +1605,8 @@ test('complete household sidebar shows empty spaces and dated review progress', 
   assert.equal(await row(['Upstairs','Guest Room','Closet']).locator('.location-object-count').innerText(),'0');
   assert.equal(await row(['Main Level','Kitchen','Fridge']).count(),1);
   assert.equal(await row(['Outside','Nest','Box']).count(),1);
-  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'0% spaces');
+  assert.equal(await page.locator('#locationReviewTotal').innerText(),'0.00%');
+  const totalLocations=await page.locator('[data-location-date]').count();
   await page.evaluate(()=>LocalApp.storage.mutate(state=>{
     state.inventory.locationReviews={
       '["Main Level","Kitchen"]':{date:'2026-09-25',updatedAt:'2026-09-25T12:00:00Z'},
@@ -1613,16 +1614,16 @@ test('complete household sidebar shows empty spaces and dated review progress', 
     };
   }));
   assert.equal(await row(['Main Level','Kitchen']).getAttribute('data-reviewed'),'true');
-  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'50% spaces');
+  assert.equal(await page.locator('#locationReviewTotal').innerText(),(2/totalLocations*100).toFixed(2)+'%');
   await row(['Upstairs','Guest Room','Closet']).locator('.location-jump').click();
   assert.match(await page.locator('#inventoryResultCount').innerText(),/Guest Room.*Closet/);
   await page.locator('#clearInventoryFilters').click();
   await row(['Main Level','Kitchen','Pantry']).locator('[data-location-date]').click();
-  await page.locator('#locationDateValue').fill('09/26/2026');
+  await page.locator('#locationDateValue').fill('2026-09-26');
   await page.locator('#locationDateForm button[type="submit"]').click();
-  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'100% spaces');
+  assert.equal(await page.locator('#locationReviewTotal').innerText(),(3/totalLocations*100).toFixed(2)+'%');
   await page.reload();
-  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'100% spaces');
+  assert.equal(await page.locator('#locationReviewTotal').innerText(),(3/totalLocations*100).toFixed(2)+'%');
   await row(['Main Level','Kitchen']).scrollIntoViewIfNeeded();
   await page.screenshot({path:'/tmp/house72-desktop.png'});
   const icons=await page.evaluate(()=>Object.fromEntries(['Coax/Ethernet','Gym','Plug','Outlet','Thermostat','Mediabox','TV','Detector','Button','Puck','Health'].map(tag=>{const root=document.createElement('div');root.innerHTML=LocalApp.icons.category(tag);return [tag,root.querySelector('svg').getAttribute('viewBox')];})));
@@ -1631,6 +1632,31 @@ test('complete household sidebar shows empty spaces and dated review progress', 
   await page.screenshot({path:'/tmp/house72-mobile.png'});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.evaluate(()=>navigator.serviceWorker.ready); await page.reload(); await context.setOffline(true); await page.reload();
-  assert.equal(await row(['Main Level','Kitchen']).locator('.location-review-progress').innerText(),'100% spaces');
+  assert.equal(await page.locator('#locationReviewTotal').innerText(),(3/totalLocations*100).toFixed(2)+'%');
   assert.equal(await row(['Outside','Nest','Box']).count(),1);
+});
+
+test('new copies split totals, named pieces keep separate dates and rooms, and departure can be unknown', {timeout:30000},async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Weather station');await page.locator('#itemCopies').fill('3');await page.locator('#itemIsSet').check();await page.locator('#itemPrice').fill('100');await page.locator('#itemValue').fill('90');
+ assert.equal(await page.locator('#itemPriceMode').inputValue(),'total');assert.match(await page.locator('#itemPriceBreakdown').innerText(),/100\.00 total/);
+ await page.locator('#itemObtainedDate').click();await page.keyboard.type('20201217');assert.equal(await page.locator('#itemObtainedDate').inputValue(),'2020-12-17');
+ const rows=page.locator('[data-copy-location]');for(const [i,name,room] of [[0,'Display','Kitchen'],[1,'Outdoor sensor','Yard'],[2,'Indoor sensor','Office']]){await rows.nth(i).locator('[data-copy-piece]').fill(name);await rows.nth(i).locator('[data-copy-room]').fill(room);}
+ await rows.nth(1).locator('[data-copy-shared-date]').uncheck();await rows.nth(1).locator('[data-copy-date]').pressSequentially('010221');assert.equal(await rows.nth(1).locator('[data-copy-date]').inputValue(),'01/02/21');
+ await rows.nth(2).locator('[data-copy-shared-date]').uncheck();
+ await page.screenshot({path:'/private/tmp/pieces73-desktop.png'});await page.setViewportSize({width:390,height:844});await rows.nth(1).scrollIntoViewIfNeeded();assert.equal(await page.locator('.copy-room-grid').evaluate(el=>el.scrollWidth<=el.clientWidth),true);assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);await page.screenshot({path:'/private/tmp/pieces73-mobile.png'});await page.setViewportSize({width:1440,height:1000});
+ await page.locator('#saveItemButton').click();assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ const items=await page.evaluate(()=>LocalApp.storage.getState().inventory.items);assert.equal(items.length,3);assert.equal(items.reduce((s,i)=>s+Math.round(i.price*100),0),10000);assert.equal(items.reduce((s,i)=>s+Math.round(i.value*100),0),9000);assert.equal(items[1].obtainedDate,'2021-01-02');assert.equal(items[2].obtainedDate,'');assert.equal(new Set(items.map(i=>i.copyGroup)).size,1);
+ await page.locator('[data-edit-item]').first().click();assert.equal(await page.locator('[data-copy-location]').count(),3);await page.locator('#saveItemButton').click();await page.reload();
+ const after=await page.evaluate(()=>LocalApp.storage.getState().inventory.items);assert.equal(after.reduce((s,i)=>s+Math.round(i.price*100),0),10000);assert.equal(after.find(i=>i.room==='Yard').obtainedDate,'2021-01-02');assert.equal(after.find(i=>i.room==='Office').obtainedDate,'');
+ await page.locator('[data-row-archive]').first().click();await page.locator('#itemGoneReason').selectOption('Replaced');await page.locator('#itemGoneDateUnknown').check();await page.locator('#archiveForm button[type="submit"]').click();
+ await page.locator('[data-inventory-view="previous"]').click();assert.match(await page.locator('#inventoryList').innerText(),/Duration unknown/);await page.locator('[data-edit-item]').click();assert.equal(await page.locator('#itemDirectGoneDateUnknown').isChecked(),true);await page.locator('#itemDirectGoneDate').fill('02/30/26');await page.locator('#saveItemButton').click();assert.match(await page.locator('#itemFormError').innerText(),/valid calendar date/);await page.locator('#itemDirectGoneDate').fill('');await page.locator('#itemDirectGoneDate').click();await page.keyboard.type('092526');assert.equal(await page.locator('#itemDirectGoneDate').inputValue(),'09/25/26');await page.locator('#saveItemButton').click();
+ assert.equal(await page.evaluate(()=>LocalApp.storage.getState().inventory.items.find(i=>i.archive).archive.date),'2026-09-25');
+});
+
+test('Conveyed defaults and Glassware capacity are visible, editable and mobile friendly',async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');await page.locator('#itemName').fill('Glass');await page.locator('input[name="itemObtainedHowChoice"][value="Conveyed"]').check();assert.equal(await page.locator('#itemPrice').inputValue(),'0');assert.equal(await page.locator('#itemObtainedDate').inputValue(),'2020-12-17');
+ await page.locator('#itemTagSearch').fill('Glassware');await page.locator('#itemTagSearch').press('Enter');const capacity=page.locator('.item-property').filter({has:page.locator('[data-property-name][value="Capacity"]')});assert.equal(await capacity.locator('[data-property-unit]').inputValue(),'oz');
+ await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);await page.screenshot({path:'/private/tmp/details73-mobile.png'});await page.locator('#saveItemButton').click();
 });

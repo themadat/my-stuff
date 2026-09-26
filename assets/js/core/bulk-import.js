@@ -116,6 +116,7 @@
           else if (key === 'obtainedHow') { const method = m.methods.find(function (entry) { return entry.toLowerCase() === value.toLowerCase(); }); if (!method) throw new Error(); draft.obtainedHow = method; }
         } catch (_) { warnings.push('Check ' + labels[key] + ': ' + value); draft.description += '\n' + labels[key] + ': ' + value; }
       });
+      if (draft.obtainedHow==='Conveyed') { draft.price='0'; draft.obtainedDate='2020-12-17'; }
       if (draft.brand) properties.push({ name: 'Brand', value: draft.brand, unit: '' });
       const location = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === draft.room.toLowerCase(); });
       if (location && !properties.some(function (p) { return p.name === 'Zone'; })) properties.push({ name: 'Zone', value: location.zone, unit: '' });

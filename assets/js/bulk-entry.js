@@ -76,7 +76,7 @@
       draft._copies = members.length;
       draft._copyLocations = members.map(function (entry) {
         const prop = function (name) { return entry.draft.properties.find(function (p) { return p.name.toLowerCase() === name; })?.value || ''; };
-        return {zone:prop('zone'),room:entry.draft.room,space:prop('space'),color:prop('color') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : prop('color'),size:prop('size') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : prop('size'),notes:entry.draft.description === current.draft.description ? null : entry.draft.description};
+        return {obtainedDate:entry.draft.obtainedDate===current.draft.obtainedDate?null:entry.draft.obtainedDate,piece:prop('set piece'),zone:prop('zone'),room:entry.draft.room,space:prop('space'),color:prop('color') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : prop('color'),size:prop('size') === (current.draft.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : prop('size'),notes:entry.draft.description === current.draft.description ? null : entry.draft.description};
       });
     }
     App.inventoryUI.openDraft(draft, $('#bulkEntryButton'));
@@ -111,7 +111,7 @@
     // Persist all identities before writing inventory so retries/reloads cannot duplicate copies.
     const nextQueue = u.clone(queue), index = nextQueue.rows.findIndex(function (entry) { return entry.id === current.id; });
     nextQueue.rows = nextQueue.rows.filter(function (entry) { return !memberIds.has(entry.id); });
-    const rows = copies.map(function (copy,i) { return Object.assign({},u.clone(current),{id:copy.id,copy:(i+1)+' of '+count,draft:Object.assign({},current.draft,copy,{_copies:count,_copyLocations:locations || []})}); });
+    const rows = copies.map(function (copy,i) { return Object.assign({},u.clone(current),{id:copy.id,copy:(i+1)+' of '+count,draft:Object.assign({},current.draft,copy,{_copies:count,_copyLocations:locations || [],_priceMode:'each'})}); });
     nextQueue.rows.splice(index,0,...rows); persist(nextQueue);
     if (additions.length) App.storage.mutate(function (state) { state.inventory.items.push(...additions); }, {reason:'inventory-save'});
     if (!App.storage.saveNow()) throw new Error('These copies are only in memory because browser storage failed. Keep this page open and try saving again.');

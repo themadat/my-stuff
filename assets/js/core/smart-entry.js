@@ -39,7 +39,7 @@
     fields.categories=App.inventoryModel.tags(tags.concat(fields.categories || [])).join(', ');
     const brands=knownBrands || App.config.inventory.brands;
     if (!fields.brand) fields.brand=tags.find(function (tag) { return brands.some(function (brand) { return brand.toLowerCase()===tag.toLowerCase(); }); }) || '';
-    fields.value=cells[valueIndex].trim().replace(/[$,]/g,''); fields.price=fields.value; mark(valueIndex,'value');
+    fields.value=cells[valueIndex].trim().replace(/[$,]/g,''); fields.price=fields.obtainedHow==='Conveyed'?'0':fields.value; if (fields.obtainedHow==='Conveyed') fields.obtainedDate='2020-12-17'; mark(valueIndex,'value');
     product.spans.forEach(function (span) { spans.push({start:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.start,end:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.end,field:span.field}); });
     if (extraNotes) fields.description=[fields.description,extraNotes].filter(Boolean).join('\n');
     if (archiveMode) {
@@ -60,6 +60,7 @@
     if (/\bbroke(?:n)?\b|\bchipped\b|\bleaks?\b/i.test(text)) return 'Broken';
     if (/\bmissing\b|\blost\b|\bleft at\b/i.test(text)) return 'Lost';
     if (/\btrashed?\b|\bthrew (?:out|away)\b/i.test(text)) return 'Trashed';
+    if (/\breplaced\b/i.test(text)) return 'Replaced';
     if (/\bdonated\b/i.test(text)) return 'Donated';
     if (/\bsold\b/i.test(text)) return 'Sold';
     if (/\bgave away\b|\bgiven away\b/i.test(text)) return 'Given away';
@@ -152,7 +153,7 @@
       take(found.index, found[0].length, key, value);
     }
     const conveyed=/\[CONVEYED\]/i.exec(rest.join(''));
-    if (conveyed) { take(conveyed.index,conveyed[0].length,null); fields.obtainedHow='Other'; }
+    if (conveyed) { take(conveyed.index,conveyed[0].length,null); fields.obtainedHow='Conveyed'; fields.price='0'; fields.obtainedDate='2020-12-17'; }
     // Payment/account columns are notes, never the obtaining price.
     match = /\b[^\t\n;]*?:\s*\$?[\d,]+\.\d{2}(?=\s*(?:\t|;|\n|$))/.exec(rest.join(""));
     if (match) { const lead = match[0].length - match[0].trimStart().length; take(match.index + lead, match[0].length - lead, null); }
@@ -200,6 +201,7 @@
     const notes = spans.filter(function (span) { return !span.field; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(Boolean).join(" · ");
     if (fields.categories) fields.categories = App.inventoryModel.tags(fields.categories).join(", ");
     if (notes) fields.description = notes;
+    if (fields.obtainedHow==='Conveyed') { fields.price='0'; fields.obtainedDate='2020-12-17'; }
     return { fields: fields, spans: spans.sort(function (a, b) { return a.start - b.start; }) };
   }
   App.smartEntry = { parse: parse, example: example };

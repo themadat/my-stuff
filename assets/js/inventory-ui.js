@@ -43,7 +43,7 @@
             <input type="hidden" id="inventoryCategoryFilter" value="">
           </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header><div id="selectedCategories" class="selected-categories" aria-label="Selected categories" hidden></div></div>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
-      <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><h2 id="roomOverviewTitle">Around the House</h2><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
+      <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><div class="location-overview-heading"><h2 id="roomOverviewTitle">Around the House</h2><span id="locationReviewTotal" role="status"></span></div><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
 
           <div class="inventory-list-heading"><span id="inventoryResultCount" role="status" aria-live="polite"></span></div>
@@ -68,8 +68,8 @@
               <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
             <div class="full item-purchase-row">
-              ${field("itemPrice", 'Obtaining Price <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
-              ${field("itemValue", 'Current Value <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
+              ${field("itemPrice", '<span id="itemPriceLabel">Obtaining Price</span> <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
+              ${field("itemValue", '<span id="itemValueLabel">Current Value</span> <span data-currency-label></span>', 'type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"')}
               <div class="field obtained-date-field"><div class="date-heading"><label for="itemObtainedDate">Date Obtained</label><label class="unknown-date-choice">Unknown <input id="itemDateUnknown" type="checkbox" checked></label></div><div class="obtained-date-input" data-unknown="true"><input id="itemObtainedDate" type="text" placeholder="MM/DD/YYYY or YYYY-MM-DD"><span aria-hidden="true">-- / -- / ----</span></div></div>
               ${segments("itemOwner", "Belongs to", [["me", "Me"], ["house", "House"]])}
               ${segments("itemObtainedHow", "Obtained", m.methods.map(function (method) { return [method, method]; }).concat([["", "Unknown"]]))}
@@ -80,7 +80,7 @@
               <div><input type="hidden" id="itemCategories">${picker("itemTagSearch", "Tags", "Search or add tags…", '<small class="tag-order-hint">Drag Tags or Use Alt+Arrow Keys to Reorder</small>')}<div id="selectedItemTags" class="selected-tags" aria-label="Selected Tags"></div><span id="tagOrderStatus" class="visually-hidden" role="status"></span></div><label class="field"><span>Notes / Description</span><textarea id="itemDescription" rows="1" placeholder="Details and unrecognized purchase text"></textarea></label>
             </div>
           </div>
-          <div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
+          <div id="itemQuantityPricing" class="quantity-pricing"><label class="field"><span>Amounts entered are</span><select id="itemPriceMode"><option value="total">Total for all copies / pieces</option><option value="each">Per copy / piece</option></select></label><label><input id="itemIsSet" type="checkbox"> Named pieces of one set</label><p id="itemPriceBreakdown" aria-live="polite"></p></div><div id="itemCopyLocations" class="copy-locations" hidden></div><datalist id="copyRoomOptions"></datalist>
           <details id="itemMoreDetails" class="item-more" open><summary>More Details <span id="itemMoreCount"></span></summary>
             <div class="item-more-content">
               <fieldset class="item-fieldset"><legend>Custom Properties</legend>
@@ -90,21 +90,21 @@
             </div>
           </details>
           <fieldset id="itemDirectArchive" class="item-fieldset" hidden><legend>Departure Details</legend><div class="item-form-grid">
-            ${field("itemDirectGoneDate", "Gone Date", 'type="date" required disabled')}
+            <div class="field"><div class="date-heading"><label for="itemDirectGoneDate">Gone Date</label><label class="unknown-date-choice">Unknown <input id="itemDirectGoneDateUnknown" type="checkbox"></label></div><input id="itemDirectGoneDate" type="text" placeholder="MM/DD/YY or YYYY-MM-DD"></div>
             ${select("itemDirectGoneReason", "What Happened?", '<option value="">Choose a Reason</option>' + options(m.reasons))}
             <label class="field full"><span>Departure Notes</span><textarea id="itemDirectGoneNotes" rows="2" disabled></textarea></label>
           </div></fieldset>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
-        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Price &amp; value are per copy</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" aria-keyshortcuts="Meta+Enter Control+Enter" title="Save Item (Command+Enter)" class="button primary" type="submit">Save Item</button></footer>
+        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Copies or pieces in this entry</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" aria-keyshortcuts="Meta+Enter Control+Enter" title="Save Item (Command+Enter)" class="button primary" type="submit">Save Item</button></footer>
       </form></dialog>
       <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
-        ${field("itemGoneDate", "Gone Date", 'type="date" required')}
+        <div class="field"><div class="date-heading"><label for="itemGoneDate">Gone Date</label><label class="unknown-date-choice">Unknown <input id="itemGoneDateUnknown" type="checkbox"></label></div><input id="itemGoneDate" type="text" placeholder="MM/DD/YY or YYYY-MM-DD"></div>
         ${select("itemGoneReason", "What Happened?", '<option value="">Choose a reason</option>' + options(m.reasons))}
         <label class="field full"><span>Departure Notes</span><textarea id="itemGoneNotes" rows="3" placeholder="Anything you want to remember"></textarea></label>
       </div><p id="archiveDuration" class="item-duration"></p><p class="inventory-footnote">The item and its details stay in Stuff I Had. It will no longer count toward your current inventory totals. You can return it later.</p></div><footer class="dialog-footer"><button class="button" type="button" data-inv-close="archiveDialog">Cancel</button><button class="button primary" type="submit">Save Departure</button></footer></form></dialog>
 `);
-    document.body.insertAdjacentHTML('beforeend','<dialog id="locationDateDialog" class="app-dialog small-dialog" aria-labelledby="locationDateTitle"><form id="locationDateForm" class="dialog-shell"><header class="dialog-header"><h2 id="locationDateTitle">Last Updated Date</h2></header><div class="dialog-body"><p id="locationDateName"></p><p>The contents of this location are correct as of this date.</p><label class="unknown-date-choice"><input id="locationDateUnknown" type="checkbox"> UNKNOWN</label><label class="field"><span>Last Updated Date</span><input id="locationDateValue" type="text" placeholder="MM/DD/YYYY or YYYY-MM-DD"></label><p id="locationDateError" role="alert"></p></div><footer class="dialog-footer"><button id="locationDateCancel" class="button" type="button">Cancel</button><button class="button primary" type="submit">Save</button></footer></form></dialog>');
+    document.body.insertAdjacentHTML('beforeend','<dialog id="locationDateDialog" class="app-dialog small-dialog" aria-labelledby="locationDateTitle"><form id="locationDateForm" class="dialog-shell"><header class="dialog-header"><h2 id="locationDateTitle">Last Updated Date</h2></header><div class="dialog-body"><p id="locationDateName"></p><p>The contents of this location are correct as of this date.</p><label class="unknown-date-choice"><input id="locationDateUnknown" type="checkbox"> UNKNOWN</label><label class="field"><span>Last Updated Date</span><input id="locationDateValue" type="date"></label><p id="locationDateError" role="alert"></p></div><footer class="dialog-footer"><button id="locationDateCancel" class="button" type="button">Cancel</button><button class="button primary" type="submit">Save</button></footer></form></dialog>');
     let locationDateKey='';
     function updateLocationDateInput() { const unknown=$('#locationDateUnknown').checked; $('#locationDateValue').disabled=false; $('#locationDateValue').required=!unknown; }
     $('#locationDateUnknown').addEventListener('change',updateLocationDateInput);
@@ -267,7 +267,28 @@
     new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
     $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
-    $("#itemCopies").addEventListener("input", renderCopyLocations);
+    $('#itemQuantityPricing').prepend($('#itemCopiesField'));
+    $('#itemQuantityPricing').classList.add('full'); $('.item-purchase-row').before($('#itemQuantityPricing'));
+    $('#itemCopies').addEventListener('input',function () { renderCopyLocations(); renderPricing(); });
+    $('#itemIsSet').addEventListener('change',function () { renderCopyLocations(); renderPricing(); });
+    $('#itemPriceMode').addEventListener('change',renderPricing);
+    ['#itemPrice','#itemValue'].forEach(function (id) { $(id).addEventListener('input',renderPricing); });
+    document.addEventListener('input',function (event) {
+      const el=event.target;
+      if (!el.matches('#itemObtainedDate,#itemGoneDate,#itemDirectGoneDate,[data-copy-date]') || event.isComposing || !event.inputType?.startsWith('insert') || el.selectionStart!==el.value.length) return;
+      const digits=el.value.replace(/\D/g,'');
+      if (!/^[\d/-]*$/.test(el.value)) return;
+      const cuts=digits.startsWith('20')?[4,6]:[2,4], separator=digits.startsWith('20')?'-':'/';
+      el.value=digits.slice(0,digits.startsWith('20')?8:8).split('').map(function (digit,index) { return (cuts.includes(index)?separator:'')+digit; }).join('');
+      if (cuts.includes(digits.length)) el.value+=separator;
+      if (el.id==='itemGoneDate') renderArchiveDuration();
+    });
+    ['itemGoneDate','itemDirectGoneDate'].forEach(function (id) {
+      $('#'+id).addEventListener('focus',function () { $('#'+id+'Unknown').checked=false; });
+      $('#'+id).addEventListener('input',function () { $('#'+id+'Unknown').checked=false; });
+      $('#'+id+'Unknown').addEventListener('change',function () { if (this.checked) $('#'+id).value=''; renderArchiveDuration(); });
+    });
+    $('input[name="itemObtainedHowChoice"][value="Conveyed"]').addEventListener('change',function () { if (!this.checked) return; $('#itemPrice').value='0'; $('#itemObtainedDate').value='2020-12-17'; syncDateUnknown(); renderPricing(); });
     $("#addColorButton").addEventListener("click", function () {
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
       if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
@@ -709,10 +730,16 @@
     $('#roomStats').style.setProperty('--location-value-width',Math.max(4,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
     function branch(node) {
       const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
-      const review=inventory().locationReviews?.[key]?.date || '', spaces=node.path.length===2 ? children : [], completed=spaces.filter(function (space) { return Boolean(inventory().locationReviews?.[JSON.stringify(space.path)]?.date); }).length;
-      const progress=spaces.length ? Math.round(completed/spaces.length*100) : null;
-      return '<div class="location-branch"><div class="location-nav-row" data-reviewed="'+Boolean(review)+'" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="'+esc(node.name)+' — Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(review || 'UNKNOWN')+(progress===null?'':'; '+completed+' of '+spaces.length+' spaces reviewed, '+progress+'%')+'" title="Set Last Updated Date">'+esc(review || 'UNKNOWN')+(progress===null?'':'<span class="location-review-progress">'+progress+'% spaces</span>')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
+      const review=inventory().locationReviews?.[key]?.date || '';
+      return '<div class="location-branch"><div class="location-nav-row" data-reviewed="'+Boolean(review)+'" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="'+esc(node.name)+' — Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(review || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(review || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
+    const reviewNodes=new Map(nodes);
+    inventory().items.forEach(function (item) { const path=m.itemLocation(item); if (!path.some(Boolean)) path[0]='Unknown Location'; path.forEach(function (name,index) { if (name) reviewNodes.set(JSON.stringify(path.slice(0,index+1)),true); }); });
+    const reviewed=Array.from(reviewNodes.keys()).filter(function (key) { return Boolean(inventory().locationReviews?.[key]?.date); }).length;
+    $('#locationReviewTotal').textContent=(reviewNodes.size ? reviewed/reviewNodes.size*100 : 0).toFixed(2)+'%';
+    $('#locationReviewTotal').title=reviewed+' of '+reviewNodes.size+' locations have a Last Updated date';
+    $('#roomOverview').style.setProperty('--location-count-width',$('#roomStats').style.getPropertyValue('--location-count-width'));
+    $('#roomOverview').style.setProperty('--location-value-width',$('#roomStats').style.getPropertyValue('--location-value-width'));
     $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
     return nodes;
   }
@@ -829,17 +856,41 @@
     $('[data-copy-space]',row).value = $('#itemSpace').value;
     $('[data-copy-zone]',row).value = $('#itemZone').value;
   }
-  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value, size: $('[data-copy-shared-size]',row)?.checked === false ? $('[data-copy-size]',row).value : null, color: $('[data-copy-shared-color]',row)?.checked === false ? $('[data-copy-color]',row).value : null, notes: $('[data-copy-shared-notes]',row)?.checked === false ? $('[data-copy-notes]',row).value : null }; }); }
+  function renderPricing() {
+    const count=Math.max(1,Number($('#itemCopies').value)||1), total=$('#itemPriceMode').value==='total';
+    $('#itemPriceLabel').textContent=total?'Total Obtaining Price':'Obtaining Price per Copy / Piece';
+    $('#itemValueLabel').textContent=total?'Total Current Value':'Current Value per Copy / Piece';
+    $('#itemPriceBreakdown').textContent=['Price','Value'].map(function (label) { const raw=$('#item'+label).value; if (raw==='') return label+': unknown'; const amount=Number(raw); return label+': '+money(total?amount:amount*count)+' total · '+money(total?amount/count:amount)+' per '+($('#itemIsSet').checked?'piece':'copy')+(total && Math.round(amount*100)%count ? ' (extra cents assigned to first copies)' : ''); }).join(' | ');
+  }
+  function saveCopyLocations(count) {
+    const rows=copyLocations(), original=originalItem?JSON.parse(originalItem):null;
+    return Array.from({length:count},function (_,index) {
+      const row=Object.assign({},rows[index]);
+      if (typeof row.obtainedDate==='string') row.obtainedDate=inputDate(row.obtainedDate);
+      if ($('#itemIsSet').checked && !row.piece?.trim()) throw new Error('Name every piece in the set.');
+      ['price','value'].forEach(function (key) {
+        const raw=$('#item'+key[0].toUpperCase()+key.slice(1)).value || $('#item'+(key==='price'?'Value':'Price')).value;
+        if ($('#itemPriceMode').value==='total') { const cents=raw===''?null:Math.round(Number(raw)*100); row[key]=cents===null?null:(Math.floor(cents/count)+(index<cents%count?1:0))/100; }
+        else if (original && (raw===''?null:Number(raw))!==original[key]) row[key]=raw===''?null:Number(raw);
+      });
+      return row;
+    });
+  }
+  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value, size: $('[data-copy-shared-size]',row)?.checked === false ? $('[data-copy-size]',row).value : null, color: $('[data-copy-shared-color]',row)?.checked === false ? $('[data-copy-color]',row).value : null, piece: $('#itemIsSet').checked ? $('[data-copy-piece]',row).value : '', obtainedDate: $('[data-copy-shared-date]',row)?.checked === false ? $('[data-copy-date]',row).value : null, notes: $('[data-copy-shared-notes]',row)?.checked === false ? $('[data-copy-notes]',row).value : null }; }); }
   function renderCopyLocations(saved) {
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
-    root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId ? 1 : 2) || count > 100;
+    root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId || $('#itemIsSet').checked ? 1 : 2) || count > 100;
     if (root.hidden) { root.innerHTML = ''; return; }
     root.innerHTML = '<div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
-      return '<div data-copy-location><strong>#' + (index+1)  + '</strong>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
+      return '<div data-copy-location><strong>#' + (index+1)  + '</strong>' + '<label class="field" '+($('#itemIsSet').checked?'':'hidden')+'><span>Piece name</span><input data-copy-piece '+($('#itemIsSet').checked?'required':'')+' placeholder="Base station, sensor…"></label><div class="copy-date"><label>Shared Date <input type="checkbox" data-copy-shared-date checked></label><label class="field"><span>Date Obtained</span><input type="text" data-copy-date disabled placeholder="Unknown or MM/DD/YY"></label></div>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';
     }).join('') + '</div>';
     $$('[data-copy-location]').forEach(function (row,index) {
       ['Zone','Room','Space'].forEach(function (name) { const input = $('#copy'+index+name); input.setAttribute('data-copy-'+name.toLowerCase(),''); input.value = old[index]?.[name.toLowerCase()] || ''; });
       if (!$('[data-copy-zone]',row).value) $('[data-copy-zone]',row).value = App.config.inventory.locations.find(function (l) { return l.room.toLowerCase() === $('[data-copy-room]',row).value.toLowerCase(); })?.zone || '';
+      $('[data-copy-piece]',row).value=old[index]?.piece || '';
+      const sharedDate=$('[data-copy-shared-date]',row), date=$('[data-copy-date]',row);
+      sharedDate.checked=typeof old[index]?.obtainedDate!=='string'; date.value=old[index]?.obtainedDate || ''; date.disabled=sharedDate.checked;
+      sharedDate.addEventListener('change',function () { date.disabled=this.checked; if (!this.checked) date.focus(); });
       const sharedColor = $('[data-copy-shared-color]',row), color = $('[data-copy-color]',row);
       sharedColor.checked = typeof old[index]?.color !== 'string'; color.value = old[index]?.color || ''; color.disabled = sharedColor.checked;
       sharedColor.addEventListener('change', function () { color.disabled = this.checked; if (this.checked) color.value = ''; if (!this.checked) color.focus(); });
@@ -887,22 +938,24 @@
     $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) { input.disabled=!directArchive; });
     $('#itemDirectGoneReason').required=directArchive; $('#itemDirectGoneDate').max=m.today();
     $("#itemDialogTitle").textContent = id ? "Item Details" : directArchive ? "Add to Stuff I Had" : copy ? "Add a Copy" : "Add an Item";
-    $("#itemCopiesField").hidden = Boolean(item?.archive || (directArchive && !draft)); $("#itemCopies").disabled = Boolean(item?.archive || (directArchive && !draft));
+    $("#itemCopiesField").hidden = Boolean(item?.archive); $("#itemCopies").disabled = Boolean(item?.archive);
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
     $("#saveItemButton").textContent = draft ? "Save All Copies & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#deleteItemButton").hidden = !id;
-    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || "", color:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || ''), size:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || ''), notes:entry.description === item.description ? null : entry.description}; }));
-    if (directArchive) { const departure=(draft || item)?.archive; $('#itemDirectGoneDate').value=departure?.date || ''; $('#itemDirectGoneReason').value=departure?.reason || ''; $('#itemDirectGoneNotes').value=departure?.notes || ''; }
+    $('#itemPriceMode').value=draft?._priceMode || (id || draft ? 'each' : 'total');
+    $('#itemIsSet').checked=Boolean(draft?._isSet || item?.properties.some(function (p) { return p.name.toLowerCase()==='set piece'; }));
+    $("#itemCopyLocations").innerHTML = ""; $("#itemCopies").value = draft?._copies || editingCopies.length || 1; renderCopyLocations(draft?._copyLocations || editingCopies.map(function (entry) { return {zone:entry.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:entry.room,space:entry.properties.find(function (p) { return p.name.toLowerCase() === "space"; })?.value || "", color:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'color'; })?.value || ''), size:(entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') === (item.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || '') ? null : (entry.properties.find(function (p) { return p.name.toLowerCase() === 'size'; })?.value || ''), piece:entry.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; })?.value || '', obtainedDate:entry.obtainedDate===item.obtainedDate ? null : entry.obtainedDate, notes:entry.description === item.description ? null : entry.description}; }));
+    if (directArchive) { const departure=(draft || item)?.archive; $('#itemDirectGoneDate').value=departure?.date || ''; $('#itemDirectGoneReason').value=departure?.reason || ''; $('#itemDirectGoneNotes').value=departure?.notes || ''; $('#itemDirectGoneDateUnknown').checked=!$('#itemDirectGoneDate').value; }
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
     $("#itemCategories").value = values.categories.join(", ");
     $("#itemProperties").innerHTML = "";
     ["Brand", "Zone", "Space"].forEach(function (key) { $("#item" + key).value = values.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); })?.value || ""; });
-    values.properties.filter(function (property) { return !["brand", "zone", "space"].includes(property.name.toLowerCase()); }).forEach(function (property) { addProperty(property); });
+    values.properties.filter(function (property) { return !["brand", "zone", "space"].includes(property.name.toLowerCase()) && (property.name.toLowerCase()!=="set piece" || item?.archive); }).forEach(function (property) { addProperty(property); });
     $("#itemMoreDetails").open = true;
     $("#itemMoreCount").textContent = values.properties.length || values.description || values.obtainedDate ? (draft ? "· Review Details" : "· Saved Details") : "";
     resetSmart(); renderTags(); syncSegments();
@@ -927,7 +980,7 @@
     $("#itemArchiveSummary").hidden = !item?.archive || directArchive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
 
-    suggestProperties(); fillMissingAmount(); syncDateUnknown();
+    suggestProperties(); fillMissingAmount(); syncDateUnknown(); renderPricing();
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
   }
@@ -936,10 +989,10 @@
     event.preventDefault();
     try {
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
-      const count = previous?.archive || (directArchive && !App.bulkEntry?.current()) ? 1 : Number($("#itemCopies").value);
+      const count = previous?.archive ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
       if (!App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
-      const item = { id: editingId || u.uid("item"), archive: directArchive ? {date:$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
+      const item = { id: editingId || u.uid("item"), ...(previous?.copyGroup ? {copyGroup:previous.copyGroup} : {}), archive: directArchive ? {date:$('#itemDirectGoneDateUnknown').checked?'':inputDate($('#itemDirectGoneDate').value),reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       item.obtainedDate=$('#itemDateUnknown').checked ? '' : inputDate(item.obtainedDate);
       commitTags();
@@ -950,7 +1003,7 @@
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
       const next = m.favoriteTag(m.normalizeItem(item),App.storage.getState().preferences.favoriteBrands);
-      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, copyLocations()); return; }
+      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, saveCopyLocations(count)); return; }
       let copies;
       if (previous && !previous.archive) {
         const verifyCopies = function () {
@@ -958,12 +1011,13 @@
           if (inventory().items.filter(function (entry) { return !entry.archive && m.sameObject(entry,previous); }).length !== editingCopies.length) throw new Error("Copies changed while editing. Close and reopen this item.");
         };
         verifyCopies();
-        const locations = copyLocations(), group = previous.copyGroup || u.uid('copies');
+        const locations = saveCopyLocations(count), group = previous.copyGroup || u.uid('copies');
         const locationSignature = function (entry) { return JSON.stringify([entry.room, entry.properties.filter(function (p) { return ['zone','space'].includes(p.name.toLowerCase()); })]); };
         if (locationSignature(next) !== locationSignature(previous)) locations[0] = Object.assign({},locations[0],{zone:next.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''});
         copies = Array.from({length:count}, function (_, index) {
           const existing = editingCopies[index], base = index === 0 || !existing ? next : existing;
           const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
+          if (location.obtainedDate == null) clean.obtainedDate=next.obtainedDate;
           if (location.notes == null) clean.description = next.description;
           if (location.color == null) clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'color'; }).concat(next.properties.filter(function (p) { return p.name.toLowerCase() === 'color'; }));
           if (location.size == null) clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'size'; }).concat(next.properties.filter(function (p) { return p.name.toLowerCase() === 'size'; }));
@@ -980,7 +1034,7 @@
           if (!await App.components.confirm({title:'Delete Removed Copies?',message:'Permanently delete ' + (editingCopies.length-count) + ' copies: ' + removed + '. This cannot be undone.',confirmLabel:'Delete Copies',danger:true,trigger:$('#saveItemButton')})) return;
           verifyCopies();
         }
-      } else copies = previous || directArchive ? [next] : m.createCopies(next, count, copyLocations());
+      } else copies = previous ? [next] : m.createCopies(next, count, saveCopyLocations(count)).map(function (copy) { return m.normalizeItem(Object.assign({},copy,{archive:next.archive})); });
       const replaced = new Set(previous ? (editingCopies.length ? editingCopies : [previous]).map(function (entry) { return entry.id; }) : []);
       App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(copies); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
@@ -993,21 +1047,21 @@
     archiveId = id; archiveOriginal = JSON.stringify(item);
     $("#archiveForm").reset(); $("#archiveError").hidden = true;
     $("#archiveItemName").textContent = item.name;
-    $("#itemGoneDate").value = item.archive?.date || m.today(); $("#itemGoneDate").min = item.obtainedDate; $("#itemGoneDate").max = m.today();
+    $("#itemGoneDate").value = item.archive ? item.archive.date : m.today(); $("#itemGoneDateUnknown").checked=!$("#itemGoneDate").value; $("#itemGoneDate").min = item.obtainedDate; $("#itemGoneDate").max = m.today();
     $("#itemGoneReason").value = item.archive?.reason || ""; $("#itemGoneNotes").value = item.archive?.notes || "";
     archiveForm = formSignature("#archiveForm"); renderArchiveDuration();
     App.components.openDialog("#archiveDialog", { trigger: trigger || $("#archiveItemButton"), focus: "#itemGoneReason" });
   }
   function renderArchiveDuration() {
     const item = inventory().items.find(function (entry) { return entry.id === archiveId; }); if (!item) return;
-    const age = $('#itemGoneDate').value ? m.ownershipAge(item, $('#itemGoneDate').value) : null;
+    let age=null; try { if (!$('#itemGoneDateUnknown').checked && $('#itemGoneDate').value) age=m.ownershipAge(item,inputDate($('#itemGoneDate').value)); } catch (_) {}
     $('#archiveDuration').textContent = age ? age.years + (age.years === 1 ? ' year ' : ' years ') + age.months + (age.months === 1 ? ' month ' : ' months ') + age.days + (age.days === 1 ? ' day · ' : ' days · ') + age.totalDays.toLocaleString() + ' days owned · Yearly average value: ' + (age.annualValue === null ? 'Unavailable until at least one day has passed and a value is known' : money(age.annualValue) + ' per year (obtaining price)') : 'Add a valid obtained and departure date to calculate age and yearly average value.';
   }
   function saveArchive(event) {
     event.preventDefault();
     try {
       const item = currentItemUnchanged(archiveId, archiveOriginal);
-      const next = m.normalizeItem(Object.assign({}, item, { archive: { date: $("#itemGoneDate").value, reason: $("#itemGoneReason").value, notes: $("#itemGoneNotes").value } }));
+      const next = m.normalizeItem(Object.assign({}, item, { archive: { date: $("#itemGoneDateUnknown").checked ? "" : inputDate($("#itemGoneDate").value), reason: $("#itemGoneReason").value, notes: $("#itemGoneNotes").value } }));
       App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.map(function (entry) { return entry.id === next.id ? next : entry; }); }, { reason: "inventory-archive" });
       App.storage.saveNow(); App.components.closeDialog("#archiveDialog", "saved"); App.components.closeDialog("#itemDialog", "saved");
       App.components.toast(next.name + " is in Stuff I Had. Its details are preserved.", { title: "Item Archived", kind: "success" });
@@ -1044,9 +1098,10 @@
     ["Brand", "Zone", "Space"].forEach(function (key) { if ($("#item" + key).value) draft.properties.push({ name: key, value: $("#item" + key).value, unit: "" }); });
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
+    draft._priceMode=$('#itemPriceMode').value; draft._isSet=$('#itemIsSet').checked;
     draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();
     if (App.bulkEntry?.current()?.draft.copyGroup) draft.copyGroup = App.bulkEntry.current().draft.copyGroup;
-    if (directArchive) { draft._archiveMode=true; draft.archive={date:$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value}; }
+    if (directArchive) { draft._archiveMode=true; draft.archive={date:$('#itemDirectGoneDateUnknown').checked?'':$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value}; }
     draft._reviewed = true;
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;

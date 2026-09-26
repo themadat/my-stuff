@@ -1,8 +1,8 @@
 (function () {
   "use strict";
   const App = window.LocalApp, u = App.utils;
-  const reasons = ["Trashed", "Lost", "Broken", "Sold", "Donated", "Given away", "Other"];
-  const methods = ["Purchased", "Gift", "Inherited", "Made", "Found", "Other"];
+  const reasons = ["Trashed", "Lost", "Broken", "Sold", "Donated", "Given away", "Replaced", "Other"];
+  const methods = ["Purchased", "Gift", "Inherited", "Made", "Found", "Conveyed", "Other"];
   function cableEnd(value) {
     const text = String(value || '').trim();
     const key = function (name) { return name.toLowerCase().replace(/[\s_-]+/g, ''); };
@@ -52,8 +52,8 @@
     let archive = null;
     if (input.archive != null) {
       const date = dateOnly(input.archive.date);
-      if (!date || !reasons.includes(input.archive.reason)) throw new Error("An archived item needs a gone date and reason.");
-      if (obtainedDate && date < obtainedDate) throw new Error("The gone date cannot be before the obtained date.");
+      if (!reasons.includes(input.archive.reason)) throw new Error("An archived item needs a reason.");
+      if (date && obtainedDate && date < obtainedDate) throw new Error("The gone date cannot be before the obtained date.");
       archive = { date: date, reason: input.archive.reason, notes: u.cleanText(input.archive.notes, Infinity) };
     }
     if (input.properties != null && (!Array.isArray(input.properties) || input.properties.length > 40)) throw new Error("Use up to 40 properties per item.");
@@ -141,6 +141,9 @@
         if (size) item.properties.push({name:'Size',value:size,unit:''});
       }
       if (typeof override?.notes === 'string') item.description = override.notes;
+      if (typeof override?.obtainedDate === 'string') item.obtainedDate = dateOnly(override.obtainedDate);
+      if (typeof override?.piece === 'string') { item.properties=item.properties.filter(function (p) { return p.name.toLowerCase()!=='set piece'; }); if (override.piece.trim()) item.properties.push({name:'Set Piece',value:override.piece.trim(),unit:''}); }
+      ['price','value'].forEach(function (key) { if (Object.hasOwn(override || {},key)) item[key]=amount(override[key]); });
       return normalizeItem(item);
     });
   }
@@ -171,11 +174,12 @@
     return { currency: App.config.inventory.defaultCurrency, items: items, ...(Object.keys(reviews).length ? {locationReviews:reviews} : {}) };
   }
   function daysOwned(item, end) {
-    if (!item.obtainedDate) return null;
+    if (!item.obtainedDate || (item.archive && !item.archive.date && !end)) return null;
     return Math.max(0, Math.round((Date.parse((end || item.archive?.date || today()) + "T00:00:00Z") - Date.parse(item.obtainedDate + "T00:00:00Z")) / 86400000));
   }
   function objectKey(item) {
     const brand = item.properties.find(function (p) { return p.name.toLowerCase() === 'brand'; })?.value || '';
+    if (item.copyGroup && item.properties.some(function (p) { return p.name.toLowerCase()==='set piece'; })) return JSON.stringify(['set',item.copyGroup]);
     return JSON.stringify([item.name.trim().toLowerCase(),brand.trim().toLowerCase(),item.owner]);
   }
   function sameObject(a,b) { return objectKey(a) === objectKey(b); }
@@ -213,7 +217,7 @@
     return Array.from(groups.values());
   }
   function ownershipAge(item, end) {
-    const finish = dateOnly(end || item.archive?.date || today());
+    const finish = dateOnly(end || (item.archive ? item.archive.date : today()));
     if (!item.obtainedDate || !finish || finish < item.obtainedDate) return null;
     const start = new Date(item.obtainedDate + 'T00:00:00Z'), stop = new Date(finish + 'T00:00:00Z');
     function anniversary(months) {
