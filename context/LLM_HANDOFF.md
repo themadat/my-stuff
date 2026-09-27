@@ -2,7 +2,7 @@
 
 ## State
 
-Application version: **0.0.1.77**. Latest app batch is committed: Outside location jumps now measure the actual section position instead of pinned headings; Had has a slate-blue page background in both themes. No current application implementation is in progress. Older handoff notes mentioned an unverified live sync-file issue and a Notes-highlighting clarification; their resolution is not established here. Consult history if either is raised again; do not infer a migration.
+Application version: **0.0.1.77**. Latest app batch is committed: Outside location jumps now measure the actual section position instead of pinned headings; Had has a slate-blue page background in both themes. Pending app batch: added **3D Print** under Other in config with the supplied SVG registered in the shared category icon map. Targeted static checks passed. Not cut or published; version remains 0.0.1.77. Older handoff notes mentioned an unverified live sync-file issue and a Notes-highlighting clarification; their resolution is not established here. Consult history if either is raised again; do not infer a migration.
 
 Completed tooling/documentation change introduces lean task rules, batched releases, `scripts/release.mjs` and `scripts/verify.mjs`. It does not change app runtime or require a version bump. See `docs/DEVELOPMENT.md` for usage. Verification: all 133 checks passed before the final CLI test; all three release-tool tests then passed, including dry-run, write and repeat rejection in temporary copies. Diff checks pass. Changes are uncommitted. Do not append release history here; Git and config release notes retain it.
 
