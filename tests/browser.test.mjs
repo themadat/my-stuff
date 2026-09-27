@@ -1689,3 +1689,33 @@ test('ordinary copies share conveyed status and muted house colors',async t=>{
  for(const theme of ['light','dark']) {await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);const colors=await page.locator('tr[data-item-owner="house"]').evaluateAll(rows=>rows.map(row=>getComputedStyle(row.querySelector('[data-instant-filter="name"]')).color));assert.notEqual(colors[0],colors[1]);}
  await page.screenshot({path:'/private/tmp/conveyed74-dark.png'});
 });
+
+test('parent locations, Memory Box and distinct Have and Had content', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const app=window.LocalApp;
+  app.storage.mutate(s=>{s.inventory.items=[
+   {id:'yard',name:'Yard object',room:'Yard'},
+   {id:'outside',name:'Outside object',properties:[{name:'Zone',value:'Outside'}]},
+   {id:'memory',name:'Keepsake',room:'Primary Bedroom',properties:[{name:'Space',value:'Memory Box'}]},
+   {id:'gone',name:'Old object',room:'Yard',archive:{date:'',reason:'Replaced'}}
+  ].map(item=>app.inventoryModel.normalizeItem({...item,owner:'house'}));});
+ });
+ assert.match(await page.locator('#inventoryViewLabel').textContent(),/Have.*Current/);
+ const text=await page.locator('#inventoryList').textContent();
+ assert.ok(text.indexOf('Outside object')<text.indexOf('Yard object'));
+ assert.match(await page.locator('#roomStats').textContent(),/Memory Box/);
+ await page.locator('[data-inventory-view="previous"]').click();
+ assert.match(await page.locator('#inventoryViewLabel').textContent(),/Had.*Archived/);
+ assert.equal(await page.locator('#inventoryBody').evaluate(el=>el.classList.contains('previous-view')),true);
+ assert.match(await page.locator('#inventoryList').textContent(),/Old object/);
+ assert.doesNotMatch(await page.locator('#inventoryList').textContent(),/Outside object/);
+ await page.screenshot({path:'/tmp/had75-desktop.png'});
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('#inventoryViewLabel').scrollIntoViewIfNeeded();
+ await page.screenshot({path:'/tmp/had75-mobile.png'});
+ assert.equal(await page.locator('#inventoryViewLabel').isVisible(),true);
+ await page.locator('[data-inventory-view="have"]').click();
+ assert.equal(await page.locator('#inventoryBody').evaluate(el=>el.classList.contains('previous-view')),false);
+});

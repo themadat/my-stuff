@@ -1314,3 +1314,9 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .copy-date .copy-field-heading label { display: flex; align-items: center; gap: .3rem; font-size: .75rem; }
 #itemQuantityPricing > label { display: flex; align-items: center; gap: .35rem; white-space: nowrap; }
 #itemQuantityPricing input[type="checkbox"] { width: auto; }
+
+/* Keep the current/archive context visible without changing ownership colors. */
+.inventory-view-label { color: var(--text); font-size: .72rem; white-space: nowrap; }
+.previous-view .inventory-list-heading { border-left: 3px solid var(--muted); padding: .3rem .5rem; background: var(--surface-2); border-radius: .2rem; }
+.previous-view .inventory-view-label { color: var(--muted); }
+.previous-view .location-section-heading { font-style: italic; }

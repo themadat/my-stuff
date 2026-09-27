@@ -46,7 +46,7 @@
       <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><div class="location-overview-heading"><h2 id="roomOverviewTitle">Around the House</h2><span id="locationReviewTotal" role="status"></span></div><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
 
-          <div class="inventory-list-heading"><span id="inventoryResultCount" role="status" aria-live="polite"></span></div>
+          <div class="inventory-list-heading"><strong id="inventoryViewLabel" class="inventory-view-label"></strong><span id="inventoryResultCount" role="status" aria-live="polite"></span></div>
           <div id="inventoryList"></div>
         </section>
 
@@ -643,6 +643,7 @@
     $$('[data-inventory-view]').forEach(function (button) { if (button.dataset.inventoryView === view) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); });
     const titles = { have: "Stuff I Have", previous: "Stuff I Had", want: "Stuff I Want", research: "Research" };
     $("#inventoryTitle").textContent = titles[view];
+    $("#inventoryViewLabel").textContent = view === "previous" ? "Had · Archived items" : "Have · Current items";
     $("#inventorySubtitle").textContent = view === "have" ? "Know what you own, where it lives, and what it’s worth." : view === "previous" ? "Gone, but not forgotten. The things that were part of your life." : "A little space for what comes next.";
     const active = view === "have" || view === "previous";
     $("#inventoryBody").hidden = !active; $("#inventoryComingSoon").hidden = active;
@@ -785,7 +786,7 @@
       return Array.from(instantFilters).every(function (entry) { return entry[0] === 'catalog' ? App.inventoryCatalog.matches(item,entry[1]) : entry[0] === 'ids' ? entry[1].includes(item.id) : entry[0] === 'categories' ? item.categories.includes(entry[1]) : JSON.stringify(filterValue(item,entry[0])) === JSON.stringify(entry[1]); }) && (!owner || item.owner === owner) && matchesLocation(item, room) && (!category || selectedCategories()[categoryMatchMode==='all'?'every':'some'](function (value) { return matchesCategory(item,value); })) && (!search || [item.name, item.description, item.source, item.room, item.categories.join(" "), item.properties.map(function (p) { return [p.name, p.value, p.unit].join(" "); }).join(" "), item.archive?.reason, item.archive?.notes].join(" ").toLowerCase().includes(search));
     }).sort(function (a, b) { return m.compareBrand(a,b); });
     $("#inventoryResultCount").textContent = "";
-    $(".inventory-list-heading").hidden = !(instantFilters.size || room);
+    $(".inventory-list-heading").hidden = false;
     if (room) $("#inventoryResultCount").innerHTML='<button type="button" class="instant-filter" data-clear-location-filter>Location: '+esc(room.startsWith('path:')?JSON.parse(room.slice(5)).filter(Boolean).join(' / '):room)+' ×</button>';
     $("#clearInventoryFilters").disabled = !(search || owner || room || category || instantFilters.size);
     const filtered = m.stats(items.map(function (item) { return Object.assign({},item,{archive:null}); }));

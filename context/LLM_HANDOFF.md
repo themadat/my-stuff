@@ -1,3 +1,11 @@
+## Latest Update — Parent Locations and Had Context (0.0.1.75)
+
+Added Memory Box under Primary Bedroom to the shared location catalog. Ordered inventory sections now place zone-only items directly beneath their zone before named rooms, matching room-only items before spaces. Outside imports retain their zone-only assignments.
+
+Have and Had each display a persistent content label. Had adds a muted archive stripe and italic location headings while retaining ownership and conveyed palettes. Labels remain visible when filters are cleared.
+
+Verification: 131 non-browser checks and two Chromium checks pass, including parent-first order, Memory Box, Have/Had switching, mobile rendering and offline reload. Desktop/mobile screenshots reviewed. Versions, manifests, queries, cache and workflow align at .75. Unrelated manual test edits and .claude preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Compact Add, Piece Values and Shared Acquisition (0.0.1.74)
 
 Around the House rows tighten again to 18px desktop/22px mobile. Inventory location sections explicitly use the same Outside/Main Level/Upstairs order as the sidebar; the model’s default ordering remains available to other consumers. House-owned conveyed rows use a muted brown-yellow background/title/brand palette in both themes. Editing acquisition method applies it to every copy; Conveyed price defaults apply to every copy too, eliminating mixed obtained statuses after saving.

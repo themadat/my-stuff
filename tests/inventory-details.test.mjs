@@ -27,3 +27,10 @@ test('inventory display orders zones like the sidebar and keeps named pieces sep
  const items=['Office','Kitchen','Yard'].map((room,i)=>m.normalizeItem({...base,id:'order'+i,room}));
  assert.deepEqual(Array.from(m.locationSections(items,true),s=>s.path[0]),['Outside','Main Level','Upstairs']);
 });
+
+test('zone-only and room-only sections precede their descendants',()=>{
+ const paths=[['Outside','Yard',''],['Outside','',''],['Main Level','Nook','Go Bag'],['Main Level','Nook','']];
+ const items=paths.map(([zone,room,space],i)=>m.normalizeItem({...base,id:'parent'+i,room,properties:[{name:'Zone',value:zone},{name:'Space',value:space}]}));
+ assert.deepEqual(Array.from(m.locationSections(items,true),s=>Array.from(s.path)),[paths[1],paths[0],paths[3],paths[2]]);
+ assert.ok(app.config.inventory.locations.find(l=>l.room==='Primary Bedroom').spaces.includes('Memory Box'));
+});
