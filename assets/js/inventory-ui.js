@@ -5,6 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let directArchive=false;
+  const annualCosts = new Set();
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
   const mobileInventory = matchMedia("(max-width: 700px)");
@@ -147,6 +148,7 @@
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
     $('#inventoryList').addEventListener('click',function (event) {
+      const cost=event.target.closest('[data-age-cost]'); if (cost) { const id=cost.dataset.ageCost; if (annualCosts.has(id)) annualCosts.delete(id); else annualCosts.add(id); renderList(); $$('[data-age-cost]').find(function (el) { return el.dataset.ageCost===id; })?.focus(); return; }
       const button=event.target.closest('[data-table-location-toggle]'); if (!button) return;
       const key=button.dataset.tableLocationToggle;
       if (collapsedTableLocations.has(key)) collapsedTableLocations.delete(key); else collapsedTableLocations.add(key);
@@ -760,12 +762,12 @@
   function tableLocationClosed(path) {
     return path.some(function (_,index) { return collapsedTableLocations.has(JSON.stringify(path.slice(0,index+1))); });
   }
-  function locationHeadings(path, previous, totals) {
+  function locationHeadings(path, previous, totals, footwear) {
     let changed=false;
     return path.map(function (name,index) {
       changed = changed || name !== previous?.[index];
       const prefix=path.slice(0,index+1), key=JSON.stringify(prefix), closed=collapsedTableLocations.has(key), total=totals.get(key);
-      return changed && name ? '<tr class="location-section-heading" data-table-location-path="'+esc(key)+'" data-location-level="'+index+'"'+(tableLocationClosed(prefix.slice(0,-1))?' hidden':'')+'><th colspan="2" id="'+esc(locationAnchor(prefix))+'" tabindex="-1"><button type="button" class="table-location-toggle" data-table-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'"><span aria-hidden="true">'+(closed?'▸':'▾')+'</span> '+esc(name)+'</button></th><th class="location-total-count" scope="row">'+total.count+'</th><th class="location-total-value" title="'+total.unknown+' Not Valued">'+esc(money(total.valueCents/100,true))+'</th><th colspan="2" aria-hidden="true"></th></tr>' : '';
+      return changed && name ? '<tr class="location-section-heading" data-table-location-path="'+esc(key)+'" data-location-level="'+index+'"'+(tableLocationClosed(prefix.slice(0,-1))?' hidden':'')+'><th colspan="'+(footwear?5:2)+'" id="'+esc(locationAnchor(prefix))+'" tabindex="-1"><button type="button" class="table-location-toggle" data-table-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'"><span aria-hidden="true">'+(closed?'▸':'▾')+'</span> '+esc(name)+'</button></th><th class="location-total-count" scope="row">'+total.count+'</th><th class="location-total-value" title="'+total.unknown+' Not Valued">'+esc(money(total.valueCents/100,true))+'</th><th colspan="3" aria-hidden="true"></th></tr>' : '';
     }).join('');
   }
   function fillMissingAmount() {
@@ -785,8 +787,28 @@
     if (!label) return "";
     return '<button type="button" class="instant-filter" data-instant-filter="' + esc(key) + '" data-filter-value="' + esc(JSON.stringify(value)) + '" aria-pressed="' + (instantFilters.has(key) && JSON.stringify(instantFilters.get(key)) === JSON.stringify(value)) + '">' + esc(label) + '</button>';
   }
+  function ageCell(item) {
+    const age=m.ownershipAge(item), annual=annualCosts.has(item.id);
+    return '<div class="item-age-entry">'+(age ? age.years+'y '+age.months+'m' : 'Unknown')+'<small><button type="button" class="instant-filter" data-age-cost="'+esc(item.id)+'" aria-label="Switch cost average to per '+(annual?'month':'year')+'" title="Obtaining price averaged over ownership">'+(age?.annualValue == null ? '—' : esc(money(age.annualValue/(annual?1:12))))+'/'+(annual?'yr':'mo')+'</button></small></div>';
+  }
+  function mileageTag(value) {
+    try { const log=m.mileage(value); return '<span class="mileage-tag mileage-'+log.tone+'">'+esc(log.total.toLocaleString(undefined,{maximumFractionDigits:2}))+' mi</span>'; } catch (_) { return '<span>Review mileage</span>'; }
+  }
+  function footwearCells(properties) {
+    return ['color','size','weight'].map(function (name) { return '<td class="footwear-property" data-label="'+name+'">'+properties.filter(function (p) { return p.name.toLowerCase()===name; }).map(function (p) {
+      let label=filterButton('property:'+name,[p.value,p.unit],p.value+(p.unit?' '+p.unit:''));
+      if (name==='color' && p.value) {
+        const probe=document.createElement('span'); probe.style.color=({'burnt orange':'#cc5500','navy blue':'navy','light blue':'lightblue','dark blue':'darkblue','dark green':'darkgreen','light green':'lightgreen','rose gold':'#b76e79'})[p.value.toLowerCase()] || p.value.replace(/\s+/g,'');
+        const color=probe.style.color && !/var|inherit|initial|unset|currentcolor/i.test(p.value) ? probe.style.color : '#777';
+        label='<span class="footwear-color" style="background-color:'+esc(color)+'">'+label+'</span>';
+      }
+      return label;
+    }).join(' ')+'</td>'; }).join('');
+  }
   function renderList() {
     const search = $("#inventorySearch").value.trim().toLowerCase(), owner = $("#inventoryOwnerFilter").value, room = $("#inventoryRoomFilter").value, category = $("#inventoryCategoryFilter").value;
+    const selected=selectedCategories(), footwear=selected.includes('Footwear') || instantFilters.get('categories')==='Footwear';
+    const typeGroups=footwear && !search && !owner && !room && selected.every(function (tag) { return tag==='Footwear'; }) && Array.from(instantFilters.keys()).every(function (key) { return key==='categories'; });
     const all = inventory().items.filter(function (item) { return Boolean(item.archive) === (view === "previous"); });
     $$('[data-owner-filter]').forEach(function (button) { button.dataset.selected=String(button.dataset.ownerFilter === owner); });
     renderCategoryCards(all);
@@ -813,17 +835,22 @@
       expandedCards.forEach(function (card) { card.style.width=ownershipWidth+'px'; });
     }
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
-    const sections = m.locationSections(items,true).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); const locationTotals=renderLocationNavigation(sections);
+    let sections = m.locationSections(items,true).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); const locationTotals=renderLocationNavigation(sections);
+    if (typeGroups) {
+      const groups=new Map(); items.forEach(function (item) { const type=item.properties.find(function (p) { return p.name.toLowerCase()==='type'; })?.value || 'Unspecified Type'; if (!groups.has(type)) groups.set(type,[]); groups.get(type).push(item); });
+      sections=Array.from(groups, function (entry) { return {path:[entry[0]],items:entry[1]}; }).sort(function (a,b) { return a.path[0].localeCompare(b.path[0]); });
+    }
     if (!items.length) {
       $("#inventoryList").innerHTML = '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryAdd") + ' Add Item</button>' : '') + '</div>'; return;
     }
-    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th><th><span class="visually-hidden">Tags</span></th><th aria-label="Count">#</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return locationHeadings(section.path,sections[sectionIndex-1]?.path,locationTotals) + m.groupRows(section.items).map(function (members) {
+    $("#inventoryList").innerHTML = '<div class="inventory-table-wrap"><table class="inventory-table'+(footwear?' footwear-table':'')+'"><caption class="visually-hidden">Inventory. Select a value to filter, or Edit to open an item.</caption><thead><tr><th>Object and Properties / Notes</th>' + (footwear?'<th class="footwear-property">Color</th><th class="footwear-property">Size</th><th class="footwear-property">Weight</th>':'') + '<th><span class="visually-hidden">Tags</span></th><th aria-label="Count">#</th><th>Value</th><th>' + (view === 'previous' ? 'Departure' : 'Obtained') + '</th><th>Age</th><th>Actions</th></tr></thead><tbody>' + sections.map(function (section,sectionIndex) { return (typeGroups ? '<tr class="location-section-heading footwear-type-heading"><th colspan="10" scope="rowgroup">'+esc(section.path[0])+'</th></tr>' : locationHeadings(section.path,sections[sectionIndex-1]?.path,locationTotals,footwear)) + m.groupRows(section.items).map(function (members) {
       const item = members[0], distinct = function (values) { return Array.from(new Map(values.map(function (value) { return [JSON.stringify(value),value]; })).values()); };
       const properties = distinct(members.flatMap(function (entry) { return entry.properties; })), descriptions = distinct(members.map(function (entry) { return entry.description; }));
       const total = members.reduce(function (sum,entry) { return sum + Math.round((entry.value || 0)*100); },0)/100, unknown = members.filter(function (entry) { return entry.value === null; }).length;
-      const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].includes(p.name.toLowerCase()); });
+      const brands = properties.filter(function (p) { return p.name.toLowerCase()==='brand'; }), detailProperties = properties.filter(function (p) { return !['brand','zone','space'].concat(footwear?['color','size','weight']:[]).includes(p.name.toLowerCase()); });
+      if (item.categories.includes('Footwear')) detailProperties.sort(function (a,b) { const rank=function (p) { const i=['type','color','size','weight','mileage'].indexOf(p.name.toLowerCase()); return i<0?99:i; }; return rank(a)-rank(b); });
       const location = function (entry) { const property = function (name) { return entry.properties.find(function (p) { return p.name.toLowerCase()===name; })?.value || ''; }; return {zone:property('zone') || App.config.inventory.locations.find(function (l) { return l.room.toLowerCase()===entry.room.toLowerCase(); })?.zone || '',room:entry.room || '',space:property('space')}; };
-      return '<tr data-item-owner="' + item.owner + '" data-conveyed="'+members.every(function (entry) { return entry.obtainedHow==='Conveyed'; })+'"'+(tableLocationClosed(section.path)?' hidden':'')+'><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + (item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; }) ? '<span class="piece-title">['+esc(item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; }).value)+']</span>' : '') + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.filter(function (p) { return p.name.toLowerCase()!=='set piece'; }).map(function (p) { return '<span class="object-property">'+filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')) + (m.measurement(p).imperial ? '<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>' : '')+'</span>'; }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td><td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
+      return '<tr data-item-owner="' + item.owner + '" data-conveyed="'+members.every(function (entry) { return entry.obtainedHow==='Conveyed'; })+'"'+(!typeGroups && tableLocationClosed(section.path)?' hidden':'')+'><td><div class="object-title">' + brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ') + filterButton('name',item.name,item.name) + (item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; }) ? '<span class="piece-title">['+esc(item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; }).value)+']</span>' : '') + '<span class="visually-hidden">' + (item.owner==='house'?'House-owned':'Personally owned') + '</span></div><div class="object-details">' + descriptions.filter(Boolean).map(function (description) { return filterButton('description',description,description); }).join(' ') + detailProperties.filter(function (p) { return p.name.toLowerCase()!=='set piece'; }).map(function (p) { return p.name.toLowerCase()==='mileage' ? mileageTag(p.value) : '<span class="object-property">'+filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+p.value+(p.unit?' '+p.unit:'')) + (m.measurement(p).imperial ? '<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>' : '')+'</span>'; }).join(' ') + distinct(members.map(function (entry) { return entry.source; })).filter(Boolean).map(function (source) { return filterButton('source',source,'Seller: '+source); }).join(' ') + '<span class="item-tags">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('') + '</span></div></td>' + (footwear?footwearCells(properties):'') + '<td class="item-tag-icons">' + m.orderTags(distinct(members.flatMap(function (entry) { return entry.categories; })),brands.map(function (p) { return p.value; })).map(function (tag) { return '<button type="button" class="tag-icon-filter" data-instant-filter="categories" data-filter-value="'+esc(JSON.stringify(tag))+'" title="'+esc(tag)+'" aria-label="Filter by '+esc(tag)+'">'+App.icons.category(tag)+'</button>'; }).join('') + '</td><td class="item-count">' + members.length + '</td><td class="item-money">' + (members.length === 1 ? filterButton('value',item.value,money(item.value,true)) : filterButton('ids',members.map(function (entry) { return entry.id; }),unknown === members.length ? 'Not valued' : money(total,true)) + '<small>Total' + (unknown ? ' · '+unknown+' unknown' : '') + '</small>') + '</td><td>' + (item.archive ? filterButton('reason',item.archive.reason,item.archive.reason) + '<small>' + filterButton('departureDate',item.archive.date,dateLabel(item.archive.date)) + '</small><small>' + esc(duration(item)) + '</small>' : distinct(members.map(function (entry) { return entry.obtainedDate; })).map(function (date) { return filterButton('obtainedDate',date,dateLabel(date)); }).join(' ') + distinct(members.map(function (entry) { return entry.obtainedHow; })).filter(Boolean).map(function (method) { return '<small>' + filterButton('obtainedHow',method,method) + '</small>'; }).join('')) + '</td><td class="item-age">' + members.map(ageCell).join('') + '</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="' + esc(item.id) + '" aria-label="Edit ' + esc(item.name) + '">' + icon('inventoryEdit') + '</button><button type="button" class="button small" data-row-archive="' + esc(item.id) + '" aria-label="' + (item.archive ? 'Edit departure for ' : 'Archive one ') + esc(item.name) + '">' + icon('inventoryArchive') + '</button></td></tr>';
     }).join(''); }).join('') + '</tbody></table></div>';
   }
 
@@ -842,12 +869,36 @@
     row.innerHTML = '<label class="field"><span>Property</span><input data-property-name list="inventoryPropertyNames" required placeholder="e.g. Weight" value="' + esc(property.name) + '"></label><label class="field"><span>Value</span><input data-property-value placeholder="e.g. 240" value="' + esc(property.value || "") + '"></label><label class="field"><span>Unit (optional)</span><input data-property-unit placeholder="Optional" value="' + esc(property.unit) + '"></label><button class="icon-button" type="button" data-remove-property aria-label="Remove property">' + icon("close") + '</button>';
     const equivalent=document.createElement('small'); equivalent.className='property-equivalent'; equivalent.setAttribute('aria-live','polite'); row.appendChild(equivalent);
     row.addEventListener('input',function () { updateMeasurement(row,false); });
-    row.addEventListener('change',function () { updateMeasurement(row,true); });
+    row.addEventListener('change',function () { updateMeasurement(row,true); ensureRunningMileage(); });
     const endpoint = function () { return ['end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); };
     $('[data-property-value]',row).addEventListener('change', function () { if (endpoint()) this.value = m.cableEnd(this.value); });
-    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['color','size','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else value.removeAttribute("list"); }
+    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['type','color','size','mileage','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const value = $('[data-property-value]', row); if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else { value.removeAttribute("list"); if ($('[data-property-name]',row).value.toLowerCase()==='type') value.placeholder='Running, Walking, Boots…'; } }
     $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions(); updateMeasurement(row,false);
-    $("#itemProperties").appendChild(row); renderPresets(); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
+    $("#itemProperties").appendChild(row); renderPresets(); orderShoeProperties(); if (property.name.toLowerCase()==='mileage') setupMileage(row); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
+  }
+  function orderShoeProperties() {
+    if (!m.tags($('#itemCategories').value).some(function (tag) { return tag.toLowerCase()==='footwear'; })) return;
+    const order=['type','color','size','weight','mileage'];
+    $$('.item-property').sort(function (a,b) { const rank=function (row) { const index=order.indexOf($('[data-property-name]',row).value.toLowerCase()); return index<0?99:index; }; return rank(a)-rank(b); }).forEach(function (row) { $('#itemProperties').appendChild(row); });
+  }
+  function setupMileage(row) {
+    const value=$('[data-property-value]',row); let entries;
+    try { entries=m.mileage(value.value).entries; } catch (_) { return; }
+    value.closest('label').hidden=true; $('[data-property-name]',row).readOnly=true;
+    const editor=document.createElement('div'); editor.className='mileage-editor'; row.appendChild(editor);
+    function sync() {
+      const records=$$('[data-mileage-row]',editor).map(function (entry) { return {month:$('[data-mileage-month]',entry).value,miles:Number($('[data-mileage-miles]',entry).value)}; });
+      value.value=JSON.stringify(records); $('[data-mileage-total]',editor).innerHTML=mileageTag(value.value);
+    }
+    function add(entry) {
+      const line=document.createElement('div'); line.dataset.mileageRow=''; line.innerHTML='<label>Month<input type="month" data-mileage-month required value="'+esc(entry.month)+'"></label><label>Miles<input type="number" data-mileage-miles min="0" step="any" required value="'+esc(String(entry.miles))+'"></label><button type="button" class="button small" aria-label="Remove mileage month">Remove</button>';
+      line.addEventListener('input',sync); $('button',line).addEventListener('click',function () { line.remove(); sync(); }); editor.insertBefore(line,$('[data-add-mileage]',editor));
+    }
+    editor.innerHTML='<button type="button" class="button small" data-add-mileage>Add Month</button><output data-mileage-total aria-live="polite"></output>';
+    entries.forEach(add); $('[data-add-mileage]',editor).addEventListener('click',function () { add({month:'',miles:0}); sync(); $$('[data-mileage-month]',editor).at(-1).focus(); }); sync();
+  }
+  function ensureRunningMileage() {
+    if (m.tags($('#itemCategories').value).includes('Footwear') && /\brunning\b/i.test($$('.item-property').find(function (row) { return $('[data-property-name]',row).value.toLowerCase()==='type'; })?.querySelector('[data-property-value]').value || '') && !$$('[data-property-name]').some(function (el) { return el.value.toLowerCase()==='mileage'; })) addProperty({name:'Mileage',value:'[]',unit:''});
   }
   function renderPresets() {
     const names = $$('[data-property-name]').map(function (el) { return el.value.trim().toLowerCase(); });
@@ -989,6 +1040,7 @@
     values.properties.filter(function (property) { return !["brand", "zone", "space"].includes(property.name.toLowerCase()) && (property.name.toLowerCase()!=="set piece" || item?.archive); }).forEach(function (property) { addProperty(property); });
     $("#itemMoreDetails").open = true;
     $("#itemMoreCount").textContent = values.properties.length || values.description || values.obtainedDate ? (draft ? "· Review Details" : "· Saved Details") : "";
+    if (values.categories.includes('Footwear')) suggestProperties(); ensureRunningMileage(); orderShoeProperties();
     resetSmart(); renderTags(); syncSegments();
     if (draft) {
       $("#itemTagSearch").value = draft._tagSearch || "";
@@ -1033,6 +1085,7 @@
         const value = $("#item" + key).value.trim(), old = previous?.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); });
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
+      item.properties.filter(function (p) { return p.name.toLowerCase()==='mileage'; }).forEach(function (p) { m.mileage(p.value); });
       const next = m.favoriteTag(m.normalizeItem(item),App.storage.getState().preferences.favoriteBrands);
       if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, saveCopyLocations(count)); return; }
       let copies;

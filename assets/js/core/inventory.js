@@ -219,6 +219,20 @@
     });
     return Array.from(groups.values());
   }
+  function mileage(value) {
+    let entries;
+    try { entries = value ? JSON.parse(value) : []; } catch (_) { throw new Error('Mileage needs a list of months and miles.'); }
+    if (!Array.isArray(entries)) throw new Error('Mileage needs a list of months and miles.');
+    const months = new Set();
+    entries.forEach(function (entry) {
+      if (!entry || !/^\d{4}-(0[1-9]|1[0-2])$/.test(entry.month) || typeof entry.miles !== 'number' || !Number.isFinite(entry.miles) || entry.miles < 0) throw new Error('Enter a valid month and non-negative miles for every mileage entry.');
+      if (months.has(entry.month)) throw new Error('Use one mileage entry per month.');
+      months.add(entry.month);
+    });
+    const total = entries.reduce(function (sum, entry) { return sum + entry.miles; }, 0);
+    if (!Number.isFinite(total)) throw new Error('Mileage total is too large.');
+    return {entries:entries,total:total,tone:total >= 500 ? 'red' : total >= 400 ? 'orange' : total >= 300 ? 'yellow' : 'green'};
+  }
   function ownershipAge(item, end) {
     const finish = dateOnly(end || (item.archive ? item.archive.date : today()));
     if (!item.obtainedDate || !finish || finish < item.obtainedDate) return null;
@@ -275,7 +289,7 @@
   ];
   function measurement(property) {
     const result = {value:String(property.value ?? ''), unit:String(property.unit ?? ''), imperial:''};
-    if (['color','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
+    if (['type','mileage','color','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
     const match = result.value.trim().match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s+\d+\/\d+|\/\d+)?)\s*(.*?)$/);
     if (!match) return result;
     const suffix = (match[2] || result.unit).trim().toLowerCase();
@@ -288,5 +302,5 @@
     if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
     return result;
   }
-  App.inventoryModel = { measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

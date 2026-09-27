@@ -1326,3 +1326,34 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 :root[data-theme="dark"] body.had-view { --bg: #1c293b; --surface: #253449; --surface-2: #31435b; --line: #4a5e78; }
 
 .inventory-table tr.location-scroll-measure, .inventory-table tr.location-scroll-measure th { position: static; }
+
+/* Footwear details and ownership averages. */
+.inventory-table { table-layout: auto; }
+.inventory-table thead th:nth-child(n) { width: auto; }
+.inventory-table thead th:first-child { width: 40%; }
+.footwear-table thead th:first-child { width: 30%; }
+.inventory-table .footwear-property, .inventory-table .item-age { text-align: right; white-space: nowrap; }
+.footwear-color { display: inline-block; padding: .15rem .45rem; border-radius: 999px; border: 1px solid #888; }
+.footwear-color .instant-filter { color: white; text-shadow: 0 1px 2px black, 1px 0 2px black, -1px 0 2px black; }
+.item-age-entry + .item-age-entry { margin-top: .4rem; }
+.mileage-tag { display: inline-block; border-radius: 999px; padding: .15rem .5rem; color: #172015; font-weight: 700; }
+.mileage-green { background: #86d893; }
+.mileage-yellow { background: #f5df62; }
+.mileage-orange { background: #ffae58; }
+.mileage-red { background: #b42328; color: white; }
+.mileage-editor { grid-column: 1 / -1; display: grid; gap: .5rem; }
+.mileage-editor [data-mileage-row] { display: flex; gap: .5rem; align-items: end; }
+.mileage-editor label { min-width: 0; flex: 1; }
+.mileage-editor input { width: 100%; }
+@media (max-width: 700px) {
+ .inventory-table td.footwear-property { grid-column: auto; white-space: normal; }
+ .footwear-property::before { content: attr(data-label) ': '; text-transform: capitalize; }
+ .inventory-table td.item-age { grid-column: auto; }
+}
+.inventory-table thead th.footwear-property { text-align: right; }
+@media (max-width: 700px) {
+ .inventory-table tr.footwear-type-heading th:last-child { display: block; grid-column: 1 / -1; }
+ .footwear-table tr[data-item-owner] { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .footwear-table td.item-tag-icons { grid-column: 1; }
+ .inventory-table td.item-age { grid-column: 1 / -1; }
+}

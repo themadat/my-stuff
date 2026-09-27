@@ -34,3 +34,12 @@ test('zone-only and room-only sections precede their descendants',()=>{
  assert.deepEqual(Array.from(m.locationSections(items,true),s=>Array.from(s.path)),[paths[1],paths[0],paths[3],paths[2]]);
  assert.ok(app.config.inventory.locations.find(l=>l.room==='Primary Bedroom').spaces.includes('Memory Box'));
 });
+
+test('monthly mileage totals, thresholds, validation and property round trip',()=>{
+ for (const [total,tone] of [[0,'green'],[299.9,'green'],[300,'yellow'],[400,'orange'],[500,'red']]) assert.equal(m.mileage(JSON.stringify([{month:'2026-01',miles:total}])).tone,tone);
+ const value=JSON.stringify([{month:'2026-01',miles:125.5},{month:'2026-02',miles:180}]);
+ const item=m.normalizeItem({...base,properties:[{name:'Mileage',value}]});
+ assert.equal(m.mileage(item.properties[0].value).total,305.5);
+ for(const entries of [[{month:'2026-13',miles:1}],[{month:'2026-01',miles:-1}],[{month:'2026-01',miles:1},{month:'2026-01',miles:2}]]) assert.throws(()=>m.mileage(JSON.stringify(entries)));
+ assert.throws(()=>m.mileage('not a log'));
+});

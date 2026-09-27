@@ -28,13 +28,14 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('#itemPrice').fill('99.95'); await page.locator('#itemObtainedDate').fill('2025-01-15');
   await page.locator('input[name="itemObtainedHowChoice"][value="Purchased"]').check(); await page.locator('#itemSource').fill('Local outdoor shop');
   await page.locator('[data-category-preset="0"]').click();
-  await page.locator('[data-property-value]').nth(0).fill('9');
+  await page.locator('[data-property-value]').nth(0).fill('Walking');
+  await page.locator('[data-property-value]').nth(2).fill('9');
   await page.locator('[data-property-value]').nth(1).fill('Green');
-  await page.locator('[data-property-value]').nth(2).fill('300');
+  await page.locator('[data-property-value]').nth(3).fill('300');
   await page.locator('[data-category-preset="1"]').click(); await page.locator('[data-category-preset="2"]').click();
-  assert.equal(await page.locator('.item-property').count(), 6);
+  assert.equal(await page.locator('.item-property').count(), 7);
   await page.getByRole('button', { name: 'Remove Backpacking', exact: true }).click(); await page.getByRole('button', { name: 'Remove Cables', exact: true }).click(); await page.locator('#itemTagSearch').fill('Everyday'); await page.locator('#itemTagSearch').press('Enter');
-  assert.equal(await page.locator('.item-property').count(), 6, 'removing a category must not erase properties');
+  assert.equal(await page.locator('.item-property').count(), 7, 'removing a category must not erase properties');
   await page.locator('#saveItemButton').click();
   assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),false,await page.locator('#itemForm').evaluate(el=>JSON.stringify({error:el.querySelector('#itemFormError').textContent,invalid:Array.from(el.querySelectorAll(':invalid')).map(x=>[x.id,x.value,x.validationMessage])})));
   await page.reload();
@@ -64,7 +65,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('[data-inventory-view="previous"]').click();
   assert.match(await page.locator('#inventoryList').textContent(), /Broken.*365 days owned/);
   await page.locator('[data-edit-item]').click();
-  assert.equal(await page.locator('.item-property').count(), 6);
+  assert.equal(await page.locator('.item-property').count(), 7);
   assert.match(await page.locator('#itemArchiveSummary').textContent(), /Sole separated/);
   await page.locator('#restoreItemButton').click(); await page.locator('[data-confirm-action]').click();
   await page.locator('[data-inventory-view="have"]').click();
@@ -1752,4 +1753,34 @@ test('location links scroll back to pinned Outside zone room and space headings'
    assert.equal(result.focused,true);
   }
  }
+});
+
+test('Footwear type view, monthly mileage and age costs work on desktop and mobile', {timeout:60000}, async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Running test shoe');
+ await page.locator('#itemValue').fill('120'); await page.locator('#itemObtainedDate').fill('2025-01-01');
+ await page.locator('[data-category-preset="0"]').click();
+ assert.deepEqual(await page.locator('[data-property-name]').evaluateAll(els=>els.map(el=>el.value)),['Type','Color','Size','Weight']);
+ const prop=name=>page.locator('.item-property').filter({has:page.locator('[data-property-name][value="'+name+'"]')}).locator('[data-property-value]');
+ await prop('Type').fill('Running'); await prop('Color').fill('Blue'); await prop('Size').fill('10'); await prop('Weight').fill('9');
+ await page.locator('[data-add-mileage]').click();
+ await page.locator('[data-mileage-month]').fill('2026-01'); await page.locator('[data-mileage-miles]').fill('305');
+ await page.locator('#saveItemButton').click(); await page.locator('#itemDialog').waitFor({state:'hidden'});
+ await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ assert.equal(await page.locator('.footwear-table').count(),1);
+ assert.match(await page.locator('.location-section-heading').innerText(),/Running/);
+ assert.equal(await page.locator('.footwear-color').innerText(),'Blue');
+ assert.equal(await page.locator('#inventoryList .mileage-yellow').innerText(),'305 mi');
+ assert.match(await page.locator('.item-age').innerText(),/\dy \dm/);
+ await page.locator('[data-age-cost]').click(); assert.match(await page.locator('[data-age-cost]').innerText(),/\/yr/);
+ await page.setViewportSize({width:390,height:844});
+ assert.ok(await page.locator('.footwear-color').isVisible());
+ assert.ok(await page.locator('.footwear-type-heading th').isVisible());
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.locator('[data-edit-item]').click();
+ assert.equal(await page.locator('[data-mileage-miles]').inputValue(),'305');
+ await page.locator('[data-mileage-miles]').fill('500'); await page.locator('#saveItemButton').click();
+ assert.equal(await page.locator('#inventoryList .mileage-red').innerText(),'500 mi');
 });

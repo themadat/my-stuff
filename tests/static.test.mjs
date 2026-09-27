@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 const root = new URL('../', import.meta.url);
 const read = file => readFileSync(new URL(file, root), 'utf8');
@@ -11,7 +12,7 @@ const config = context.window.LocalApp.config;
 
 test('runtime scripts parse without a build step', () => {
   const files = ['sw.js', ...['assets/js/', 'assets/js/core/'].flatMap(dir => readdirSync(new URL(dir, root)).filter(file => file.endsWith('.js')).map(file => dir + file))];
-  for (const file of files) execFileSync(process.execPath, ['--check', new URL(file, root).pathname]);
+  for (const file of files) execFileSync(process.execPath, ['--check', fileURLToPath(new URL(file, root))]);
 });
 
 test('release, HTML, install assets, deployment label and offline cache align', () => {

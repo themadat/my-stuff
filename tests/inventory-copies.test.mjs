@@ -31,7 +31,8 @@ test('settings catalog preserves hierarchy, all tag groups, category property gr
   const catalog = app.inventoryCatalog.data([{ ...item, room: 'Studio', categories: ['Handmade'], properties: [{ name: 'Zone', value: 'Annex' }, { name: 'Space', value: 'Shelf' }, { name: 'Color', value: 'Teal' }, { name: 'Finish', value: 'Matte' }] }]);
   assert.deepEqual(Array.from(catalog.locations, z => z.name).sort(), ['Main Level','Outside','Upstairs']);
   assert.equal(catalog.tagGroups.find(g => g.name === 'Custom Tags').tags[0], 'Handmade');
-  for (const group of app.config.inventory.tagGroups) assert.equal(catalog.tagGroups.find(g => g.name === group.name).tags.length, group.tags.length);
+  for (const group of app.config.inventory.tagGroups) if (group.name !== 'Brands') assert.equal(catalog.tagGroups.find(g => g.name === group.name).tags.length, group.tags.length);
+  assert.ok(catalog.tagGroups.find(g => g.name === 'Brands').tags.length >= app.config.inventory.tagGroups.find(g => g.name === 'Brands').tags.length);
   assert.ok(catalog.propertyGroups.find(g => g.name === 'Common Properties').properties.find(p => p.name === 'Color').values.includes('Teal'));
   assert.ok(catalog.propertyGroups.find(g => g.name === 'Footwear').properties.some(p => p.name === 'Weight'));
   assert.equal(catalog.propertyGroups.find(g => g.name === 'Custom Properties').properties[0].name, 'Finish');
@@ -229,7 +230,7 @@ test('preset tags occur in one category and merged aliases retain preset propert
  for (const preset of app.config.inventory.categories) assert.equal(groups.filter(g=>g.tags.includes(preset.name)).length,1,preset.name);
  assert.deepEqual(Array.from(app.inventoryModel.tags(['Shoes','Footware','Footwear','Backpacking gear','Backpacking'])),['Footwear','Backpacking']);
  assert.ok(groups.find(g=>g.name==='Tech').tags.includes('Headphones'));
- assert.match(app.inventoryCatalog.presetDescription('Shoes'),/Size.*Color.*Weight/);
+ assert.match(app.inventoryCatalog.presetDescription('Shoes'),/Type.*Color.*Size.*Weight/);
  assert.equal(app.inventoryCatalog.presetDescription('Headphones'),'');
 });
 test('brand sorting is alphabetical, then object name, with unknown brands last', () => {
