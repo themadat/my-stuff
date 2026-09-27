@@ -448,7 +448,7 @@ test('smart completion preserves manual corrections, searchable locations and mu
   await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   assert.equal(await page.locator('input[name="itemOwnerChoice"][value="me"]').isChecked(), true);
   assert.equal(await page.locator('input[name="itemObtainedHowChoice"][value="Purchased"]').isChecked(), true);
-  await page.locator('#smartExample').click();
+  await page.locator('#itemSmartEntry').fill(await page.evaluate(()=>LocalApp.smartEntry.example));
   assert.equal(await page.locator('#itemObtainedDate').inputValue(), '2026-08-03');
   assert.equal(await page.locator('#itemName').inputValue(), 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand');
   assert.equal(await page.locator('#itemMoreDetails').evaluate(el => el.open), true);
@@ -505,7 +505,7 @@ test('wide item modal shows the dated sample and expanded details without scroll
     const { page } = await fixture(t, { viewport });
     await page.locator('[data-close-dialog="supportDialog"]').click();
     await page.locator('#addItemButton').click(); await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
-    await page.locator('#smartExample').click();
+    await page.locator('#itemSmartEntry').fill(await page.evaluate(()=>LocalApp.smartEntry.example));
     const rows = await Promise.all(['#itemSource', '#itemBrand', '#itemName'].map(id => page.locator(id).boundingBox()));
     assert.ok(rows.every(row => Math.abs(row.y - rows[0].y) < 2), 'seller, brand and object share a row');
     assert.equal(await page.locator('#itemMoreDetails').evaluate(el => el.open), true);
@@ -780,7 +780,7 @@ test('bulk review stays usable on desktop and enlarged mobile screens and saves 
   await page.screenshot({ path: '/private/tmp/my-stuff-bulk-desktop-import.png' });
   await page.locator('#startBulkReview').click(); await page.waitForFunction(() => document.activeElement.id === 'itemName');
   assert.equal(await page.locator('#itemDialog').evaluate(el => el.scrollWidth <= el.clientWidth), true);
-  assert.equal(await page.locator('#smartPreview').isVisible(), true, 'each bulk row displays Smart Complete');
+  assert.equal(await page.locator('#itemSmartEntry').isVisible(), true, 'each bulk row displays the Smart Complete input');
   await page.screenshot({ path: '/private/tmp/my-stuff-bulk-desktop-review.png' });
   await page.locator('[data-inv-close="itemDialog"]').filter({ hasText: 'Pause' }).click();
   await page.setViewportSize({ width: 320, height: 844 });
@@ -799,14 +799,14 @@ test('bulk review stays usable on desktop and enlarged mobile screens and saves 
 });
 
 
-test('bulk inventory Smart Complete highlights each row, protects corrections, and persists Water volume', { timeout: 30000 }, async t => {
+test('bulk inventory Smart Complete parses each row, protects corrections, and persists Water volume', { timeout: 30000 }, async t => {
   const { page } = await fixture(t, { viewport: { width: 1366, height: 900 } });
   await page.locator('[data-close-dialog="supportDialog"]').click(); await page.locator('#bulkEntryButton').click();
   const row = 'Floating\tWater\t09/22/24\t$12\t\tAmazon - Vapur Flexible, Collapsible Wide Mouth Anti-Bottle with Detachable Carabiner, 23 Ounce, Fire, Pack of 2 [24], Float';
   await page.locator('#bulkPaste').fill(row + '\nOffice\tCable\t09/23/24\t$5\tUSB cable'); await page.locator('#readBulkPaste').click(); await page.locator('#startBulkReview').click();
   await page.waitForFunction(() => document.activeElement.id === 'itemName');
   assert.equal(await page.locator('#itemSmartEntry').inputValue(), row);
-  assert.equal(await page.locator('#smartPreview').isVisible(), true);
+  assert.equal(await page.locator('#smartPreview').isVisible(), false);
   assert.equal(await page.locator('#itemRoom').inputValue(), 'Nook'); assert.equal(await page.locator('#itemSpace').inputValue(), 'Floating');
   assert.equal(await page.locator('#itemBrand').inputValue(), 'Vapur');
   assert.equal(await page.locator('#itemObtainedDate').inputValue(), '2024-09-22');
@@ -817,7 +817,7 @@ test('bulk inventory Smart Complete highlights each row, protects corrections, a
   assert.equal(await page.locator('#itemName').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
   assert.equal(await volume.locator('[data-property-value]').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
   await page.screenshot({ path: '/private/tmp/my-stuff-smart16-sample.png' });
-  await page.locator('[data-smart-target="categories"]').click(); assert.equal(await page.locator('#itemTagSearch').evaluate(el => el === document.activeElement), true);
+  assert.equal(await page.locator('#itemTagSearch').isVisible(),true);
   await page.locator('#itemName').fill('My Vapur Bottle'); await volume.locator('[data-property-value]').fill('24');
   await page.locator('#itemRoom').fill('Kitchen');
   assert.equal(await page.locator('#itemSpace').inputValue(), '');
@@ -832,7 +832,7 @@ test('bulk inventory Smart Complete highlights each row, protects corrections, a
   assert.match(await page.locator('#smartPreview').textContent(), /09\/23\/24/);
   const item = await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0]);
   assert.equal(item.properties.find(p=>p.name==='Volume').value, '24');
-  assert.deepEqual(item.categories, ['Water Bottles']);
+  assert.deepEqual(item.categories, ['Water Bottles','Float']);
 });
 
 
@@ -1659,4 +1659,33 @@ test('Conveyed defaults and Glassware capacity are visible, editable and mobile 
  const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');await page.locator('#itemName').fill('Glass');await page.locator('input[name="itemObtainedHowChoice"][value="Conveyed"]').check();assert.equal(await page.locator('#itemPrice').inputValue(),'0');assert.equal(await page.locator('#itemObtainedDate').inputValue(),'2020-12-17');
  await page.locator('#itemTagSearch').fill('Glassware');await page.locator('#itemTagSearch').press('Enter');const capacity=page.locator('.item-property').filter({has:page.locator('[data-property-name][value="Capacity"]')});assert.equal(await capacity.locator('[data-property-unit]').inputValue(),'oz');
  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.querySelector('#itemDialog').scrollWidth<=innerWidth),true);await page.screenshot({path:'/private/tmp/details73-mobile.png'});await page.locator('#saveItemButton').click();
+});
+
+test('compact Add supports summed piece values, ownership shortcuts and shared acquisition', {timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width:1800,height:1100}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ assert.equal(await page.locator('.smart-heading').count(),0);assert.equal(await page.locator('#itemDialog').evaluate(el=>el.getBoundingClientRect().width>1320),true);
+ await page.locator('#itemName').fill('Weather station');await page.locator('#itemCopies').fill('2');await page.locator('#itemIsSet').check();await page.locator('#itemPrice').fill('100');await page.locator('#itemValue').fill('100');
+ await page.locator('[data-copy-piece]').nth(0).fill('Display');await page.locator('[data-copy-piece]').nth(1).fill('Sensor');await page.locator('[data-copy-value]').nth(0).fill('70');await page.locator('[data-copy-value]').nth(1).fill('20');assert.equal(await page.locator('#itemValue').inputValue(),'90.00');
+ await page.locator('[data-copy-room]').nth(0).fill('Kitchen');await page.locator('[data-copy-room]').nth(1).fill('Yard');
+ const fields=await Promise.all(['.piece-name input','.piece-value input','.copy-date [data-copy-date]'].map(s=>page.locator('[data-copy-location]').first().locator(s).boundingBox()));assert.ok(Math.max(...fields.map(b=>b.y))-Math.min(...fields.map(b=>b.y))<3);
+ await page.locator('#itemPriceToggle').focus();await page.keyboard.press('h');assert.equal(await page.locator('#itemOwner').inputValue(),'house');await page.keyboard.press('m');assert.equal(await page.locator('#itemOwner').inputValue(),'me');await page.keyboard.press('h');
+ await page.locator('#itemName').focus();await page.keyboard.type('m');assert.equal(await page.locator('#itemOwner').inputValue(),'house');await page.locator('#itemName').fill('Weather station');
+ await page.locator('#itemPriceToggle').click();assert.equal(await page.locator('#itemPriceMode').inputValue(),'each');await page.locator('#itemPriceToggle').click();
+ await page.locator('#itemName').scrollIntoViewIfNeeded();await page.screenshot({path:'/private/tmp/add74-desktop.png'});
+ await page.setViewportSize({width:390,height:844});await page.locator('[data-copy-location]').first().scrollIntoViewIfNeeded();assert.equal(await page.locator('.copy-room-grid').evaluate(el=>el.scrollWidth<=el.clientWidth),true);await page.screenshot({path:'/private/tmp/add74-mobile.png'});await page.locator('#saveItemButton').click();
+ let items=await page.evaluate(()=>LocalApp.storage.getState().inventory.items);assert.deepEqual(items.map(i=>i.value),[70,20]);assert.equal(items.reduce((s,i)=>s+i.price,0),100);
+ assert.match(await page.locator('#inventoryList').innerText(),/\[Display\]/);assert.match(await page.locator('#inventoryList').innerText(),/\[Sensor\]/);
+ await page.setViewportSize({width:1800,height:1100});await page.locator('[data-edit-item]').first().click();await page.waitForFunction(()=>document.activeElement.id==='itemName');await page.locator('input[name="itemObtainedHowChoice"][value="Conveyed"]').check();await page.locator('#saveItemButton').click();await page.reload();
+ items=await page.evaluate(()=>LocalApp.storage.getState().inventory.items);assert.ok(items.every(i=>i.obtainedHow==='Conveyed'&&i.price===0&&i.owner==='house'));assert.deepEqual(items.map(i=>i.value).sort((a,b)=>a-b),[20,70]);assert.equal(await page.locator('tr[data-conveyed="true"]').count(),2);
+ const heads=await page.locator('.location-section-heading').allTextContents();assert.ok(heads.findIndex(s=>s.includes('Outside'))<heads.findIndex(s=>s.includes('Main Level')));
+});
+
+test('ordinary copies share conveyed status and muted house colors',async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>LocalApp.storage.mutate(s=>{s.inventory.items=[{id:'a',name:'Lamp',owner:'house',room:'Kitchen',obtainedHow:'Purchased',price:50,value:30},{id:'b',name:'Lamp',owner:'house',room:'Kitchen',obtainedHow:'Gift',price:20,value:40},{id:'c',name:'Table',owner:'house',room:'Kitchen',obtainedHow:'Purchased',price:100,value:100}].map(LocalApp.inventoryModel.normalizeItem);}));
+ await page.locator('[data-edit-item="a"]').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');await page.locator('input[name="itemObtainedHowChoice"][value="Conveyed"]').check();await page.locator('#saveItemButton').click();
+ const lamps=await page.evaluate(()=>LocalApp.storage.getState().inventory.items.filter(i=>i.name==='Lamp'));assert.ok(lamps.every(i=>i.obtainedHow==='Conveyed'&&i.price===0));const row=page.locator('tr[data-conveyed="true"]');assert.equal(await row.count(),1);assert.equal(await row.locator('[data-instant-filter="obtainedHow"]').count(),1);assert.equal(await row.locator('[data-instant-filter="obtainedHow"]').textContent(),'Conveyed');
+ for(const theme of ['light','dark']) {await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);const colors=await page.locator('tr[data-item-owner="house"]').evaluateAll(rows=>rows.map(row=>getComputedStyle(row.querySelector('[data-instant-filter="name"]')).color));assert.notEqual(colors[0],colors[1]);}
+ await page.screenshot({path:'/private/tmp/conveyed74-dark.png'});
 });

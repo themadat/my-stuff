@@ -21,3 +21,9 @@ test('Conveyed parsing supplies the specified acquisition defaults',()=>{
  assert.equal(m.normalizeItem({...base,obtainedHow:'Conveyed'}).obtainedHow,'Conveyed');
  assert.equal(app.config.inventory.categories.find(c=>c.name==='Glassware').properties[0].unit,'oz');
 });
+
+test('inventory display orders zones like the sidebar and keeps named pieces separate in one room',()=>{
+ const pieces=m.createCopies(base,2,[{piece:'Base',room:'Kitchen'},{piece:'Sensor',room:'Kitchen'}]);assert.equal(m.groupRows(pieces).length,2);
+ const items=['Office','Kitchen','Yard'].map((room,i)=>m.normalizeItem({...base,id:'order'+i,room}));
+ assert.deepEqual(Array.from(m.locationSections(items,true),s=>s.path[0]),['Outside','Main Level','Upstairs']);
+});

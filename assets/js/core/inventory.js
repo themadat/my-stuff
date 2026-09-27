@@ -191,7 +191,7 @@
     const brand = function (item) { return item.properties.find(function (p) { return p.name.toLowerCase()==='brand'; })?.value || '\uffff'; };
     return brand(a).localeCompare(brand(b),undefined,{sensitivity:'base',numeric:true}) || a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true});
   }
-  function locationSections(items) {
+  function locationSections(items, ordered) {
     const sections = new Map();
     items.forEach(function (item) {
       const path = itemLocation(item), key = JSON.stringify(path);
@@ -199,6 +199,9 @@
       sections.get(key).items.push(item);
     });
     return Array.from(sections.values()).sort(function (a,b) {
+      const order=App.config.inventory.zoneOrder || [];
+      const rank=function (zone) { const i=order.indexOf(zone); return i<0?order.length:i; };
+      const zoneDifference=rank(a.path[0])-rank(b.path[0]); if (ordered && zoneDifference) return zoneDifference;
       const known = Number(a.path.some(Boolean)) - Number(b.path.some(Boolean));
       if (known) return known;
       for (let i=0;i<3;i++) {
@@ -211,7 +214,7 @@
   function groupRows(items) {
     const groups = new Map();
     items.forEach(function (item) {
-      const key = JSON.stringify([objectKey(item),itemLocation(item).map(function (value) { return value.toLowerCase(); }),item.archive ? item.id : null]);
+      const key = JSON.stringify([objectKey(item),item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; })?.value || '',itemLocation(item).map(function (value) { return value.toLowerCase(); }),item.archive ? item.id : null]);
       if (!groups.has(key)) groups.set(key,[]); groups.get(key).push(item);
     });
     return Array.from(groups.values());

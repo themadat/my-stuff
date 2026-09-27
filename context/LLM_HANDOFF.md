@@ -1,3 +1,13 @@
+## Latest Update — Compact Add, Piece Values and Shared Acquisition (0.0.1.74)
+
+Around the House rows tighten again to 18px desktop/22px mobile. Inventory location sections explicitly use the same Outside/Main Level/Upstairs order as the sidebar; the model’s default ordering remains available to other consumers. House-owned conveyed rows use a muted brown-yellow background/title/brand palette in both themes. Editing acquisition method applies it to every copy; Conveyed price defaults apply to every copy too, eliminating mixed obtained statuses after saving.
+
+Named pieces have separate table rows even in one room and show Object [Piece]. Their Value inputs sum into Total Current Value; editing that total redistributes it in cents across pieces. Each piece needs a value (0 is valid). Existing per-piece values survive reopen and save. Piece Name, Value and Date form the first desktop row, with the previous location/color/size/notes controls below. Compact mobile rows retain visible controls.
+
+The Add modal widens to 1680px with responsive viewport limits. Quantity, one-click Total/Per item pricing toggle, set checkbox and price explanation share one line (scrollable on small screens). Zone/Room/Space/Tags/Notes share a desktop row in 15/15/15/25/30 proportions. Currency suffixes are removed from Add headings. Smart Complete is a single input bar with placeholder instructions; parsing and correction protection remain, while visible preview/destination UI and Try Example are removed. M/H select Me/House outside text fields in the editor, with underlined letters; typing and nested dialogs are protected.
+
+Verification: 130 non-browser checks and eight targeted Chromium checks pass for ordering, same-room piece separation, exact piece/price totals, reload, conveyed ordinary copies and sets, dark/light palette, shortcuts, responsive layout, bulk parsing/review and offline operation. Desktop/mobile screenshots reviewed. Updated obsolete Smart Complete visibility/example expectations and the existing Float fixture expectation. Versions, queries, manifests, cache and workflow align at .74; scripts/diffs pass. Unrelated manual test edits preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Location Progress, Pieces, Pricing and Dates (0.0.1.73)
 
 Replaced per-room space completion with a single overall reviewed-location percentage above the date column, formatted to two decimals. Areas/zones, rooms and spaces each count once when their Last Updated date is present; the full configured and saved-item location list determines progress independently of filtering. Removed the old space-progress UI/CSS. Sidebar rows tightened to 22px desktop and 26px mobile; Last Updated now uses a native date picker.
