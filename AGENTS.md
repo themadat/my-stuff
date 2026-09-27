@@ -1,38 +1,33 @@
 # My Stuff — Agent Instructions
 
-Static, local-first HTML/CSS/JavaScript application. There is no required build step, runtime dependency, backend, account, or sign-in. Read `context/LLM_HANDOFF.md` and `context/WISHES.md` before implementation.
+Static, local-first HTML/CSS/JavaScript. No required build step, runtime dependencies, backend or sign-in.
 
-## Session start
+## Context and working rules
 
-1. Run `git status --short`; preserve existing and manual edits.
-2. Read the handoff and wish ledger.
-3. For in-flight work, inspect the latest commits, branch diff, and the plan’s `## Resume` section.
+- At task start, run `git status --short` and read `context/LLM_HANDOFF.md` once. Preserve unrelated/manual edits. On follow-ups, inspect only relevant changes; check status before editing.
+- Read `context/WISHES.md` only for wish/plan work or a referenced wish. Read plans, history and diffs only as needed to resume or investigate.
+- Keep the handoff under 500 words: current state, unfinished work, constraints, useful file/command pointers. Replace stale content; do not append release narratives. Git and release notes retain history.
+- Search narrowly with `rg`; read relevant ranges. Show test summaries and failures, not passing-test listings or server logs. Reuse known helpers. Keep updates and final answers concise.
+- Batch related requests. After a completed batch, prefer a fresh task with the short handoff; do not create a new task without the user's request.
+- Keep edits narrow and runtime dependency-free. Preserve existing inventory, Notes, Settings, local storage, recovery, backup/import, optional GitHub Sync and PWA behavior. Do not invent data models or restore removed interfaces without a request.
+- Use labelled semantic controls, visible focus, escaped user text, safe URLs and shared SVG symbols.
+- Identity, storage namespaces and current version live in `assets/js/config.js`. Consult Help/release history only when relevant.
 
-## Working rules
+## Development and releases
 
-- Search with `rg`, keep edits narrow, and do not reformat unrelated code.
-- Keep the runtime static and dependency-free.
-- Central identity, versions, storage namespaces, release data, Help, and Roadmap live in `assets/js/config.js`.
-- Preserve the focused foundation: header with centered support search, blank main workspace, one Notes modal, Settings, combined local/sync status, recovery, backup/import, optional GitHub Sync, and PWA/offline behavior.
-- Do not invent a product data model or restore previously removed interfaces without an explicit request.
-- Use semantic HTML, labelled controls, visible focus, safe URLs, escaped user text, and shared inline SVG interface symbols.
-- Versions use `major.minor.patch.build`. Every completed application update increments `build`; keep every version, query, cache, release, and workflow surface aligned. Reset alone may return a copy to `0.0.1.1`.
-- Verify scripts, manifests, diffs, asset paths, and affected desktop/mobile/offline flows. Stop preview servers before handoff.
+- Batch application edits into one release. Do not bump versions or write release notes after each small edit. Documentation/tooling-only changes need no app version bump.
+- Before publishing/installing a batch or when asked to `cut`, increment the four-part build once and align every version/cache surface with `scripts/release.mjs`. Keep cache invalidation intact. Reset alone may return to `0.0.1.1`.
+- During development, run targeted checks appropriate to the change. Add regression tests for behavior bugs; avoid tests that merely mirror trivial static edits. Inspect screenshots only when they resolve a visual question.
+- At release, run the full non-browser suite, relevant desktop/mobile browser flows, offline smoke check, and diff checks. Stop preview servers afterward. See `docs/DEVELOPMENT.md` for concise commands.
+- Do not commit or push unless explicitly requested. Provide a task-file-only staging/commit/push command only at release handoff or on request; commit subject `Version - Text`. Never include unrelated changes.
 
-## Lifecycle shorthands
+## Lifecycle
 
-- `reset`: follow `docs/RESET.md`; transform a confirmed copy to a clean `0.0.1.1` foundation.
-- `wish`: capture one scoped idea in `context/WISHES.md`; do not plan or implement it.
-- `plan`: investigate a wish and write `context/WISH-###-slug-PLAN.md`; do not implement it.
-- `start`: implement an approved plan, update Resume, advance versions, and verify.
-- `cut`: finalize the active line, align release/version surfaces, close the wish, and run the full checklist.
+- `wish`: record one scoped idea in `context/WISHES.md`; no implementation.
+- `plan`: investigate and write `context/WISH-###-slug-PLAN.md`; no implementation.
+- `start`: implement the approved plan and update its Resume section; release at the batch boundary.
+- `cut`: finalize the batch, align release/version surfaces, close its wish, and run release checks.
+- `reset`: follow `docs/RESET.md` for a confirmed copy.
+- `continue`: inspect status and relevant unfinished work, then resume. Do not create another tracking file.
 
-Never silently advance between lifecycle stages.
-
-## `continue`
-
-When the user sends only `continue`, inspect Git status, recent changes, and any existing handoff or plan, then resume unfinished work. Do not create a replacement status file or tracking system.
-
-## End of turn
-
-After changing files, provide a concise outcome and verification result, then exactly one copy-paste shell command that stages only task files, commits with subject `Version - Text`, and pushes the current branch. Use `git add .` only when every change belongs to the request. Do not run commit or push unless explicitly requested. If no files changed, do not suggest a commit.
+Never silently advance lifecycle stages. A direct implementation request authorizes its scoped work.
