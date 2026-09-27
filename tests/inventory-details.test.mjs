@@ -58,3 +58,28 @@ test('weight display retains precision in storage and row sorting uses numeric v
  assert.ok(m.compareRows(row('Cheap','', '10',5),row('Costly','','10',100),'value','ascending')<0);
  assert.ok(m.compareRows([...light,...heavy],light,'count','ascending')>0);
 });
+
+test('shoe geometry preserves heel-to-toe stacks and independent drop measurements',()=>{
+ const stack=m.measurement({name:'Stack Height',value:'31->25',unit:'mm'});
+ assert.equal(stack.value,'31→25');assert.equal(stack.unit,'mm');assert.equal(stack.imperial,'');
+ assert.equal(m.measurement({name:'Stack Height',value:'31.5 → 25.5 mm',unit:''}).value,'31.5→25.5');
+ assert.equal(m.measurement({name:'Drop',value:'6mm',unit:''}).value,'6');
+ const shoe=m.normalizeItem({...base,categories:['Footwear'],properties:[{name:'Stack Height',value:'',unit:'mm'},{name:'Drop',value:'6',unit:'mm'}]});
+ assert.equal(shoe.properties[0].value,'');assert.equal(shoe.properties[1].value,'6');
+ const row=value=>[m.normalizeItem({...base,properties:[{name:'Stack Height',value,unit:'mm'}]})];
+ assert.ok(m.compareRows(row('9->5'),row('31->25'),'stack height','ascending')<0);
+ assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Inactive']);
+ assert.ok(app.config.inventory.tagGroups.find(g=>g.name==='Systems').tags.includes('Network'));
+});
+
+test('copies and pieces share one age and combined cost without inventing missing data',()=>{
+ const rows=[m.normalizeItem({...base,id:'a',obtainedDate:'2024-01-01',price:60,value:60}),m.normalizeItem({...base,id:'b',obtainedDate:'2024-07-01',price:40,value:40})];
+ const summary=m.ownershipSummary(rows,'2025-01-01');assert.equal(summary.years,1);assert.equal(summary.months,0);assert.equal(summary.annualValue,100);
+ assert.equal(m.ownershipSummary([rows[0],{...rows[1],obtainedDate:''}],'2025-01-01'),null);
+ assert.equal(m.ownershipSummary([rows[0],{...rows[1],price:null,value:null}],'2025-01-01').annualValue,null);
+ assert.equal(m.ownershipSummary([{...rows[0],price:0,value:0}],'2025-01-01').annualValue,0);
+ assert.equal(m.ownershipSummary(rows,'2024-01-01').annualValue,null);
+ const gone=rows.map(row=>({...row,archive:{date:'2025-01-01',reason:'Sold'}}));
+ assert.equal(m.ownershipSummary(gone).annualValue,100);
+ assert.equal(m.ownershipSummary([{...gone[0],archive:{date:'',reason:'Sold'}},gone[1]]),null);
+});

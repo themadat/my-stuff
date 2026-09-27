@@ -2,18 +2,20 @@
 
 ## State
 
-Application version: **0.0.1.77**. The initial Footwear/age/mileage implementation is now in the clean baseline (working tree was clean when this follow-up began).
+Release **0.0.1.78** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label are aligned with `scripts/release.mjs`. Release notes include the prior Footwear/age/mileage work whose build remained 0.0.1.77.
 
-Pending follow-up: yearly cost is now the default under Age; clicking toggles monthly/yearly. Shoe color pills preserve exact color/shade names, then scan words from the end, so “Blue Lagoon Bristol Blue” uses blue. Footwear column headers toggle ascending/descending sorting within Type/location groups, with a mobile selector. Sorting handles natural numeric sizes, weight-unit conversion, copy counts, combined values, dates and ages; missing values stay last. Numeric weight labels show two decimals without changing stored values. Help updated.
+New work: Footwear has Stack Height and Drop after Weight, defaulting to mm. Stack Height accepts heel-to-toe pairs and combined input `31->25 | 6mm`; Drop works independently. Both columns sort numerically. Network is under Systems with the user-supplied SVG and a Connection Type dropdown (Wi-Fi 2.4 GHz, Wi-Fi 5.0 GHz, Ethernet, Inactive).
 
-Verification: 13 targeted non-browser checks passed (inventory-details and static); 3 desktop/mobile browser flows passed (existing inventory editor/archive, Footwear/mileage/age/color/weight, and sorting). Diff checks passed. Preview server stopped. No version bump, commit, push or release in this follow-up. Full release/offline checks remain for cut.
+Copies in a row and linked copies/pieces now show one ownership summary: earliest obtained date and total obtaining cost, with annual/monthly toggle shared across linked rows within Have or Had. Unknown dates/costs remain unknown. Archived summaries end at the latest known departure. Fields use existing property/copy storage; backup/sync models are unchanged.
 
-## Constraints
+Verification: full non-browser suite **138 passed**; **7 distinct browser flows passed**, including desktop/mobile Footwear, geometry, Network persistence, copies/pieces, existing editor/archive/measurement behavior, and service-worker offline reload. Desktop/mobile geometry screenshots inspected. Updated stale test expectations for tag count and the existing unknown-date control. Diff checks passed. Local preview stopped.
 
-- Static, dependency-free runtime. Preserve backup, sync, recovery and local storage behavior.
-- No commit/push without explicit authorization. Version/cache alignment remains mandatory before publishing.
-- Current changes belong to this follow-up; no unrelated working-tree edits were present at start.
-- Handoff stays under 500 words. Use targeted checks during development; full suite and relevant browser/offline checks at release.
+## Constraints and user preferences
+
+- User deploys by pushing `main`. Increment the four-part build once per completed application batch and run release checks before supplying deployment commands.
+- After every completed-work summary include `git add .`, a `Version - Description` commit subject, and `git push origin main`. User explicitly prefers staging everything. Provide commands; do not execute commit/push unless requested.
+- Runtime stays static and dependency-free. Preserve backup, sync, recovery and local storage.
+- Working tree was clean at this batch’s start. Keep this handoff under 500 words.
 
 ## Useful pointers
 

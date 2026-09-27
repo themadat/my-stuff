@@ -33,9 +33,9 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('[data-property-value]').nth(1).fill('Green');
   await page.locator('[data-property-value]').nth(3).fill('300');
   await page.locator('[data-category-preset="1"]').click(); await page.locator('[data-category-preset="2"]').click();
-  assert.equal(await page.locator('.item-property').count(), 7);
+  assert.equal(await page.locator('.item-property').count(), 9);
   await page.getByRole('button', { name: 'Remove Backpacking', exact: true }).click(); await page.getByRole('button', { name: 'Remove Cables', exact: true }).click(); await page.locator('#itemTagSearch').fill('Everyday'); await page.locator('#itemTagSearch').press('Enter');
-  assert.equal(await page.locator('.item-property').count(), 7, 'removing a category must not erase properties');
+  assert.equal(await page.locator('.item-property').count(), 9, 'removing a category must not erase properties');
   await page.locator('#saveItemButton').click();
   assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),false,await page.locator('#itemForm').evaluate(el=>JSON.stringify({error:el.querySelector('#itemFormError').textContent,invalid:Array.from(el.querySelectorAll(':invalid')).map(x=>[x.id,x.value,x.validationMessage])})));
   await page.reload();
@@ -65,7 +65,7 @@ test('inventory editor, category properties, ownership totals, filters, archive 
   await page.locator('[data-inventory-view="previous"]').click();
   assert.match(await page.locator('#inventoryList').textContent(), /Broken.*365 days owned/);
   await page.locator('[data-edit-item]').click();
-  assert.equal(await page.locator('.item-property').count(), 7);
+  assert.equal(await page.locator('.item-property').count(), 9);
   assert.match(await page.locator('#itemArchiveSummary').textContent(), /Sole separated/);
   await page.locator('#restoreItemButton').click(); await page.locator('[data-confirm-action]').click();
   await page.locator('[data-inventory-view="have"]').click();
@@ -1164,7 +1164,7 @@ test('compact item form parses measurements and hovered row shortcuts respect ty
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#addItemButton').click(); await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.locator('#itemName').fill('Metric Bottle');
- assert.equal(await page.locator('#itemObtainedDate').isDisabled(),true);
+ assert.equal(await page.locator('.obtained-date-input').getAttribute('data-unknown'),'true');
  await page.locator('#itemDateUnknown').uncheck(); await page.locator('#itemObtainedDate').fill('2026-09-14');
  await page.locator('#itemDateUnknown').check(); assert.equal(await page.locator('#itemObtainedDate').inputValue(),'');
  const tags=await page.locator('#itemTagSearch').boundingBox(), notes=await page.locator('#itemDescription').boundingBox();
@@ -1762,7 +1762,7 @@ test('Footwear type view, monthly mileage and age costs work on desktop and mobi
  await page.locator('#itemName').fill('Running test shoe');
  await page.locator('#itemValue').fill('120'); await page.locator('#itemObtainedDate').fill('2025-01-01');
  await page.locator('[data-category-preset="0"]').click();
- assert.deepEqual(await page.locator('[data-property-name]').evaluateAll(els=>els.map(el=>el.value)),['Type','Color','Size','Weight']);
+ assert.deepEqual(await page.locator('[data-property-name]').evaluateAll(els=>els.map(el=>el.value)),['Type','Color','Size','Weight','Stack Height','Drop']);
  const prop=name=>page.locator('.item-property').filter({has:page.locator('[data-property-name][value="'+name+'"]')}).locator('[data-property-value]');
  await prop('Type').fill('Running'); await prop('Color').fill('Blue Lagoon Bristol Blue'); await prop('Size').fill('10'); await prop('Weight').fill('5.8');
  await page.locator('[data-add-mileage]').click();
@@ -1812,4 +1812,50 @@ test('Footwear columns toggle numeric sort within types and mobile offers the sa
  await page.locator('[data-footwear-sort-select]').selectOption('size:descending');
  assert.deepEqual(await names(),['Boot','Heavy','Light','Unknown']);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+});
+
+test('shoe stack/drop input and Network dropdown persist on desktop and mobile', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Geometry shoe');await page.locator('[data-category-preset="0"]').click();
+ const property=name=>page.locator('.item-property').filter({has:page.locator('[data-property-name][value="'+name+'"]')}).locator('[data-property-value]');
+ await property('Stack Height').fill('31->25 | 6mm');await property('Stack Height').press('Tab');
+ assert.equal(await property('Stack Height').inputValue(),'31→25');assert.equal(await property('Drop').inputValue(),'6');
+ await page.locator('#saveItemButton').click();
+ await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ assert.equal(await page.locator('td[data-label="stack height"]').innerText(),'31→25 mm');assert.equal(await page.locator('td[data-label="drop"]').innerText(),'6 mm');
+ assert.deepEqual(await page.locator('.footwear-table thead th').allTextContents(),['Object and Properties / Notes ↕','Color ↕','Size ↕','Weight ↕','Stack Height ↕','Drop ↕','Tags ↕','# ↕','Value ↕','Obtained ↕','Age ↕','Actions']);
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('[data-edit-item]').click();await property('Stack Height').fill('');await page.locator('#saveItemButton').click();
+ assert.equal(await page.locator('td[data-label="stack height"]').innerText(),'');assert.equal(await page.locator('td[data-label="drop"]').innerText(),'6 mm');
+ await page.locator('#clearInventoryFilters').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Network sensor');await page.getByRole('button',{name:'Apply Network Property Set',exact:true}).click();
+ assert.deepEqual(await property('Connection Type').locator('option').allTextContents(),['Unknown','Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Inactive']);
+ await property('Connection Type').selectOption('Wi-Fi 5.0 GHz');await page.locator('#saveItemButton').click();
+ await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).locator('[data-edit-item]').click();
+ assert.equal(await property('Connection Type').inputValue(),'Wi-Fi 5.0 GHz');await property('Connection Type').selectOption('Inactive');await page.locator('#saveItemButton').click();
+ await page.reload();assert.match(await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).innerText(),/Connection Type: Inactive/);
+ assert.equal(await page.locator('[aria-label="Filter by Network"] svg').getAttribute('viewBox'),'0 0 26.6943 26.3477');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+});
+
+test('copy rows and linked pieces display a single combined age and cost', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const app=window.LocalApp,m=app.inventoryModel;
+  const base={id:'copy',name:'Copies',owner:'me',obtainedDate:'2024-01-01',price:50,value:50,room:'Office'};
+  const copies=m.createCopies(base,2);
+  const pieces=m.createCopies({...base,id:'set',name:'Desk set'},2,[{piece:'Base',room:'Office'},{piece:'Light',room:'Kitchen'}]);
+  app.storage.getState().inventory.items=[...copies,...pieces];app.storage.saveNow();
+ });await page.reload();
+ const copies=page.locator('tr[data-item-owner]').filter({hasText:'Copies'});
+ assert.equal(await copies.count(),1);assert.equal(await copies.locator('.item-age-entry').count(),1);
+ const pieces=page.locator('tr[data-item-owner]').filter({hasText:'Desk set'});
+ assert.equal(await pieces.count(),2);assert.equal(await pieces.locator('.item-age-entry').count(),2);
+ const costs=await page.locator('[data-age-cost]').allTextContents();assert.equal(new Set(costs).size,1);
+ const expected=await page.evaluate(()=>{const app=window.LocalApp,m=app.inventoryModel,items=app.storage.getState().inventory.items.filter(item=>item.name==='Copies');return new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(m.ownershipSummary(items).annualValue)+'/yr';});
+ assert.equal(costs[0],expected);
+ await pieces.first().locator('[data-age-cost]').click();assert.ok((await pieces.locator('[data-age-cost]').allTextContents()).every(text=>text.endsWith('/mo')));
 });

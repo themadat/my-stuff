@@ -226,6 +226,7 @@
   }
   function compareRows(a,b,key,direction) {
     function value(members) {
+      if (key==='age') return ownershipSummary(members)?.totalDays ?? null;
       if (key==='count') return members.length;
       if (key==='value') return members.every(function (item) { return item.value==null; }) ? null : members.reduce(function (sum,item) { return sum+(item.value || 0); },0);
       const values=members.map(function (item) {
@@ -235,6 +236,10 @@
         if (key==='age') return ownershipAge(item)?.totalDays ?? null;
         const property=item.properties.find(function (p) { return p.name.toLowerCase()===key; });
         if (!property?.value.trim()) return null;
+        if (key==='stack height' || key==='drop') {
+          const parsed=measurement(property), factor={mm:1,cm:10,in:25.4}[parsed.unit || 'mm'], raw=key==='stack height'?parsed.value.split('→')[0]:parsed.value;
+          return factor && Number.isFinite(Number(raw)) ? Number(raw)*factor : null;
+        }
         if (key==='weight') {
           const parsed=measurement(property), factor={oz:28.349523125,lb:453.59237,g:1,kg:1000}[parsed.unit || 'oz'];
           return Number.isFinite(Number(parsed.value)) && factor ? Number(parsed.value)*factor : null;
@@ -260,6 +265,14 @@
     const total = entries.reduce(function (sum, entry) { return sum + entry.miles; }, 0);
     if (!Number.isFinite(total)) throw new Error('Mileage total is too large.');
     return {entries:entries,total:total,tone:total >= 500 ? 'red' : total >= 400 ? 'orange' : total >= 300 ? 'yellow' : 'green'};
+  }
+  function ownershipSummary(items, end) {
+    if (!items.length || items.some(function (item) { return !item.obtainedDate || (item.archive && !item.archive.date); })) return null;
+    const obtainedDate=items.map(function (item) { return item.obtainedDate; }).sort()[0];
+    const finish=end || (items.every(function (item) { return item.archive; }) ? items.map(function (item) { return item.archive.date; }).sort().at(-1) : today());
+    const costs=items.map(function (item) { return item.price ?? item.value; });
+    const total=costs.some(function (cost) { return cost==null; }) ? null : costs.reduce(function (sum,cost) { return sum+Math.round(cost*100); },0)/100;
+    return ownershipAge({obtainedDate:obtainedDate,price:total,value:total},finish);
   }
   function ownershipAge(item, end) {
     const finish = dateOnly(end || (item.archive ? item.archive.date : today()));
@@ -317,7 +330,12 @@
   ];
   function measurement(property) {
     const result = {value:String(property.value ?? ''), unit:String(property.unit ?? ''), imperial:''};
-    if (['type','mileage','color','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
+    if (String(property.name).trim().toLowerCase()==='stack height') {
+      const stack=result.value.trim().match(/^(\d+(?:\.\d+)?)\s*(?:->|→)\s*(\d+(?:\.\d+)?)\s*(mm|cm|in)?$/i);
+      if (stack) { result.value=stack[1]+'→'+stack[2]; result.unit=(stack[3] || result.unit || 'mm').toLowerCase(); }
+      return result;
+    }
+    if (['type','mileage','connection type','color','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
     const match = result.value.trim().match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s+\d+\/\d+|\/\d+)?)\s*(.*?)$/);
     if (!match) return result;
     const suffix = (match[2] || result.unit).trim().toLowerCase();
@@ -330,5 +348,5 @@
     if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
     return result;
   }
-  App.inventoryModel = { propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();
