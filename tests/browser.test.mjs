@@ -1703,6 +1703,7 @@ test('parent locations, Memory Box and distinct Have and Had content', {timeout:
   ].map(item=>app.inventoryModel.normalizeItem({...item,owner:'house'}));});
  });
  assert.match(await page.locator('#inventoryViewLabel').textContent(),/Have.*Current/);
+ const haveBackground=await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor);
  const text=await page.locator('#inventoryList').textContent();
  assert.ok(text.indexOf('Outside object')<text.indexOf('Yard object'));
  assert.match(await page.locator('#roomStats').textContent(),/Memory Box/);
@@ -1711,11 +1712,44 @@ test('parent locations, Memory Box and distinct Have and Had content', {timeout:
  assert.equal(await page.locator('#inventoryBody').evaluate(el=>el.classList.contains('previous-view')),true);
  assert.match(await page.locator('#inventoryList').textContent(),/Old object/);
  assert.doesNotMatch(await page.locator('#inventoryList').textContent(),/Outside object/);
- await page.screenshot({path:'/tmp/had75-desktop.png'});
+ assert.notEqual(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),haveBackground);
+ await page.screenshot({path:'/tmp/had76-light.png'});
+ await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+ assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(28, 41, 59)');
+ await page.screenshot({path:'/tmp/had76-dark.png'});
+ await page.evaluate(()=>document.documentElement.dataset.theme='light');
  await page.setViewportSize({width:390,height:844});
  await page.locator('#inventoryViewLabel').scrollIntoViewIfNeeded();
  await page.screenshot({path:'/tmp/had75-mobile.png'});
  assert.equal(await page.locator('#inventoryViewLabel').isVisible(),true);
  await page.locator('[data-inventory-view="have"]').click();
  assert.equal(await page.locator('#inventoryBody').evaluate(el=>el.classList.contains('previous-view')),false);
+ assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),haveBackground);
+});
+
+test('location links scroll back to pinned Outside zone room and space headings', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.evaluate(()=>{
+  const app=window.LocalApp;
+  app.storage.mutate(s=>{s.inventory.items=Array.from({length:90},(_,i)=>app.inventoryModel.normalizeItem({id:'jump'+i,name:'Object '+i,owner:'house',room:i<10?'':i<20?'Garage':i<30?'Patio':'Office',properties:i<10?[{name:'Zone',value:'Outside'}]:i<30&&i>=20?[{name:'Space',value:'Pickle Bag'}]:[]}));});
+ });
+ for(const width of [1280,390]) {
+  await page.setViewportSize({width,height:844});
+  for(const path of [['Outside'],['Outside','Garage'],['Outside','Patio','Pickle Bag']]) {
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+   const before=await page.evaluate(()=>window.scrollY);
+   await page.locator('[data-location-jump]').evaluateAll((els,key)=>els.find(el=>el.dataset.locationFilter===key).click(),JSON.stringify(path));
+   const result=await page.evaluate(path=>{
+    const target=document.getElementById('inventory-location-'+encodeURIComponent(JSON.stringify(path)));
+    const row=target.closest('tr');row.classList.add('location-scroll-measure');
+    const y=row.getBoundingClientRect().top,margin=parseFloat(getComputedStyle(target).scrollMarginTop);
+    row.classList.remove('location-scroll-measure');return {y,margin,scroll:window.scrollY,focused:document.activeElement===target};
+   },path);
+   assert.ok(result.scroll<before-100,'jump returns to '+path.join('/'));
+   assert.ok(Math.abs(result.y-result.margin)<2,JSON.stringify(result));
+   assert.equal(result.focused,true);
+  }
+ }
 });

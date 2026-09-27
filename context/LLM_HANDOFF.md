@@ -1,3 +1,15 @@
+## Latest Update — Location Jump Scrolling (0.0.1.77)
+
+Fixed Around the House links targeting already-pinned location headings. Temporarily measure the row in normal document flow, then scroll to its actual position minus the sticky toolbar offset and restore focus without another scroll. Applies to zones, rooms and spaces on desktop/mobile; existing expansion and empty-location filtering remain.
+
+Verification: six static checks and two Chromium checks pass, including actual scroll position and focus for Outside, Garage and Patio / Pickle Bag from the bottom of a 90-item inventory at desktop/mobile sizes, plus offline reload. Diff checks pass. Version surfaces align at .77. Preserved pending .76 background changes and unrelated manual tests. Preview stopped; no commit or push performed.
+
+## Latest Update — Distinct Had Background (0.0.1.76)
+
+Had now sets a body class with a slate-blue page backdrop and coordinated panel/border colors in light and dark themes. Switching away restores the normal palette. Ownership colors remain identifiable. This replaces the previously too-subtle visual distinction with a page-wide change.
+
+Verification: six static checks and two Chromium checks pass, including light/dark computed backgrounds, restoration on Have, mobile display and offline reload. Screenshots reviewed. Release/version/cache surfaces align at .76. Unrelated manual test edits preserved. Preview stopped; no commit or push performed.
+
 ## Latest Update — Parent Locations and Had Context (0.0.1.75)
 
 Added Memory Box under Primary Bedroom to the shared location catalog. Ordered inventory sections now place zone-only items directly beneath their zone before named rooms, matching room-only items before spaces. Outside imports retain their zone-only assignments.

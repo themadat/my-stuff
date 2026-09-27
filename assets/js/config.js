@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.75",
-      buildId: "0.0.1.75",
+      version: "0.0.1.77",
+      buildId: "0.0.1.77",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -87,6 +87,14 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+      version: "0.0.1.77", date: "2026-09-26T23:30:00.000Z", title: "Location Jump Scrolling",
+      summary: "Around the House links return to the actual location section even when its heading is pinned.",
+      features: [], improvements: [], fixes: ["Scroll back to Outside zones, rooms and spaces from later inventory sections"], knownIssues: []
+    }, {
+      version: "0.0.1.76", date: "2026-09-26T23:00:00.000Z", title: "Distinct Had Background",
+      summary: "Had uses a slate-blue page and panel background so archived inventory is immediately recognizable.",
+      features: [], improvements: ["Distinct Had backgrounds in light and dark themes"], fixes: [], knownIssues: []
+    }, {
       version: "0.0.1.75", date: "2026-09-26T18:00:00.000Z", title: "Clearer Locations and Had View",
       summary: "Memory Box in Primary Bedroom, parent-first locations and a distinct archived inventory view.",
       features: ["Primary Bedroom Memory Box space"], improvements: ["Visible Have and Had content labels", "Muted archive accent for Had"], fixes: ["Outside-only items appear before Outside rooms"], knownIssues: []

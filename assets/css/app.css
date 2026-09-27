@@ -1320,3 +1320,9 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .previous-view .inventory-list-heading { border-left: 3px solid var(--muted); padding: .3rem .5rem; background: var(--surface-2); border-radius: .2rem; }
 .previous-view .inventory-view-label { color: var(--muted); }
 .previous-view .location-section-heading { font-style: italic; }
+
+/* Archived inventory has a full-page slate backdrop in both themes. */
+body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line: #b3c2d2; background-color: var(--bg); }
+:root[data-theme="dark"] body.had-view { --bg: #1c293b; --surface: #253449; --surface-2: #31435b; --line: #4a5e78; }
+
+.inventory-table tr.location-scroll-measure, .inventory-table tr.location-scroll-measure th { position: static; }

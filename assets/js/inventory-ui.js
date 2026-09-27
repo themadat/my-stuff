@@ -221,7 +221,14 @@
       let target = document.getElementById(link.dataset.locationJump);
       if (!target) { $('#inventoryRoomFilter').value='path:'+link.dataset.locationFilter; renderList(); return; }
       if (target) { const path=JSON.parse(target.closest('[data-table-location-path]').dataset.tableLocationPath); path.forEach(function (_,index) { collapsedTableLocations.delete(JSON.stringify(path.slice(0,index+1))); }); renderList(); target=document.getElementById(link.dataset.locationJump); }
-      if (target) { target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'}); target.focus({preventScroll:true}); }
+      if (target) {
+        // Sticky headings report their pinned position, not their section's document position.
+        const row=target.closest('tr'); row.classList.add('location-scroll-measure');
+        const top=window.scrollY+row.getBoundingClientRect().top-(parseFloat(getComputedStyle(target).scrollMarginTop)||0);
+        row.classList.remove('location-scroll-measure');
+        window.scrollTo({top:Math.max(0,top),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+        target.focus({preventScroll:true});
+      }
     });
     document.addEventListener('keydown', function (event) {
       if (event.ctrlKey && event.shiftKey && event.altKey && !event.metaKey && !event.repeat && !event.defaultPrevented && !document.querySelector('dialog[open]')) {
@@ -643,6 +650,7 @@
     $$('[data-inventory-view]').forEach(function (button) { if (button.dataset.inventoryView === view) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); });
     const titles = { have: "Stuff I Have", previous: "Stuff I Had", want: "Stuff I Want", research: "Research" };
     $("#inventoryTitle").textContent = titles[view];
+    document.body.classList.toggle("had-view", view === "previous");
     $("#inventoryViewLabel").textContent = view === "previous" ? "Had · Archived items" : "Have · Current items";
     $("#inventorySubtitle").textContent = view === "have" ? "Know what you own, where it lives, and what it’s worth." : view === "previous" ? "Gone, but not forgotten. The things that were part of your life." : "A little space for what comes next.";
     const active = view === "have" || view === "previous";
