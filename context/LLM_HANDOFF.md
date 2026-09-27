@@ -2,18 +2,18 @@
 
 ## State
 
-Application version: **0.0.1.77**. Pending development batch adds a Footwear table view with right-aligned Color/Size/Weight columns before tag icons, color pills, and Type grouping when Footwear is the only filter. Footwear editor order is Type, Color, Size, Weight. Type containing “Running” adds a monthly Mileage editor; totals use green / yellow (300) / orange (400) / red (500). Logs live in the existing Mileage property as JSON, retaining normal backup/sync storage. All inventory rows show calendar age and a clickable monthly/yearly obtaining-price average; archived age ends at departure. Help updated. No version bump, release, commit or push.
+Application version: **0.0.1.77**. The initial Footwear/age/mileage implementation is now in the clean baseline (working tree was clean when this follow-up began).
 
-Verification: 42 targeted non-browser checks passed (inventory, copies, details, static); existing inventory editor/archive flow and new Footwear desktop/mobile flow passed. Desktop screenshot checked; mobile heading visibility and page overflow asserted. Preview server stopped. Release-wide and offline checks remain for cut. Browser tests require sandbox escalation for Chromium on this Mac.
+Pending follow-up: yearly cost is now the default under Age; clicking toggles monthly/yearly. Shoe color pills preserve exact color/shade names, then scan words from the end, so “Blue Lagoon Bristol Blue” uses blue. Footwear column headers toggle ascending/descending sorting within Type/location groups, with a mobile selector. Sorting handles natural numeric sizes, weight-unit conversion, copy counts, combined values, dates and ages; missing values stay last. Numeric weight labels show two decimals without changing stored values. Help updated.
 
-Earlier handoff mentioned pending 3D Print and tooling changes, but they were already clean in git at this task’s start. Older live sync-file and Notes-highlighting concerns remain unverified; investigate only if raised.
+Verification: 13 targeted non-browser checks passed (inventory-details and static); 3 desktop/mobile browser flows passed (existing inventory editor/archive, Footwear/mileage/age/color/weight, and sorting). Diff checks passed. Preview server stopped. No version bump, commit, push or release in this follow-up. Full release/offline checks remain for cut.
 
 ## Constraints
 
-- Preserve unrelated edits: `tests/inventory-copies.test.mjs`, `tests/static.test.mjs`, and untracked `.claude/` predate this work. Only the Footwear property-order assertion in the copies test belongs to this batch. Recheck status before editing.
-- Static, dependency-free runtime. No backend or required build step. Secrets stay device-local; preserve recovery-before-restore and explicit conflict choices.
-- No commit/push without explicit authorization. Release batching does not relax cache/version alignment before publishing.
-- Use targeted tests during development; full non-browser and relevant desktop/mobile/offline checks at release. Keep this file under 500 words.
+- Static, dependency-free runtime. Preserve backup, sync, recovery and local storage behavior.
+- No commit/push without explicit authorization. Version/cache alignment remains mandatory before publishing.
+- Current changes belong to this follow-up; no unrelated working-tree edits were present at start.
+- Handoff stays under 500 words. Use targeted checks during development; full suite and relevant browser/offline checks at release.
 
 ## Useful pointers
 

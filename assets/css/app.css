@@ -1357,3 +1357,12 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
  .footwear-table td.item-tag-icons { grid-column: 1; }
  .inventory-table td.item-age { grid-column: 1 / -1; }
 }
+
+.column-sort { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
+.column-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.footwear-property { font-variant-numeric: tabular-nums; }
+.footwear-sort-picker { display: none; }
+@media (max-width: 700px) {
+ .footwear-sort-picker { display: grid; gap: .3rem; padding: .5rem; font-size: .75rem; }
+ .footwear-sort-picker select { width: 100%; min-width: 0; }
+}

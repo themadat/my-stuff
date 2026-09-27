@@ -1764,17 +1764,20 @@ test('Footwear type view, monthly mileage and age costs work on desktop and mobi
  await page.locator('[data-category-preset="0"]').click();
  assert.deepEqual(await page.locator('[data-property-name]').evaluateAll(els=>els.map(el=>el.value)),['Type','Color','Size','Weight']);
  const prop=name=>page.locator('.item-property').filter({has:page.locator('[data-property-name][value="'+name+'"]')}).locator('[data-property-value]');
- await prop('Type').fill('Running'); await prop('Color').fill('Blue'); await prop('Size').fill('10'); await prop('Weight').fill('9');
+ await prop('Type').fill('Running'); await prop('Color').fill('Blue Lagoon Bristol Blue'); await prop('Size').fill('10'); await prop('Weight').fill('5.8');
  await page.locator('[data-add-mileage]').click();
  await page.locator('[data-mileage-month]').fill('2026-01'); await page.locator('[data-mileage-miles]').fill('305');
  await page.locator('#saveItemButton').click(); await page.locator('#itemDialog').waitFor({state:'hidden'});
  await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
  assert.equal(await page.locator('.footwear-table').count(),1);
  assert.match(await page.locator('.location-section-heading').innerText(),/Running/);
- assert.equal(await page.locator('.footwear-color').innerText(),'Blue');
+ assert.equal(await page.locator('.footwear-color').innerText(),'Blue Lagoon Bristol Blue');
+ assert.equal(await page.locator('.footwear-color').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(0, 0, 255)');
+ assert.equal(await page.locator('td[data-label=weight]').innerText(),'5.80 oz');
  assert.equal(await page.locator('#inventoryList .mileage-yellow').innerText(),'305 mi');
  assert.match(await page.locator('.item-age').innerText(),/\dy \dm/);
- await page.locator('[data-age-cost]').click(); assert.match(await page.locator('[data-age-cost]').innerText(),/\/yr/);
+ assert.match(await page.locator('[data-age-cost]').innerText(),/\/yr/);
+ await page.locator('[data-age-cost]').click(); assert.match(await page.locator('[data-age-cost]').innerText(),/\/mo/);
  await page.setViewportSize({width:390,height:844});
  assert.ok(await page.locator('.footwear-color').isVisible());
  assert.ok(await page.locator('.footwear-type-heading th').isVisible());
@@ -1783,4 +1786,30 @@ test('Footwear type view, monthly mileage and age costs work on desktop and mobi
  assert.equal(await page.locator('[data-mileage-miles]').inputValue(),'305');
  await page.locator('[data-mileage-miles]').fill('500'); await page.locator('#saveItemButton').click();
  assert.equal(await page.locator('#inventoryList .mileage-red').innerText(),'500 mi');
+});
+
+
+test('Footwear columns toggle numeric sort within types and mobile offers the same sorting', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const app=window.LocalApp;
+  const rows=[['Heavy', '12', '10', 'Blue', 'Running'],['Light', '5.8', '9', 'Red', 'Running'],['Boot', '20', '11', 'Black', 'Boots'],['Unknown', '', '', '', 'Running']];
+  app.storage.getState().inventory.items=rows.map(([name,weight,size,color,type],index)=>app.inventoryModel.normalizeItem({id:'sort'+index,name,owner:'me',categories:['Footwear'],value:100,obtainedDate:'2025-01-01',properties:[{name:'Type',value:type},{name:'Weight',value:weight,unit:'oz'},{name:'Size',value:size},{name:'Color',value:color}]}));
+  app.storage.saveNow();
+ });
+ await page.reload();
+ await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ const names=()=>page.locator('#inventoryList [data-instant-filter="name"]').allTextContents();
+ await page.locator('[data-footwear-sort=weight]').click();
+ assert.deepEqual(await names(),['Boot','Light','Heavy','Unknown']);
+ assert.equal(await page.locator('th:has([data-footwear-sort=weight])').getAttribute('aria-sort'),'ascending');
+ await page.locator('[data-footwear-sort=weight]').click();
+ assert.deepEqual(await names(),['Boot','Heavy','Light','Unknown']);
+ await page.locator('[data-footwear-sort=size]').click();
+ assert.deepEqual(await names(),['Boot','Light','Heavy','Unknown']);
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('[data-footwear-sort-select]').selectOption('size:descending');
+ assert.deepEqual(await names(),['Boot','Heavy','Light','Unknown']);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 });

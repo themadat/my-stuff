@@ -219,6 +219,34 @@
     });
     return Array.from(groups.values());
   }
+  function propertyLabel(property) {
+    const parsed=measurement(property), value=parsed.value.trim();
+    if (property.name.toLowerCase()==='weight' && value && Number.isFinite(Number(value))) return Number(value).toFixed(2)+(parsed.unit?' '+parsed.unit:'');
+    return property.value+(property.unit?' '+property.unit:'');
+  }
+  function compareRows(a,b,key,direction) {
+    function value(members) {
+      if (key==='count') return members.length;
+      if (key==='value') return members.every(function (item) { return item.value==null; }) ? null : members.reduce(function (sum,item) { return sum+(item.value || 0); },0);
+      const values=members.map(function (item) {
+        if (key==='name') return item.name;
+        if (key==='tags') return item.categories.join(', ');
+        if (key==='date') return item.archive ? item.archive.date || null : item.obtainedDate || null;
+        if (key==='age') return ownershipAge(item)?.totalDays ?? null;
+        const property=item.properties.find(function (p) { return p.name.toLowerCase()===key; });
+        if (!property?.value.trim()) return null;
+        if (key==='weight') {
+          const parsed=measurement(property), factor={oz:28.349523125,lb:453.59237,g:1,kg:1000}[parsed.unit || 'oz'];
+          return Number.isFinite(Number(parsed.value)) && factor ? Number(parsed.value)*factor : null;
+        }
+        return property.value;
+      }).filter(function (entry) { return entry!==null && entry!==''; });
+      return values.sort(function (x,y) { return typeof x==='number' ? x-y : x.localeCompare(y,undefined,{numeric:true,sensitivity:'base'}); })[0] ?? null;
+    }
+    const x=value(a), y=value(b);
+    if (x===null || y===null) return x===y ? compareBrand(a[0],b[0]) : x===null ? 1 : -1;
+    return (typeof x==='number' ? x-y : x.localeCompare(y,undefined,{numeric:true,sensitivity:'base'}))*(direction==='descending'?-1:1) || compareBrand(a[0],b[0]);
+  }
   function mileage(value) {
     let entries;
     try { entries = value ? JSON.parse(value) : []; } catch (_) { throw new Error('Mileage needs a list of months and miles.'); }
@@ -302,5 +330,5 @@
     if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
     return result;
   }
-  App.inventoryModel = { mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

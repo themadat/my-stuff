@@ -43,3 +43,18 @@ test('monthly mileage totals, thresholds, validation and property round trip',()
  for(const entries of [[{month:'2026-13',miles:1}],[{month:'2026-01',miles:-1}],[{month:'2026-01',miles:1},{month:'2026-01',miles:2}]]) assert.throws(()=>m.mileage(JSON.stringify(entries)));
  assert.throws(()=>m.mileage('not a log'));
 });
+
+test('weight display retains precision in storage and row sorting uses numeric values and units',()=>{
+ const weight={name:'Weight',value:'5.8',unit:'oz'};
+ assert.equal(m.propertyLabel(weight),'5.80 oz'); assert.equal(weight.value,'5.8');
+ assert.equal(m.propertyLabel({name:'Weight',value:'250g',unit:''}),'250.00 g');
+ assert.equal(m.propertyLabel({name:'Weight',value:'Unknown',unit:''}),'Unknown');
+ const row=(id,weight,size='10',value=null)=>[m.normalizeItem({...base,id,name:id,value,price:value,properties:[{name:'Weight',value:weight},{name:'Size',value:size}]})];
+ const light=row('Light','5.8 oz','9'), heavy=row('Heavy','200 g'), missing=row('Unknown','');
+ assert.ok(m.compareRows(light,heavy,'weight','ascending')<0);
+ assert.ok(m.compareRows(light,heavy,'weight','descending')>0);
+ assert.ok(m.compareRows(light,heavy,'size','ascending')<0);
+ for(const direction of ['ascending','descending']) assert.ok(m.compareRows(missing,light,'weight',direction)>0);
+ assert.ok(m.compareRows(row('Cheap','', '10',5),row('Costly','','10',100),'value','ascending')<0);
+ assert.ok(m.compareRows([...light,...heavy],light,'count','ascending')>0);
+});
