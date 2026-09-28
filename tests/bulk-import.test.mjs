@@ -78,10 +78,10 @@ test('household Had export parses all supplied rows without mixing ignored colum
  const expectedReasons=['Broken','Broken','Lost','Trashed','Other','Other','Other','Other','Other','Broken','Lost','Broken','Broken','Trashed','Trashed','Trashed','Replaced','Replaced','Replaced','Replaced','Broken'];
  rows.forEach((row,index)=>{
   const d=row.draft, raw=cells[index];
-  assert.equal(d.room,'Kitchen');assert.equal(d.value,raw[3].slice(1));assert.equal(d.price,d.value);
+  assert.equal(d.room,'Kitchen');assert.equal(d.value,raw[3].slice(1));assert.equal(d.price,/\bconveyed\b/i.test(raw.join(' '))?'0':d.value);
   assert.equal(d.archive.notes,raw[11]);assert.equal(d.archive.reason,expectedReasons[index]);
   assert.equal(d.archive.date,app.inventoryModel.dateOnly(raw[9].replace(/(\d+)\/(\d+)\/(\d+)/,(_,m,d,y)=>'20'+y+'-'+m+'-'+d)));
-  assert.equal(d.obtainedDate,raw[2]?raw[2].replace(/(\d+)\/(\d+)\/(\d+)/,(_,m,d,y)=>'20'+y+'-'+m+'-'+d):'');
+  assert.equal(d.obtainedDate,/\bconveyed\b/i.test(raw.join(' '))?'2020-12-17':raw[2]?raw[2].replace(/(\d+)\/(\d+)\/(\d+)/,(_,m,d,y)=>'20'+y+'-'+m+'-'+d):'');
   assert.ok(!d.name.includes(raw[11]));assert.ok(!/\d+y \d+m \d+d/.test(d.name));
   const saved=app.inventoryModel.normalizeItem({...d,id:row.id});assert.equal(saved.archive.notes,raw[11]);
  });
@@ -123,7 +123,14 @@ test('household Have examples preserve column values, zones, seller/brand and wa
  assert.ok(d[2].categories.includes('Climate'));assert.equal(d[2].brand,'American Standard');assert.equal(d[2].source,'SetPoint');assert.match(d[2].name,/Serial# 232824KMHF/);assert.doesNotMatch(d[2].name,/Compressor/);assert.match(d[2].description,/07\/27\/2035.*07\/27\/2033/);
  assert.equal(d[4].source,'Apple');assert.equal(d[4].brand,'Logitech');assert.match(d[6].name,/Cash to Jake/);
  assert.equal(d[8].obtainedDate,'');assert.equal(d[8].name,'Doormat, Wipe Your Paws');
- for(const i of [9,10]) {assert.equal(d[i].obtainedHow,'Conveyed');assert.equal(d[i].obtainedDate,'2020-12-17');assert.match(d[i].description,/CONVEYED/);assert.doesNotMatch(d[i].name,/CONVEYED/);}
+ for(const i of [9,10]) {assert.equal(d[i].obtainedHow,'Conveyed');assert.equal(d[i].obtainedDate,'2020-12-17');assert.equal(d[i].owner,'house');assert.doesNotMatch(d[i].description,/CONVEYED/i);assert.doesNotMatch(d[i].name,/CONVEYED/);}
  assert.equal(d[12].source,'Amazon');assert.equal(d[12].brand,'Walensee');assert.match(d[12].description,/Home Improvement/);assert.match(d[12].name,/Back/);assert.match(d[13].name,/Front/);assert.equal(d[14].brand,'Ryobi');
  const invalid=app.smartEntry.parse('Outside\tSmart\t02/30/26\t$20\t\tGovee - Lamp');assert.match(invalid.warnings[0],/Date Obtained/);
+});
+
+test('mapped Conveyed notes set House ownership and strip the marker from all item fields',()=>{
+ const row=bulk.prepare([['Name','Notes','Owner','Custom'],['Garden hose','[CONVEYED] keep outside','me','Conveyed']],true,['name','description','owner','property'],[])[0].draft;
+ assert.equal(row.owner,'house');assert.equal(row.obtainedHow,'Conveyed');
+ assert.match(row.description,/keep outside/);assert.doesNotMatch(row.description,/conveyed/i);
+ assert.ok(row.properties.every(p=>! /conveyed/i.test(p.value)));
 });

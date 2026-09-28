@@ -2,6 +2,18 @@
   "use strict";
   const App = window.LocalApp;
   const example = "08/03/26\t($62.77)\tChase Prime: 125.54\tAmazon Mktplace - Final Touch Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand [65] [O]";
+  function conveyedFields(fields, source) {
+    if (!/\bconveyed\b/i.test(source || '') && fields.obtainedHow!=='Conveyed') return fields;
+    function clean(value) {
+      if (typeof value==='string') return value.replace(/(?:\[\s*conveyed\s*\]|\bconveyed\b)(?:[ \t]*[-–—][ \t]+)?/gi,'').replace(/\[\s*\]/g,'').replace(/[ \t]{2,}/g,' ').replace(/^[\s·,;]+|[\s·,;]+$/g,'');
+      if (Array.isArray(value)) return value.map(clean).filter(function (entry) { return entry!==''; });
+      if (value && typeof value==='object') return Object.fromEntries(Object.entries(value).map(function (entry) { return [entry[0],entry[0].startsWith('_') || ['id','copyGroup'].includes(entry[0]) ? entry[1] : clean(entry[1])]; }));
+      return value;
+    }
+    Object.keys(fields).forEach(function (key) { if (!key.startsWith('_') && !['id','copyGroup','obtainedHow'].includes(key)) fields[key]=clean(fields[key]); });
+    fields.owner='house'; fields.obtainedHow='Conveyed'; fields.price='0'; fields.obtainedDate='2020-12-17';
+    return fields;
+  }
   // Recognize household Have/Had exports by column structure, keeping blank cells.
   function householdRow(text, knownBrands, archiveMode) {
     const cells=text.split('\t');
@@ -69,7 +81,7 @@
   // Match only known brands or explicit labels. Unrecognized metadata remains in notes.
   function parse(text, knownBrands, options) {
     const archiveMode=Boolean(options?.archive);
-    if (text.includes("\t")) { const household=householdRow(text,knownBrands,archiveMode); if (household) return household; }
+    if (text.includes("\t")) { const household=householdRow(text,knownBrands,archiveMode); if (household) { conveyedFields(household.fields,text); return household; } }
     const fields = {}, spans = []; let rest = text.split("");
     function take(start, length, field, value) {
       if (spans.some(function (span) { return start < span.end && start + length > span.start; })) return;
@@ -152,8 +164,7 @@
       if (key === "price" || key === "value") { if (!/^\$?[\d,]+(?:\.\d{1,2})?$/.test(value)) continue; value = value.replace(/[$,]/g, ""); }
       take(found.index, found[0].length, key, value);
     }
-    const conveyed=/\[CONVEYED\]/i.exec(rest.join(''));
-    if (conveyed) { take(conveyed.index,conveyed[0].length,null); fields.obtainedHow='Conveyed'; fields.price='0'; fields.obtainedDate='2020-12-17'; }
+    for (const conveyed of rest.join('').matchAll(/(?:\[\s*conveyed\s*\]|\bconveyed\b)(?:[ \t]*[-–—][ \t]+)?/gi)) take(conveyed.index,conveyed[0].length,'obtainedHow','Conveyed');
     // Payment/account columns are notes, never the obtaining price.
     match = /\b[^\t\n;]*?:\s*\$?[\d,]+\.\d{2}(?=\s*(?:\t|;|\n|$))/.exec(rest.join(""));
     if (match) { const lead = match[0].length - match[0].trimStart().length; take(match.index + lead, match[0].length - lead, null); }
@@ -201,8 +212,8 @@
     const notes = spans.filter(function (span) { return !span.field; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(Boolean).join(" · ");
     if (fields.categories) fields.categories = App.inventoryModel.tags(fields.categories).join(", ");
     if (notes) fields.description = notes;
-    if (fields.obtainedHow==='Conveyed') { fields.price='0'; fields.obtainedDate='2020-12-17'; }
+    conveyedFields(fields,text);
     return { fields: fields, spans: spans.sort(function (a, b) { return a.start - b.start; }) };
   }
-  App.smartEntry = { parse: parse, example: example };
+  App.smartEntry = { conveyedFields:conveyedFields, parse: parse, example: example };
 })();

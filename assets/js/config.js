@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.81",
-      buildId: "0.0.1.81",
+      version: "0.0.1.82",
+      buildId: "0.0.1.82",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,20 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.82",
+  "date": "2026-09-28",
+  "title": "Conveyed ownership and clean item fields",
+  "summary": "Recognize Conveyed consistently and keep the marker out of other item fields.",
+  "features": [],
+  "improvements": [
+    "Conveyed in item entry sets Belongs to House and Obtained to Conveyed, retaining existing acquisition defaults."
+  ],
+  "fixes": [
+    "Plain and bracketed Conveyed markers no longer remain in parsed names, notes, tags or properties.",
+    "Mapped bulk imports and grouped copies apply the same Conveyed ownership rule."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.81",
   "date": "2026-09-28",
   "title": "Network connections and shared group tags",

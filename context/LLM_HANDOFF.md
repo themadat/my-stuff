@@ -2,15 +2,15 @@
 
 ## State
 
-Release **0.0.1.81** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label were aligned once with `scripts/release.mjs`.
+Release **0.0.1.82** is prepared and verified, uncommitted/unpushed. All version/cache surfaces aligned once with `scripts/release.mjs`.
 
-Network Connection Type uses compact multi-select toggle buttons. RF labels show TempPro (433 MHz), Lutron (434 MHz), Tempest (915 MHz). BLE, UWB and NFC are available. Existing single connections and unknown legacy values remain editable; multiple connections use a pipe-separated property string in the existing storage model. Network View groups devices once by their canonical combined connections, preserving totals.
+Conveyed is recognized case-insensitively as a word, bracketed marker, or explicit acquisition method. Smart entry, household exports, mapped bulk imports and item saves set owner to House and acquisition to Conveyed. Existing defaults remain: price zero and obtained date 2020-12-17. The marker is removed from other saved item fields, preserving surrounding text. Original bulk source text is retained for review. Selecting Conveyed in the editor also selects House. Grouped current copies inherit Conveyed ownership and cleanup when saved.
 
-Group by is now before Matching in the selected category strip and also available when special views are opened through instant filters. Existing view sorting/location behavior remains.
+The shared helper is `App.smartEntry.conveyedFields`; bulk cleanup runs after mapped fields so mapped owner cannot override Conveyed. Current stored data is not migrated wholesale; cleanup applies through parsing/saving.
 
-The item editor shows the union of tags across current grouped copies or linked pieces. Saving applies the chosen tags to each member; archived items remain separate. Existing location-derived Float and brand rules remain.
+Verification: **143 non-browser checks and 5 browser flows passed**, covering plain/bracketed/annotated and mapped Conveyed, household Have/Had exports, desktop/mobile saves, grouped copies, bulk review and offline reload. Diff checks passed. Preview server stopped. No unfinished work.
 
-Verification: **141 non-browser checks and 7 browser flows passed**, covering desktop/mobile Network selections, all special views, grouped-copy and named-piece tag add/remove, editor/archive, bulk review, quick categories and offline service-worker reload. Desktop and 320px screenshots inspected; no horizontal overflow. Diff checks passed. No unfinished work.
+Previous release 81 provides compact multi-select Network connections (including RF brand labels, BLE/UWB/NFC), Group by before Matching, and shared tag editing across grouped copies/pieces.
 
 ## Constraints and user preferences
 

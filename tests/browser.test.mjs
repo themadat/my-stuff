@@ -1941,3 +1941,23 @@ test('grouped copies and pieces share tag additions and removals', {timeout:3000
  await page.locator('[data-view-grouping]').selectOption('location');
  assert.equal(await page.locator('[data-view-grouping]').inputValue(),'location');
 });
+
+test('Conveyed text sets House and acquisition without leaking into saved fields',async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ for (const mobile of [false,true]) {
+  if(mobile) await page.setViewportSize({width:390,height:844});
+  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+  await page.locator('#itemName').fill('Conveyed - Garden hose');
+  await page.locator('#itemDescription').fill('[CONVEYED] Keep outside');
+  await page.locator('#saveItemButton').click();
+  assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ }
+ await page.reload();
+ const items=await page.evaluate(()=>LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,2);
+ for(const item of items) {
+  assert.equal(item.owner,'house');assert.equal(item.obtainedHow,'Conveyed');
+  assert.doesNotMatch(JSON.stringify([item.name,item.description,item.source,item.properties,item.categories]),/conveyed/i);
+  assert.match(item.description,/Keep outside/);
+ }
+});

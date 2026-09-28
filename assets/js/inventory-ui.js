@@ -311,7 +311,7 @@
       $('#'+id).addEventListener('input',function () { $('#'+id+'Unknown').checked=false; });
       $('#'+id+'Unknown').addEventListener('change',function () { if (this.checked) $('#'+id).value=''; renderArchiveDuration(); });
     });
-    $('input[name="itemObtainedHowChoice"][value="Conveyed"]').addEventListener('change',function () { if (!this.checked) return; $('#itemPrice').value='0'; $('#itemObtainedDate').value='2020-12-17'; syncDateUnknown(); renderPricing(); });
+    $('input[name="itemObtainedHowChoice"][value="Conveyed"]').addEventListener('change',function () { if (!this.checked) return; $('#itemOwner').value='house'; $('input[name="itemOwnerChoice"][value="house"]').checked=true; $('#itemPrice').value='0'; $('#itemObtainedDate').value='2020-12-17'; syncDateUnknown(); renderPricing(); });
     $("#addColorButton").addEventListener("click", function () {
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
       if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
@@ -1148,6 +1148,7 @@
         if (value || old) item.properties.push({ name: old?.name || key, value: value, unit: old?.unit || "" });
       });
       item.properties.filter(function (p) { return p.name.toLowerCase()==='mileage'; }).forEach(function (p) { m.mileage(p.value); });
+      App.smartEntry.conveyedFields(item,JSON.stringify([item.name,item.description,item.source,item.categories,item.properties]));
       const next = m.favoriteTag(m.normalizeItem(item),App.storage.getState().preferences.favoriteBrands);
       if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, saveCopyLocations(count)); return; }
       let copies;
@@ -1165,6 +1166,7 @@
           const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
           clean.categories=next.categories.slice();
           clean.obtainedHow=next.obtainedHow;
+          if (clean.obtainedHow==='Conveyed') App.smartEntry.conveyedFields(clean);
           if (location.obtainedDate == null) clean.obtainedDate=next.obtainedDate;
           if (location.notes == null) clean.description = next.description;
           if (location.color == null) clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'color'; }).concat(next.properties.filter(function (p) { return p.name.toLowerCase() === 'color'; }));

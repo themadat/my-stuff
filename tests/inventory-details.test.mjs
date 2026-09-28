@@ -108,3 +108,11 @@ test('multiple network connections normalize order and group each device once',(
  assert.equal(groups.length,1);assert.equal(groups[0].path[0],'Ethernet + BLE');assert.equal(groups[0].items.length,2);
  assert.deepEqual(Array.from(m.connectionTypes('Custom radio')),['Custom radio']);
 });
+
+test('Conveyed in plain text and annotations only populates acquisition and House ownership',()=>{
+ for(const text of ['Conveyed Green hose','Conveyed - Green hose','Green hose [CONVEYED] conveyed','owner: me; obtained: Conveyed; Green hose','seller: Conveyed; Green hose']) {
+  const f=app.smartEntry.parse(text).fields;
+  assert.equal(f.owner,'house');assert.equal(f.obtainedHow,'Conveyed');assert.equal(f.name,'Green hose');
+  for(const [key,value] of Object.entries(f)) if(key!=='obtainedHow') assert.doesNotMatch(String(value),/conveyed/i);
+ }
+});
