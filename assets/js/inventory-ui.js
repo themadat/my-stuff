@@ -158,7 +158,7 @@
       if (collapsedTableLocations.has(key)) collapsedTableLocations.delete(key); else collapsedTableLocations.add(key);
       renderList(); $$('#inventoryList [data-table-location-toggle]').find(function (entry) { return entry.dataset.tableLocationToggle===key; })?.focus({preventScroll:true});
     });
-    $('#inventoryList').addEventListener('change',function (event) {
+    document.addEventListener('change',function (event) {
       if (event.target.matches('[data-view-grouping]')) { viewGroupings.set(currentSpecial,event.target.value); renderList(); $('[data-view-grouping]')?.focus(); }
       if (event.target.matches('[data-special-sort-select]')) { const parts=event.target.value.split(':'); viewSorts.set(currentSpecial,{key:parts[0],direction:parts[1] || 'ascending'}); renderList(); $('[data-special-sort-select]')?.focus(); }
     });
@@ -729,8 +729,8 @@
       const group=entry[0], active=selected.includes(group) || entry[1].values.some(function (value) { return selected.includes(value); });
       return '<button type="button" class="category-card" data-category-group="'+esc(group)+'" data-category-filter="'+esc(group)+'" aria-pressed="'+selected.includes(group)+'" data-active="'+active+'" aria-label="'+esc(group.slice(6))+' — toggle entire group; down arrow for tags">'+App.icons.category(group)+'<span>'+esc(group.slice(6))+'</span><small>'+items.filter(function (item) { return matchesCategory(item,group); }).length+'</small></button>';
     }).join('');
-    const summary=$('#selectedCategories'); summary.hidden=!selected.length;
-    summary.innerHTML=(selected.length>1 ? '<span>Match:</span><span class="category-match-toggle" role="group" aria-label="Category matching">'+['any','all'].map(function (mode) { return '<button type="button" class="button small" data-category-match="'+mode+'" aria-pressed="'+(categoryMatchMode===mode)+'" aria-label="Match '+mode.toUpperCase()+' selected categories">'+mode.toUpperCase()+'</button>'; }).join('')+'</span>' : '<span>Matching:</span>')+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+App.icons.category(value)+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
+    const summary=$('#selectedCategories'); summary.hidden=!selected.length && !currentSpecial;
+    summary.innerHTML=groupingControl(currentSpecial)+(selected.length>1 ? '<span>Match:</span><span class="category-match-toggle" role="group" aria-label="Category matching">'+['any','all'].map(function (mode) { return '<button type="button" class="button small" data-category-match="'+mode+'" aria-pressed="'+(categoryMatchMode===mode)+'" aria-label="Match '+mode.toUpperCase()+' selected categories">'+mode.toUpperCase()+'</button>'; }).join('')+'</span>' : selected.length ? '<span>Matching:</span>' : '')+selected.map(function (value) { return '<button type="button" class="button small" data-remove-category="'+esc(value)+'" aria-label="Remove '+esc(value.replace(/^group:/,''))+' filter">'+App.icons.category(value)+esc(value.replace(/^group:/,''))+' ×</button>'; }).join('');
     renderCategoryTags();
   }
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
@@ -825,13 +825,18 @@
     const sort=specialSort();
     return viewColumns(kind).map(function (column) { const active=sort.key===column[0]; return '<th scope="col" aria-sort="'+(active?sort.direction:'none')+'"'+(['color','size','weight','stack height','drop','connection type'].includes(column[0])?' class="footwear-property"':'')+'><button type="button" class="column-sort" data-special-sort="'+column[0]+'" aria-label="Sort by '+(column[0]==='count'?'Count':column[1])+'">'+column[1]+' <span aria-hidden="true">'+(active?(sort.direction==='ascending'?'↑':'↓'):'↕')+'</span></button></th>'; }).join('')+'<th>Actions</th>';
   }
+  function groupingControl(kind) {
+    if (!kind) return '';
+    const labels={footwear:'Type',network:'Connection Type',smart:'Tag Type'};
+    return '<label class="view-grouping">Group by <select data-view-grouping><option value="special">'+labels[kind]+'</option><option value="location"'+(viewGroupings.get(kind)==='location'?' selected':'')+'>Location</option></select></label>';
+  }
   function specialControls(kind) {
     if (!kind) return '';
     const names={footwear:['Footwear','Type'],network:['Network','Connection Type'],smart:['Smart Home','Tag Type']}, sort=specialSort();
-    return '<div class="special-view-controls"><strong>'+names[kind][0]+' View</strong><label>Group by <select data-view-grouping><option value="special">'+names[kind][1]+'</option><option value="location"'+(viewGroupings.get(kind)==='location'?' selected':'')+'>Location</option></select></label><label class="special-sort-picker">Sort within groups <select data-special-sort-select><option value="">Default order</option>'+viewColumns(kind).flatMap(function (column) { return ['ascending','descending'].map(function (direction) { return '<option value="'+column[0]+':'+direction+'"'+(sort.key===column[0] && sort.direction===direction?' selected':'')+'>'+column[1]+' · '+direction+'</option>'; }); }).join('')+'</select></label></div>';
+    return '<div class="special-view-controls"><strong>'+names[kind][0]+' View</strong><label class="special-sort-picker">Sort within groups <select data-special-sort-select><option value="">Default order</option>'+viewColumns(kind).flatMap(function (column) { return ['ascending','descending'].map(function (direction) { return '<option value="'+column[0]+':'+direction+'"'+(sort.key===column[0] && sort.direction===direction?' selected':'')+'>'+column[1]+' · '+direction+'</option>'; }); }).join('')+'</select></label></div>';
   }
   function connectionCell(properties) {
-    return '<td class="connection-property" data-label="Connection Type">'+properties.filter(function (p) { return p.name.toLowerCase()==='connection type' && p.value; }).map(function (p) { return filterButton('property:connection type',[p.value,p.unit],p.value); }).join(' ')+'</td>';
+    return '<td class="connection-property" data-label="Connection Type">'+properties.filter(function (p) { return p.name.toLowerCase()==='connection type' && p.value; }).map(function (p) { return filterButton('property:connection type',[p.value,p.unit],m.connectionTypes(p.value).map(m.connectionLabel).join(' + ')); }).join(' ')+'</td>';
   }
   function footwearCells(properties) {
     return ['color','size','weight','stack height','drop'].map(function (name) { return '<td class="footwear-property" data-label="'+name+'">'+properties.filter(function (p) { return p.name.toLowerCase()===name && p.value.trim(); }).map(function (p) {
@@ -920,7 +925,13 @@
     row.addEventListener('input',function () { updateMeasurement(row,false); });
     row.addEventListener('change',function () { if (endpoint()) $('[data-property-value]',row).value=m.cableEnd($('[data-property-value]',row).value); splitShoeGeometry(row); updateMeasurement(row,true); ensureRunningMileage(); });
     const endpoint = function () { return ['end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); };
-    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['type','color','size','mileage','connection type','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const name=$('[data-property-name]',row).value.trim().toLowerCase(); let value=$('[data-property-value]',row); if ((name==='connection type') !== (value.tagName==='SELECT')) { const next=document.createElement(name==='connection type'?'select':'input'); next.dataset.propertyValue=''; if (name==='connection type') next.innerHTML=options(App.config.inventory.connectionTypes.concat(value.value && !App.config.inventory.connectionTypes.includes(value.value)?[value.value]:[]),'Unknown'); next.value=value.value; value.replaceWith(next); value=next; } if (['stack height','drop'].includes(name) && !unit.value) unit.value='mm'; if (name==='stack height') value.placeholder='31->25 | 6mm'; if (name==='drop') value.placeholder='6mm'; if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else { value.removeAttribute("list"); if ($('[data-property-name]',row).value.toLowerCase()==='type') value.placeholder='Running, Walking, Boots…'; } }
+    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['type','color','size','mileage','connection type','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const name=$('[data-property-name]',row).value.trim().toLowerCase(); let value=$('[data-property-value]',row); row.classList.toggle('network-property',name==='connection type'); value.type=name==='connection type'?'hidden':'text'; $('.connection-options',row)?.remove(); if (name==='connection type') {
+      const choices=document.createElement('div'); choices.className='connection-options'; choices.setAttribute('role','group'); choices.setAttribute('aria-label','Connection Type');
+      const selected=m.connectionTypes(value.value);
+      choices.innerHTML=Array.from(new Set(App.config.inventory.connectionTypes.concat(selected))).map(function (type) { return '<button type="button" class="connection-toggle" data-connection="'+esc(type)+'" aria-pressed="'+selected.includes(type)+'">'+esc(m.connectionLabel(type))+'</button>'; }).join('');
+      choices.addEventListener('click',function (event) { const button=event.target.closest('[data-connection]'); if (!button) return; button.setAttribute('aria-pressed',button.getAttribute('aria-pressed')!=='true'); value.value=m.connectionTypes($$('[aria-pressed="true"]',choices).map(function (entry) { return entry.dataset.connection; }).join(' | ')).join(' | '); value.dispatchEvent(new Event('input',{bubbles:true})); value.dispatchEvent(new Event('change',{bubbles:true})); });
+      value.after(choices);
+    } if (['stack height','drop'].includes(name) && !unit.value) unit.value='mm'; if (name==='stack height') value.placeholder='31->25 | 6mm'; if (name==='drop') value.placeholder='6mm'; if ($('[data-property-name]', row).value.trim().toLowerCase() === "color") value.setAttribute("list", "inventoryColorValues"); else if ($("[data-property-name]",row).value.trim().toLowerCase() === "size") value.setAttribute("list","inventorySizeValues"); else if (endpoint()) { value.setAttribute("list", "inventoryCableEnds"); value.placeholder = "Search or enter a connector…"; } else { value.removeAttribute("list"); if ($('[data-property-name]',row).value.toLowerCase()==='type') value.placeholder='Running, Walking, Boots…'; } }
     $('[data-property-name]', row).addEventListener("input", propertySuggestions); propertySuggestions(); updateMeasurement(row,false);
     $("#itemProperties").appendChild(row); renderPresets(); orderShoeProperties(); if (property.name.toLowerCase()==='mileage') setupMileage(row); $("#itemMoreDetails").open = true; if (focus) $("input", row).focus();
   }
@@ -1084,7 +1095,7 @@
     const values = draft || item || { owner: "me", obtainedHow: "Purchased", categories: [], properties: [] };
     ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { $("#item" + key[0].toUpperCase() + key.slice(1)).value = values[key] ?? ""; });
     $("#itemObtainedDate").max = m.today();
-    $("#itemCategories").value = values.categories.join(", ");
+    $("#itemCategories").value = (draft || !editingCopies.length ? values.categories : m.tags(editingCopies.flatMap(function (entry) { return entry.categories; }))).join(", ");
     $("#itemProperties").innerHTML = "";
     ["Brand", "Zone", "Space"].forEach(function (key) { $("#item" + key).value = values.properties.find(function (property) { return property.name.toLowerCase() === key.toLowerCase(); })?.value || ""; });
     values.properties.filter(function (property) { return !["brand", "zone", "space"].includes(property.name.toLowerCase()) && (property.name.toLowerCase()!=="set piece" || item?.archive); }).forEach(function (property) { addProperty(property); });
@@ -1152,6 +1163,7 @@
         copies = Array.from({length:count}, function (_, index) {
           const existing = editingCopies[index], base = index === 0 || !existing ? next : existing;
           const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
+          clean.categories=next.categories.slice();
           clean.obtainedHow=next.obtainedHow;
           if (location.obtainedDate == null) clean.obtainedDate=next.obtainedDate;
           if (location.notes == null) clean.description = next.description;

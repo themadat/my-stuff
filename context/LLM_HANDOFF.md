@@ -2,13 +2,15 @@
 
 ## State
 
-Release **0.0.1.80** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label were aligned once with `scripts/release.mjs`.
+Release **0.0.1.81** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label were aligned once with `scripts/release.mjs`.
 
-Add and Bulk Add now use tighter section spacing. Obtaining Price and Current Value labels match Date Obtained at .75rem. Property-set buttons show `+ Name [Property,Property]` on one line, aligned with Size and Color; applied sets retain the remove icon. Long property lists ellipsize on narrow screens with full text in the accessible description and tooltip.
+Network Connection Type uses compact multi-select toggle buttons. RF labels show TempPro (433 MHz), Lutron (434 MHz), Tempest (915 MHz). BLE, UWB and NFC are available. Existing single connections and unknown legacy values remain editable; multiple connections use a pipe-separated property string in the existing storage model. Network View groups devices once by their canonical combined connections, preserving totals.
 
-Bulk preview entries are one line. The top per-item review container is a compact, keyboard-accessible Details disclosure: suggestions shorten visually; warning and duplicate counts remain visible; expanding reveals full suggestions, notices, copy count and Original Row. Save/pause/review behavior and stored data are unchanged. Help updated.
+Group by is now before Matching in the selected category strip and also available when special views are opened through instant filters. Existing view sorting/location behavior remains.
 
-Verification: **140 non-browser checks passed** and **7 browser flows passed**, covering editor/archive, property controls, bulk disclosure/source/duplicate notices, desktop and 320px/130% text, geometry/Network, offline bulk saving and service-worker offline reload. Desktop/mobile screenshots inspected; diff checks passed. Preview server stopped.
+The item editor shows the union of tags across current grouped copies or linked pieces. Saving applies the chosen tags to each member; archived items remain separate. Existing location-derived Float and brand rules remain.
+
+Verification: **141 non-browser checks and 7 browser flows passed**, covering desktop/mobile Network selections, all special views, grouped-copy and named-piece tag add/remove, editor/archive, bulk review, quick categories and offline service-worker reload. Desktop and 320px screenshots inspected; no horizontal overflow. Diff checks passed. No unfinished work.
 
 ## Constraints and user preferences
 

@@ -68,7 +68,7 @@ test('shoe geometry preserves heel-to-toe stacks and independent drop measuremen
  assert.equal(shoe.properties[0].value,'');assert.equal(shoe.properties[1].value,'6');
  const row=value=>[m.normalizeItem({...base,properties:[{name:'Stack Height',value,unit:'mm'}]})];
  assert.ok(m.compareRows(row('9->5'),row('31->25'),'stack height','ascending')<0);
- assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Thread','Inactive']);
+ assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Thread','BLE','UWB','NFC','Inactive']);
  assert.ok(app.config.inventory.tagGroups.find(g=>g.name==='Systems').tags.includes('Network'));
 });
 
@@ -96,4 +96,15 @@ test('Network and Smart Home grouping preserve every object once and include unk
  const sections=m.specialSections(items,'network');assert.deepEqual(Array.from(sections,s=>s.path[0]),['Thread','Unknown Connection Type','Zigbee']);
  const smart=m.specialSections(items,'smart');assert.deepEqual(Array.from(smart,s=>[s.path[0],s.items.length]),[['Lights',2],['Sensor',1]]);
  assert.equal(new Set(smart.flatMap(s=>s.items.map(item=>item.id))).size,3);
+});
+
+test('multiple network connections normalize order and group each device once',()=>{
+ assert.deepEqual(Array.from(m.connectionTypes('BLE | Ethernet | BLE')),['Ethernet','BLE']);
+ assert.equal(m.connectionLabel('RF (433 MHz)'),'RF (433 MHz) [TempPro]');
+ assert.equal(m.connectionLabel('RF (434 MHz)'),'RF (434 MHz) [Lutron]');
+ assert.equal(m.connectionLabel('RF (915 MHz)'),'RF (915 MHz) [Tempest]');
+ const items=['BLE | Ethernet','Ethernet | BLE'].map((value,i)=>m.normalizeItem({...base,id:String(i),properties:[{name:'Connection Type',value,unit:''}]}));
+ const groups=m.specialSections(items,'network');
+ assert.equal(groups.length,1);assert.equal(groups[0].path[0],'Ethernet + BLE');assert.equal(groups[0].items.length,2);
+ assert.deepEqual(Array.from(m.connectionTypes('Custom radio')),['Custom radio']);
 });

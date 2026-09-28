@@ -1832,10 +1832,11 @@ test('shoe stack/drop input and Network dropdown persist on desktop and mobile',
  await page.locator('#clearInventoryFilters').click();
  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.locator('#itemName').fill('Network sensor');await page.getByRole('button',{name:'Apply Network Property Set',exact:true}).click();
- assert.deepEqual(await property('Connection Type').locator('option').allTextContents(),['Unknown','Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Thread','Inactive']);
- await property('Connection Type').selectOption('Wi-Fi 5.0 GHz');await page.locator('#saveItemButton').click();
+ assert.equal(await page.locator('[data-connection]').count(),13);
+ await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('#saveItemButton').click();
  await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).locator('[data-edit-item]').click();
- assert.equal(await property('Connection Type').inputValue(),'Wi-Fi 5.0 GHz');await property('Connection Type').selectOption('Inactive');await page.locator('#saveItemButton').click();
+ assert.equal(await property('Connection Type').inputValue(),'Wi-Fi 5.0 GHz | BLE');
+ await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('[data-connection="Inactive"]').click();await page.locator('#saveItemButton').click();
  await page.reload();assert.match(await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).innerText(),/Connection Type: Inactive/);
  assert.equal(await page.locator('[aria-label="Filter by Network"] svg').getAttribute('viewBox'),'0 0 26.6943 26.3477');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -1917,4 +1918,26 @@ test('compact bulk review disclosure preserves duplicate notices, source text an
  assert.equal(await page.locator('.bulk-review-details').evaluate(el=>el.open),false);
  await page.locator('#saveItemButton').click();await page.locator('#itemDialog').waitFor({state:'hidden'});
  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),3);
+});
+
+test('grouped copies and pieces share tag additions and removals', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ for (const pieces of [false,true]) {
+  await page.evaluate(pieces=>{
+   const app=window.LocalApp,m=app.inventoryModel;
+   const items=m.createCopies({id:'tag-group',name:'Tag group',value:10,owner:'me',room:'Office',categories:['Network']},2,pieces?[{piece:'Base',room:'Office'},{piece:'Sensor',room:'Kitchen'}]:[]);
+   items[1].categories.push('Old tag');app.storage.getState().inventory.items=items;app.storage.saveNow();
+  },pieces);await page.reload();
+  await page.locator('[data-edit-item]').first().click();
+  await page.getByRole('button',{name:'Remove Old tag',exact:true}).click();
+  await page.locator('#itemTagSearch').fill('New tag');await page.locator('#itemTagSearch').press('Enter');await page.locator('#saveItemButton').click();
+  assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),false,await page.locator('#itemForm').evaluate(el=>JSON.stringify({error:el.querySelector('#itemFormError').textContent,invalid:Array.from(el.querySelectorAll(':invalid')).map(x=>[x.id,x.value,x.validationMessage])})));
+  const categories=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.map(i=>i.categories));
+  assert.equal(categories.length,2);
+  for(const tags of categories){assert.ok(tags.includes('New tag'),JSON.stringify({pieces,categories}));assert.ok(!tags.includes('Old tag'));assert.ok(tags.includes('Network'));}
+ }
+ await page.locator('[aria-label="Filter by Network"]').first().click();
+ assert.equal(await page.locator('#selectedCategories > :first-child select').getAttribute('data-view-grouping'),'');
+ await page.locator('[data-view-grouping]').selectOption('location');
+ assert.equal(await page.locator('[data-view-grouping]').inputValue(),'location');
 });
