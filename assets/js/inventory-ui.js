@@ -953,8 +953,10 @@
     $$('#categoryPresets [data-category-preset]').forEach(function (button) {
       const preset = App.config.inventory.categories[Number(button.dataset.categoryPreset)], active = m.tags($('#itemCategories').value).some(function (tag) { return tag.toLowerCase() === preset.name.toLowerCase(); }) && preset.properties.every(function (p) { return names.includes(p.name.toLowerCase()); });
       button.setAttribute('aria-pressed', String(active)); button.classList.toggle('preset-applied', active);
-      button.innerHTML = icon(active ? 'close' : 'inventoryPlus') + '<span>' + esc(preset.name) + '<small class="preset-description">'+esc(App.inventoryCatalog.presetDescription(preset.name))+'</small></span>';
-      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set'); button.removeAttribute('title');
+      const description=App.inventoryCatalog.presetDescription(preset.name).replace(/^Preset properties: /,'').replace(/,\s*/g,',');
+      button.innerHTML = icon(active ? 'close' : 'inventoryPlus') + '<span class="preset-name">' + esc(preset.name) + '</span><small class="preset-description">['+esc(description)+']</small>';
+      button.setAttribute('aria-description',description); button.title=preset.name+' ['+description+']';
+      button.setAttribute('aria-label', (active ? 'Remove ' : 'Apply ') + preset.name + ' Property Set');
     });
   }
   function suggestProperties() {

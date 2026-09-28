@@ -1384,3 +1384,45 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
  .connection-property::before { content: attr(data-label) ': '; }
  .standard-table td.item-tag-icons { width: auto; grid-column: 1; }
 }
+
+/* Compact Add and Bulk Add spacing, without reducing input or button targets. */
+#itemDialog .dialog-body, #bulkDialog .dialog-body { padding: .5rem .7rem; }
+#itemDialog .compact-item-grid { gap: .35rem .5rem; }
+#itemDialog .item-identity-row, #itemDialog .item-purchase-row, #itemDialog .item-location-row, #itemDialog .item-tags-notes-row { gap: .4rem .5rem; }
+#itemDialog .item-purchase-row > .field > span { font-size: .75rem; }
+#itemDialog .smart-entry { margin-bottom: .35rem; }
+#itemDialog .quantity-pricing { padding-block: .2rem; }
+#itemDialog .item-more { margin-top: .3rem; padding-top: .25rem; }
+#itemDialog .item-more > summary { padding-block: .15rem; }
+#itemDialog .item-more-content { margin-top: .2rem; gap: .35rem; }
+#itemDialog .item-property { margin-block: .25rem; row-gap: .35rem; }
+#itemDialog .copy-locations { margin-block: .3rem; }
+#itemDialog .copy-locations > p { margin-block: .2rem; }
+#itemDialog .copy-room-grid { gap: .3rem; }
+#itemDialog .selected-tags { margin-top: .2rem; }
+#itemDialog .item-property-tools { gap: .3rem; align-items: center; }
+#itemDialog .item-property-tools .category-presets { display: contents; }
+#itemDialog .item-property-tools .button { min-width: 0; max-width: 100%; min-height: 31px; padding-block: .3rem; white-space: nowrap; }
+#itemDialog [data-category-preset] .preset-name, #itemDialog [data-category-preset] > :first-child { flex-shrink: 0; }
+#itemDialog [data-category-preset] .preset-description { display: inline; min-width: 0; margin: 0; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#bulkDialog .field { margin-block: .35rem; }
+#bulkDialog .dialog-body > p, #bulkPreview > p { margin-block: .3rem; }
+#bulkDialog .button-row:has(> button[hidden]):not(:has(> button:not([hidden]))) { display: none; }
+#bulkColumns { margin-top: .35rem; }
+#bulkDialog .bulk-header-choice { margin-block: .35rem; }
+#bulkDialog .bulk-column-grid { gap: .3rem .5rem; }
+#bulkPreview ol { margin-block: .3rem; padding-left: 1.3rem; }
+#bulkPreview li { display: flex; align-items: baseline; gap: .5rem; margin-block: .2rem; white-space: nowrap; }
+#bulkPreview li > span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#bulkPreview li > small { display: inline; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#bulkReviewInfo { padding: .25rem .45rem; margin-bottom: .35rem; }
+#itemDialog .bulk-review-details > summary { display: flex; align-items: center; gap: .4rem; min-height: 31px; font-size: .75rem; white-space: nowrap; }
+.bulk-review-details > summary::before { content: '▸'; flex-shrink: 0; }
+.bulk-review-details[open] > summary::before { content: '▾'; }
+.bulk-review-details > summary::-webkit-details-marker { display: none; }
+.bulk-review-details > summary > strong { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bulk-review-brief { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bulk-review-alert { flex-shrink: 0; color: var(--danger); font-weight: 700; }
+.bulk-review-disclosure { flex-shrink: 0; margin-left: auto; text-decoration: underline; }
+.bulk-review-expanded { padding-top: .25rem; font-size: .8rem; }
+.bulk-review-expanded pre { margin-block: .3rem; }

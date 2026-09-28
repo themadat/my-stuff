@@ -1377,7 +1377,7 @@ test('quick categories combine selections and keep preset details visible', { ti
   await page.locator('#addItemButton').click();
   await page.waitForFunction(() => document.activeElement.id === 'itemSmartEntry');
   assert.equal(await page.locator('[data-category-preset="2"] .preset-description').isVisible(), true);
-  assert.equal(await page.locator('[data-category-preset="2"]').getAttribute('title'), null);
+  assert.match(await page.locator('[data-category-preset="2"]').getAttribute('title'), /^Cables \[Length .*End B\]$/);
 });
 
 test('ANY and ALL category matching switches results and resets with Clear', { timeout: 30000 }, async t => {
@@ -1897,4 +1897,24 @@ test('Network and Smart Home views switch grouping, sort, and return to spacious
  await page.evaluate(()=>{const filter=document.querySelector('#inventoryCategoryFilter');filter.value=JSON.stringify(['Network','Tools']);filter.dispatchEvent(new Event('input',{bubbles:true}));});
  assert.equal(await page.locator('.standard-table').count(),1);assert.equal(await page.locator('[data-view-grouping]').count(),0);
  await page.locator('#clearInventoryFilters').click();assert.equal(await page.locator('.standard-table').count(),1);
+});
+
+test('compact bulk review disclosure preserves duplicate notices, source text and save flow at mobile text sizes', {timeout:30000}, async t=>{
+ const {page}=await fixture(t,{viewport:{width:1366,height:900}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ await addInventoryItem(page,{name:'Review item',value:'25'});
+ await page.locator('#bulkEntryButton').click();await page.locator('#bulkPaste').fill('Object,Price\nReview item,30\nNext item,20');await page.locator('#readBulkPaste').click();
+ assert.equal(await page.locator('#bulkPreview li').count(),2);
+ await page.locator('#startBulkReview').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ const summary=page.locator('.bulk-review-details > summary');
+ assert.equal(await page.locator('.bulk-review-details').getAttribute('open'),null);assert.match(await summary.innerText(),/1 match/);
+ await summary.click();assert.match(await page.locator('.bulk-review-expanded').innerText(),/already in your inventory/);
+ await page.locator('.bulk-review-expanded summary').click();assert.match(await page.locator('.bulk-review-expanded pre').innerText(),/Review item/);await summary.click();
+ await page.setViewportSize({width:320,height:844});await page.evaluate(()=>document.documentElement.style.setProperty('--text-scale','1.3'));
+ assert.equal(await page.locator('#itemForm .dialog-body').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ assert.equal(await summary.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ await summary.focus();await page.keyboard.press('Enter');assert.equal(await page.locator('.bulk-review-details').evaluate(el=>el.open),true);
+ await page.locator('#itemName').fill('Reviewed item');await page.locator('#saveItemButton').click();await page.waitForFunction(()=>document.querySelector('#itemName').value==='Next item');
+ assert.equal(await page.locator('.bulk-review-details').evaluate(el=>el.open),false);
+ await page.locator('#saveItemButton').click();await page.locator('#itemDialog').waitFor({state:'hidden'});
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),3);
 });

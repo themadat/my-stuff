@@ -59,11 +59,13 @@
     const current = row(); if (!current) return;
     const index = queue.rows.indexOf(current), count = queue.rows.length;
     const matches = App.storage.getState().inventory.items.filter(function (item) { return item.id !== current.id && item.name.toLowerCase() === current.draft.name.toLowerCase(); }).length;
-    $('#bulkReviewInfo').innerHTML = '<strong>Review ' + (index + 1) + ' of ' + count + ' · Spreadsheet Row ' + esc(current.row) + (reviewCopies(current).length > 1 ? ' · ' + reviewCopies(current).length + ' copies saved together' : '') + '</strong>' +
-      (current.suggestions.length ? '<p>Suggestions to check: ' + esc(current.suggestions.join(' · ')) + '</p>' : '<p>Check the imported details before saving.</p>') +
+    const suggestions=current.suggestions.length ? 'Suggestions to check: '+current.suggestions.join(' · ') : 'Check the imported details before saving.';
+    const alert=[current.warnings.length ? current.warnings.length+' warning'+(current.warnings.length===1?'':'s') : '',matches ? matches+' match'+(matches===1?'':'es') : ''].filter(Boolean).join(' · ');
+    $('#bulkReviewInfo').innerHTML = '<details class="bulk-review-details"><summary><strong>Review ' + (index + 1) + ' of ' + count + ' · Row ' + esc(current.row) + '</strong><span class="bulk-review-brief">'+esc(suggestions)+'</span>'+(alert?'<span class="bulk-review-alert">'+esc(alert)+'</span>':'')+'<span class="bulk-review-disclosure">Details</span></summary><div class="bulk-review-expanded">'+
+      '<p>Spreadsheet Row '+esc(current.row)+(reviewCopies(current).length>1?' · '+reviewCopies(current).length+' copies saved together':'')+'</p><p>'+esc(suggestions)+'</p>'+
       (current.warnings.length ? '<p class="inventory-error">' + esc(current.warnings.join(' · ')) + '</p>' : '') +
       (matches ? '<p>' + matches + ' matching object name' + (matches === 1 ? ' is' : 's are') + ' already in your inventory. Check whether this is another copy.</p>' : '') +
-      '<details><summary>Original Row</summary><pre>' + esc(current.source) + '</pre></details>';
+      '<details><summary>Original Row</summary><pre>' + esc(current.source) + '</pre></details></div></details>';
   }
   function advance() {
     clearTimeout(draftTimer); reconcile();
@@ -126,7 +128,7 @@
       const source = sheet(); if (!source) return;
       const columns = Array.from(document.querySelectorAll('[data-bulk-column]')).map(function (el) { return el.value; });
       prepared = App.bulkImport.prepare(source.rows, $('#bulkHeaders').checked, columns, App.storage.getState().inventory.items,{archive:destination==='previous'});
-      $('#bulkPreview').innerHTML = '<p>' + prepared.length + (prepared.length === 1 ? ' object ready' : ' objects ready') + ' for review. Copies from one row are edited and saved together. Tags, location, and property suggestions remain editable.</p><ol>' + prepared.slice(0, 5).map(function (r) { return '<li>' + esc(r.draft.name || '(Needs an object name)') + '<small>' + esc(r.suggestions.join(' · ')) + '</small></li>'; }).join('') + '</ol>';
+      $('#bulkPreview').innerHTML = '<p>' + prepared.length + (prepared.length === 1 ? ' object ready' : ' objects ready') + ' for review. Copies from one row are edited and saved together. Tags, location, and property suggestions remain editable.</p><ol>' + prepared.slice(0, 5).map(function (r) { const name=r.draft.name || '(Needs an object name)', suggestions=r.suggestions.join(' · '); return '<li title="'+esc(name+(suggestions?' · '+suggestions:''))+'"><span>'+esc(name)+'</span><small>'+esc(suggestions)+'</small></li>'; }).join('') + '</ol>';
     } catch (e) { error(e.message); $('#bulkPreview').textContent = ''; }
     $('#startBulkReview').disabled = !prepared.length;
   }

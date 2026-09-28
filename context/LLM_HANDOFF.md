@@ -2,15 +2,13 @@
 
 ## State
 
-Release **0.0.1.79** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label were aligned once with `scripts/release.mjs`.
+Release **0.0.1.80** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label were aligned once with `scripts/release.mjs`.
 
-Network Connection Type now includes Zigbee, RF (433 MHz), RF (434 MHz), RF (915 MHz), Bluetooth and Thread. Network View has a sortable Connection Type column and connection grouping. Selecting the existing Smart group or its tags opens Smart Home View, grouped by the first Smart tag on each object; objects appear once.
+Add and Bulk Add now use tighter section spacing. Obtaining Price and Current Value labels match Date Obtained at .75rem. Property-set buttons show `+ Name [Property,Property]` on one line, aligned with Size and Color; applied sets retain the remove icon. Long property lists ellipsize on narrow screens with full text in the accessible description and tooltip.
 
-Footwear, Network and Smart Home share a Group by selector for their unique grouping or Location. Sorting and grouping choices are independent per view for the session. Location sidebar jumps switch to Location grouping. Mixed categories, non-special categories and no filters use standard rows with compact symbols beside Count and more room for names/notes. Empty special results retain the view controls. Existing Footwear, copies, age/cost, archive and property storage behaviors remain intact. Help updated.
+Bulk preview entries are one line. The top per-item review container is a compact, keyboard-accessible Details disclosure: suggestions shorten visually; warning and duplicate counts remain visible; expanding reveals full suggestions, notices, copy count and Original Row. Save/pause/review behavior and stored data are unchanged. Help updated.
 
-Verification: **140 non-browser checks passed**. **8 distinct browser flows passed**, including desktop/mobile special-view switches, mixed/cleared filters, sorting, expanded connection options, Footwear, grouped copies, editor/archive, navigation and service-worker offline reload. The older navigation regression was updated for existing Tech/Cables and filter-chip behavior. Desktop standard/Network screenshots inspected; mobile grouping controls and page width checked. Diff checks passed. Preview stopped.
-
-The initial preview launch hit an automatic approval-review usage limit. User requested continue; the normal approval retry succeeded and browser/release checks completed.
+Verification: **140 non-browser checks passed** and **7 browser flows passed**, covering editor/archive, property controls, bulk disclosure/source/duplicate notices, desktop and 320px/130% text, geometry/Network, offline bulk saving and service-worker offline reload. Desktop/mobile screenshots inspected; diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 
