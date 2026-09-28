@@ -2,13 +2,15 @@
 
 ## State
 
-Release **0.0.1.78** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label are aligned with `scripts/release.mjs`. Release notes include the prior Footwear/age/mileage work whose build remained 0.0.1.77.
+Release **0.0.1.79** is prepared and verified, uncommitted/unpushed. Version, build, asset queries, manifests, service worker and deployment label were aligned once with `scripts/release.mjs`.
 
-New work: Footwear has Stack Height and Drop after Weight, defaulting to mm. Stack Height accepts heel-to-toe pairs and combined input `31->25 | 6mm`; Drop works independently. Both columns sort numerically. Network is under Systems with the user-supplied SVG and a Connection Type dropdown (Wi-Fi 2.4 GHz, Wi-Fi 5.0 GHz, Ethernet, Inactive).
+Network Connection Type now includes Zigbee, RF (433 MHz), RF (434 MHz), RF (915 MHz), Bluetooth and Thread. Network View has a sortable Connection Type column and connection grouping. Selecting the existing Smart group or its tags opens Smart Home View, grouped by the first Smart tag on each object; objects appear once.
 
-Copies in a row and linked copies/pieces now show one ownership summary: earliest obtained date and total obtaining cost, with annual/monthly toggle shared across linked rows within Have or Had. Unknown dates/costs remain unknown. Archived summaries end at the latest known departure. Fields use existing property/copy storage; backup/sync models are unchanged.
+Footwear, Network and Smart Home share a Group by selector for their unique grouping or Location. Sorting and grouping choices are independent per view for the session. Location sidebar jumps switch to Location grouping. Mixed categories, non-special categories and no filters use standard rows with compact symbols beside Count and more room for names/notes. Empty special results retain the view controls. Existing Footwear, copies, age/cost, archive and property storage behaviors remain intact. Help updated.
 
-Verification: full non-browser suite **138 passed**; **7 distinct browser flows passed**, including desktop/mobile Footwear, geometry, Network persistence, copies/pieces, existing editor/archive/measurement behavior, and service-worker offline reload. Desktop/mobile geometry screenshots inspected. Updated stale test expectations for tag count and the existing unknown-date control. Diff checks passed. Local preview stopped.
+Verification: **140 non-browser checks passed**. **8 distinct browser flows passed**, including desktop/mobile special-view switches, mixed/cleared filters, sorting, expanded connection options, Footwear, grouped copies, editor/archive, navigation and service-worker offline reload. The older navigation regression was updated for existing Tech/Cables and filter-chip behavior. Desktop standard/Network screenshots inspected; mobile grouping controls and page width checked. Diff checks passed. Preview stopped.
+
+The initial preview launch hit an automatic approval-review usage limit. User requested continue; the normal approval retry succeeded and browser/release checks completed.
 
 ## Constraints and user preferences
 

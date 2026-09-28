@@ -219,6 +219,22 @@
     });
     return Array.from(groups.values());
   }
+  function specialView(selections) {
+    if (!selections.length) return '';
+    if (selections.every(function (tag) { return tag==='Footwear'; })) return 'footwear';
+    if (selections.every(function (tag) { return tag==='Network'; })) return 'network';
+    const smart=App.config.inventory.tagGroups.find(function (group) { return group.name==='Smart'; }).tags;
+    if (selections.every(function (tag) { return tag==='group:Smart' || tag==='Smart' || smart.includes(tag); })) return 'smart';
+    return '';
+  }
+  function specialSections(items, kind) {
+    const groups=new Map(), smart=App.config.inventory.tagGroups.find(function (group) { return group.name==='Smart'; }).tags;
+    items.forEach(function (item) {
+      const name=kind==='smart' ? item.categories.find(function (tag) { return smart.includes(tag); }) || 'Unspecified Tag Type' : item.properties.find(function (p) { return p.name.toLowerCase()===(kind==='network'?'connection type':'type'); })?.value.trim() || (kind==='network'?'Unknown Connection Type':'Unspecified Type');
+      if (!groups.has(name)) groups.set(name,[]); groups.get(name).push(item);
+    });
+    return Array.from(groups,function (entry) { return {path:[entry[0]],items:entry[1]}; }).sort(function (a,b) { return a.path[0].localeCompare(b.path[0],undefined,{numeric:true,sensitivity:'base'}); });
+  }
   function propertyLabel(property) {
     const parsed=measurement(property), value=parsed.value.trim();
     if (property.name.toLowerCase()==='weight' && value && Number.isFinite(Number(value))) return Number(value).toFixed(2)+(parsed.unit?' '+parsed.unit:'');
@@ -348,5 +364,5 @@
     if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
     return result;
   }
-  App.inventoryModel = { ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { specialView:specialView, specialSections:specialSections, ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

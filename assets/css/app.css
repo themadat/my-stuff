@@ -1352,7 +1352,7 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 }
 .inventory-table thead th.footwear-property { text-align: right; }
 @media (max-width: 700px) {
- .inventory-table tr.footwear-type-heading th:last-child { display: block; grid-column: 1 / -1; }
+ .inventory-table tr.special-group-heading th:last-child { display: block; grid-column: 1 / -1; }
  .footwear-table tr[data-item-owner] { grid-template-columns: repeat(3,minmax(0,1fr)); }
  .footwear-table td.item-tag-icons { grid-column: 1; }
  .inventory-table td.item-age { grid-column: 1 / -1; }
@@ -1361,8 +1361,26 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .column-sort { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
 .column-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .footwear-property { font-variant-numeric: tabular-nums; }
-.footwear-sort-picker { display: none; }
+.special-sort-picker { display: none; }
 @media (max-width: 700px) {
- .footwear-sort-picker { display: grid; gap: .3rem; padding: .5rem; font-size: .75rem; }
- .footwear-sort-picker select { width: 100%; min-width: 0; }
+ .special-sort-picker { display: grid; gap: .3rem; padding: .5rem; font-size: .75rem; }
+ .special-sort-picker select { width: 100%; min-width: 0; }
+}
+
+
+.special-view-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem 1.2rem; margin: .5rem 0; font-size: .78rem; }
+.special-view-controls > label { align-items: center; gap: .5rem; }
+.special-view-controls > label:not(.special-sort-picker) { display: inline-flex; }
+.special-view-controls select { max-width: 100%; }
+.connection-property { text-align: right; }
+.standard-table thead th:first-child { width: 100%; }
+.standard-table thead th:not(:first-child) { width: 1%; white-space: nowrap; }
+.standard-table td.item-tag-icons { width: 1%; text-align: right; }
+.standard-table td.item-count, .standard-table td.item-money, .standard-table td.item-age, .standard-table td.inventory-row-actions { white-space: nowrap; }
+@media (max-width: 700px) {
+ .special-view-controls { display: grid; grid-template-columns: minmax(0,1fr); }
+ .special-view-controls .special-sort-picker { padding: 0; }
+ .inventory-table td.connection-property { grid-column: 1 / -1; }
+ .connection-property::before { content: attr(data-label) ': '; }
+ .standard-table td.item-tag-icons { width: auto; grid-column: 1; }
 }

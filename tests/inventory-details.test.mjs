@@ -68,7 +68,7 @@ test('shoe geometry preserves heel-to-toe stacks and independent drop measuremen
  assert.equal(shoe.properties[0].value,'');assert.equal(shoe.properties[1].value,'6');
  const row=value=>[m.normalizeItem({...base,properties:[{name:'Stack Height',value,unit:'mm'}]})];
  assert.ok(m.compareRows(row('9->5'),row('31->25'),'stack height','ascending')<0);
- assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Inactive']);
+ assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Thread','Inactive']);
  assert.ok(app.config.inventory.tagGroups.find(g=>g.name==='Systems').tags.includes('Network'));
 });
 
@@ -82,4 +82,18 @@ test('copies and pieces share one age and combined cost without inventing missin
  const gone=rows.map(row=>({...row,archive:{date:'2025-01-01',reason:'Sold'}}));
  assert.equal(m.ownershipSummary(gone).annualValue,100);
  assert.equal(m.ownershipSummary([{...gone[0],archive:{date:'',reason:'Sold'}},gone[1]]),null);
+});
+
+test('special views activate only for selections within their category',()=>{
+ assert.equal(m.specialView([]),'');assert.equal(m.specialView(['Network']),'network');assert.equal(m.specialView(['Footwear']),'footwear');
+ assert.equal(m.specialView(['group:Smart']),'smart');assert.equal(m.specialView(['Lights','Sensor']),'smart');
+ assert.equal(m.specialView(['Footwear','Network']),'');assert.equal(m.specialView(['Network','Tools']),'');assert.equal(m.specialView(['group:Systems']),'');
+});
+
+test('Network and Smart Home grouping preserve every object once and include unknown connections',()=>{
+ const make=(id,categories,connection)=>m.normalizeItem({...base,id,categories,properties:connection?[{name:'Connection Type',value:connection}]:[]});
+ const items=[make('a',['Network','Lights','Sensor'],'Thread'),make('b',['Network','Sensor'],'Zigbee'),make('c',['Network','Lights'],'')];
+ const sections=m.specialSections(items,'network');assert.deepEqual(Array.from(sections,s=>s.path[0]),['Thread','Unknown Connection Type','Zigbee']);
+ const smart=m.specialSections(items,'smart');assert.deepEqual(Array.from(smart,s=>[s.path[0],s.items.length]),[['Lights',2],['Sensor',1]]);
+ assert.equal(new Set(smart.flatMap(s=>s.items.map(item=>item.id))).size,3);
 });
