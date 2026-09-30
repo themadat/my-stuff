@@ -221,6 +221,7 @@
         link.removeAttribute("aria-label");
       }
     });
+    $("#autoSyncEnabled").checked=cloud.autoSync;
     const tokenInput = $("#syncToken");
     const rememberInput = $("#syncRememberToken");
     const hasStoredToken = storage.hasSecret();
@@ -462,6 +463,7 @@
     $("#syncPayloadDisclosure").addEventListener("toggle", renderSyncPayload);
     $("#exportButton").addEventListener("click", App.portability.exportJson);
     $("#importButton").addEventListener("click", function () { $("#importFileInput").click(); });
+    $('#autoSyncEnabled').addEventListener('change',function () { App.sync.setAutoSync(this.checked); });
     $("#syncNowButton").addEventListener("click", function () { App.sync.syncNow(this); });
     $("#restoreCloudButton").addEventListener("click", function () { App.sync.restoreFromCloud(this); });
     $("#syncToken").addEventListener("input", function () { this.dataset.dirty = "true"; });

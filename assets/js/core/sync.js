@@ -421,7 +421,7 @@
     }
   }
 
-  async function performUpload() {
+  async function performUpload(quiet) {
     const context = requestContext("uploading");
     runtime.busy = true;
     runtime.operation = "uploading";
@@ -435,20 +435,20 @@
       rememberBaseline(sha, hash);
       runtime.remoteState = state;
       runtime.remoteLegacy = false;
-      App.components.toast("This device’s latest data is now on GitHub.", { title: "Sync Complete", kind: "success" });
+      if (!quiet) App.components.toast("This device’s latest data is now on GitHub.", { title: "Sync Complete", kind: "success" });
       return true;
     } catch (error) {
       if (!currentRequest(context) || error && error.name === "AbortError") return false;
       recordError(error, "Upload failed.");
       const info = presentation(runtime.offline ? CloudSyncState.offline : runtime.errorState);
-      App.components.toast(runtime.error, { title: info.title, kind: info.kind, duration: 6000 });
+      if (!quiet) App.components.toast(runtime.error, { title: info.title, kind: info.kind, duration: 6000 });
       return false;
     } finally {
       if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); }
     }
   }
 
-  async function performDownload() {
+  async function performDownload(quiet) {
     if (!runtime.remoteState) throw new Error("No remote data is available to download.");
     const context = requestContext("downloading");
     runtime.busy = true;
@@ -460,11 +460,11 @@
       if (!storage.saveRecovery("Before downloading GitHub data")) throw new Error("The local recovery copy could not be saved. Export a backup before restoring from cloud.");
       storage.replace(next, { saveRecovery: false, reason: "sync-download", touch: false });
       rememberBaseline(runtime.remoteSha, runtime.remoteHash);
-      App.components.toast("This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync Complete", kind: "success", duration: 5000 });
+      if (!quiet) App.components.toast("This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync Complete", kind: "success", duration: 5000 });
       return true;
     } catch (error) {
       recordError(error, "Download failed.");
-      App.components.toast(runtime.error, { title: "Sync Failed", kind: "danger", duration: 6000 });
+      if (!quiet) App.components.toast(runtime.error, { title: "Sync Failed", kind: "danger", duration: 6000 });
       return false;
     } finally {
       if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); }
@@ -562,17 +562,56 @@
     emit();
   }
 
+  let autoTimer=0, autoFailures=0;
+  function autoEligible() {
+    const cloud=settings();
+    return cloud.autoSync && configured() && cloud.baselineTarget===target() && cloud.baselineHash.startsWith(model.syncHashPrefix);
+  }
+  async function autoSync() {
+    if (!autoEligible() || document.visibilityState==='hidden' || navigator.onLine===false || getInfo().busy) return false;
+    if (storage.saveNow && !storage.saveNow()) return false;
+    const sequence=runtime.requestSequence+1;
+    await check(true);
+    if (sequence!==runtime.requestSequence || !autoEligible() || document.visibilityState==='hidden' || navigator.onLine===false || runtime.error || runtime.offline || getInfo().busy) {
+      if (runtime.errorState===CloudSyncState.failed) {autoFailures=Math.min(autoFailures+1,6);scheduleAuto();}
+      return false;
+    }
+    // No creation, conflict choice, or legacy migration is performed unattended.
+    if (!runtime.remoteState || runtime.remoteMissing || runtime.remoteLegacy) return false;
+    const change=reconciliation();
+    if (change==='first-sync' || change==='conflict') return false;
+    let saved=true;
+    if (change==='local') saved=await performUpload(true);
+    else if (change==='remote') saved=await performDownload(true);
+    autoFailures=saved?0:Math.min(autoFailures+1,6);
+    if (autoEligible() && (reconciliation()==='local' || runtime.errorState===CloudSyncState.failed)) scheduleAuto();
+    return saved;
+  }
+  function scheduleAuto() {
+    if (autoTimer) window.clearTimeout(autoTimer);
+    autoTimer=0;
+    if (!autoEligible() || navigator.onLine===false) return;
+    autoTimer=window.setTimeout(async function () {
+      autoTimer=0;
+      const run=function () {return autoSync();};
+      if (navigator.locks?.request) await navigator.locks.request(config.identity.slug+'-sync-'+target(),run); else await run();
+    },Math.min(60000,1200*Math.pow(2,autoFailures)));
+  }
+  function setAutoSync(enabled) {
+    storage.mutate(function (state) {state.modules.cloudSync.autoSync=Boolean(enabled);},{touch:false,reason:'auto-sync-settings'});
+    autoFailures=0;scheduleAuto();emit();
+  }
+  function refresh() {
+    if (document.visibilityState==='hidden') return;
+    if (autoEligible()) scheduleAuto(); else check(false).then(scheduleAuto);
+  }
   function init() {
-    window.addEventListener("online", function () {
-      runtime.offline = false;
-      runtime.error = "";
-      emit();
-      check(true);
-    });
-    window.addEventListener("offline", function () { runtime.offline = true; emit(); });
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") check(false); });
-    window.setInterval(function () { check(false); }, config.controls.syncCheckIntervalMs);
-    window.setTimeout(function () { check(false); }, 700);
+    window.addEventListener('online',function () {runtime.offline=false;runtime.error='';autoFailures=0;emit();refresh();});
+    window.addEventListener('offline',function () {runtime.offline=true;if (autoTimer) window.clearTimeout(autoTimer);autoTimer=0;emit();});
+    document.addEventListener('visibilitychange',function () {if (document.visibilityState==='visible') refresh();});
+    window.addEventListener('app:statechange',function (event) {if (!['sync-baseline','sync-check','sync-download','sync-merge'].includes(event.detail?.reason)) scheduleAuto();});
+    window.setInterval(refresh,config.controls.syncCheckIntervalMs);
+    window.setTimeout(refresh,700);
     emit();
   }
 
@@ -581,6 +620,8 @@
     presentation: presentation,
     actions: ACTIONS,
     init: init,
+    autoSync: autoSync,
+    setAutoSync: setAutoSync,
     getInfo: getInfo,
     configured: configured,
     saveConfiguration: saveConfiguration,

@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.87",
-      buildId: "0.0.1.87",
+      version: "0.0.1.88",
+      buildId: "0.0.1.88",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,24 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.88",
+  "date": "2026-09-30",
+  "title": "Automatic GitHub Sync",
+  "summary": "Saved changes synchronize with GitHub automatically while the app is open, once a shared baseline is established.",
+  "features": [
+    "Auto Sync While This App Is Open switch in Settings → Data Sync, enabled by default after connection setup and baseline establishment.",
+    "Saved inventory, checklists, Notes and brand favorites sync after a brief pause; offline edits resume syncing when the connection returns."
+  ],
+  "improvements": [
+    "Automatic remote-only downloads preserve a local recovery copy and device preferences.",
+    "Background sync stays quiet and uses bounded retry delays and browser-tab locks when available."
+  ],
+  "fixes": [
+    "First-sync choices, conflicting copies, missing files and legacy migrations stay in the manual sync flow.",
+    "Disabling auto sync, hiding the app or losing connectivity during a read prevents a pending automatic write."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.87",
   "date": "2026-09-30",
   "title": "Single Copy Editor",
@@ -664,7 +682,7 @@
       { id: "notes", title: "Notes", section: "Basics", keywords: "notes autosave local", html: "<p>Open Notes from the header or press <kbd>N</kbd>. Plain text saves automatically in this browser.</p>" },
       { id: "appearance", title: "Appearance", section: "Settings", keywords: "theme text size buttons hints", html: "<p>Settings includes system, light, and dark themes, text sizing, button presentation, and contextual hints.</p>" },
       { id: "backup", title: "Backup and Restore", section: "Data", keywords: "backup export import json recovery reset", html: "<p>Export a JSON backup before major changes. Import validates the file and saves a recovery copy before replacement.</p>" },
-      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs inventory and Notes. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare copies. First sync and conflicting item or Notes edits require a choice. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing inventory and Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
+      { id: "sync", title: "GitHub Sync", section: "Data", keywords: "github sync token cloud conflict restore connection", html: "<p>GitHub Sync is optional and syncs inventory and Notes. Add a fine-grained token with Contents read and write access to the configured repository. Test retains credentials after a read check, but makes no changes on GitHub and cannot verify upload permission. Save stores them and checks the cloud copy. If upload reports Access Required, select the configured repository in the token settings, grant Contents: Read and write, and check repository access, organization approval, and branch rules. GitHub’s error details remain visible in Settings. A masked saved token remains visible in Settings. Turn Remember off to keep it only for this tab.</p><p>Auto Sync While This App Is Open is enabled by default. After a sync baseline is established, saved changes sync automatically while the app is open and visible, and pending edits resume when the connection returns. Turn it off in Settings → Data Sync for manual sync. First sync, missing remote files and conflicting item or Notes edits require manual review. Automatic downloads keep a recovery copy. Use Sync Now, press <kbd>S</kbd>, or click the floating status to compare or resolve copies. Restore from Cloud asks for confirmation and requires a local recovery copy before replacing inventory and Notes. Device settings stay local. Update other devices before using the compact cloud format; older whole-state files remain readable.</p>" },
       { id: "offline", title: "Install and Offline Updates", section: "Application", keywords: "install pwa offline update refresh", html: "<p>When served over HTTPS, My Stuff can be installed and keeps its shell available offline. Use Force refresh when an update notice appears.</p>" },
       { id: "seller-brand-company", title: "Seller, Brand and Company", section: "Inventory", keywords: "seller store brand company Beats Apple Amazon smart complete", html: "<p>Text before a spaced dash is Seller. A known brand at the start of the product name is Brand. Otherwise, a known brand used as Seller can fill Brand too; known stores cannot. For exceptions, use seller: Amazon; brand: Beats; Studio Pro. Manual edits stay protected.</p><p>Company relationships live in the catalog: Beats belongs to Apple. In Settings Inventory, choose Apple under Companies to include Apple and Beats, or choose a specific brand. Company is optional; a custom Company property overrides the catalog relationship for company filtering.</p>" },
       { id: "privacy", title: "Privacy", section: "Data", keywords: "privacy local token", html: "<p>Inventory and Notes stay in browser storage unless exported or synced to GitHub. Preferences and view settings stay on this device and are included only in full JSON backups, not cloud sync. Tokens are stored separately and excluded from backups, cloud data, and diagnostics.</p>" },

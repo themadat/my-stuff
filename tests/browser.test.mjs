@@ -329,13 +329,14 @@ test('Data Sync shows the exact outgoing JSON without credentials and stays curr
   assert.equal(await page.locator('#dataSyncPanel #storageSyncSettings').count(), 1);
   await page.locator('#settingsTab').focus(); await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#inventorySettingsTab').getAttribute('aria-selected'), 'true'); await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('#checklistsTab').getAttribute('aria-selected'), 'true'); await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#dataSyncTab').getAttribute('aria-selected'), 'true');
   assert.equal(await page.locator('#dataSyncTab [data-symbol="braces"] svg').count(), 1);
   const details = page.locator('#syncPayloadDisclosure');
   assert.equal(await details.evaluate(el => el.open), false);
   await details.locator('summary').focus(); await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.querySelector('#syncPayloadJson').textContent.length > 0);
-  const empty = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 6, data: { inventory: { currency: 'USD', items: [] } } };
+  const empty = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 7, data: { inventory: { currency: 'USD', items: [] }, favoriteBrands: [] } };
   assert.deepEqual(JSON.parse(await page.locator('#syncPayloadJson').textContent()), empty);
   await page.locator('#syncToken').fill('secret-not-in-json');
   await page.locator('#saveSyncButton').click(); await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
@@ -2046,3 +2047,19 @@ for (const width of [1440,390]) {
   assert.equal(item.room,'Kitchen');assert.equal(item.description,'Updated notes');
  });
 }
+
+test('automatic GitHub sync debounces edits, honors its switch and resumes online',{timeout:30000},async t=>{
+ const fixtureState=await fixture(t),{page,context,writes}=fixtureState;page.setDefaultTimeout(5000);
+ fixtureState.remote=await page.evaluate(()=>window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()));
+ await page.evaluate(async()=>{const app=window.LocalApp;app.sync.saveConfiguration({owner:'themadat',repo:'app-data',branch:'main',path:'data/my-stuff.json',token:'auto-test-token'});await app.sync.check(true);});
+ await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#notesButton').click();await page.locator('#notesTextarea').fill('Automatic Notes');
+ await page.waitForFunction(()=>window.LocalApp.sync.getInfo().state==='upToDate');assert.equal(writes.length,1);assert.equal(writes[0].data.notes,'Automatic Notes');
+ await page.locator('[data-close-dialog="notesDialog"]').click();await page.locator('#supportButton').click();await page.locator('[data-support-tab="data-sync"]').click();await page.locator('#autoSyncEnabled').uncheck();
+ await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#notesButton').click();await page.locator('#notesTextarea').fill('Manual mode');
+ await page.waitForTimeout(1600);assert.equal(writes.length,1);
+ await page.locator('[data-close-dialog="notesDialog"]').click();await page.locator('#supportButton').click();await page.locator('[data-support-tab="data-sync"]').click();await page.locator('#autoSyncEnabled').check();
+ await page.waitForFunction(()=>window.LocalApp.sync.getInfo().state==='upToDate');assert.equal(writes.at(-1).data.notes,'Manual mode');
+ await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#notesButton').click();await context.setOffline(true);const beforeOffline=writes.length;
+ await page.locator('#notesTextarea').fill('Offline change');await page.waitForTimeout(1400);assert.equal(writes.length,beforeOffline);
+ await context.setOffline(false);await page.waitForFunction(()=>window.LocalApp.sync.getInfo().state==='upToDate');assert.equal(writes.at(-1).data.notes,'Offline change');
+});

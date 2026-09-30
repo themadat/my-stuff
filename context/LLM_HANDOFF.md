@@ -2,15 +2,17 @@
 
 ## State
 
-Release **0.0.1.87** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
+Release **0.0.1.88** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
 
-Notes/Description now shares the Zone/Room/Space row on desktop and mobile. Checklists and Tags still share the next row, with selected tags to the right of search; Total Copies/pricing follow it. Bracketed Custom Properties descriptions remain vertically centered.
+User clarified “autosaving like T&A” means **automatic GitHub sync**, not saving object forms while typing. T&A reference code was inspected read-only in `../t-a/assets/js/core/sync.js` and its state/UI.
 
-Single-copy items hide the numbered per-copy containers and named-piece choice. Increasing count above one reveals the copy UI. Hidden single-copy save data uses primary location/notes/date/color/size/value fields, retaining any named-piece metadata needed for existing one-piece sets. Copy controls may remain in hidden DOM for serialization, but no numbered container is displayed. Multi-copy and named-set editing remain intact.
+Settings → Data Sync now has Auto Sync While This App Is Open. It defaults enabled; manual sync remains available. Automatic work requires a configured connection and valid target/hash baseline. Saved changes are debounced 1.2 seconds; visible app startup, foreground return, reconnect and the existing polling interval check for changes. Background work uses browser-tab locks when available and bounded failure backoff up to 60 seconds. Closed/hidden apps do not auto sync.
 
-Prior checklist behavior retained: Checklists tab below Inventory; brand names in object labels and immediate label refresh after brand edits; Reset label; house-location object groups with text entries first; saved checks, backup/sync and offline use.
+Local-only changes upload with SHA protection. Remote-only changes download through the existing recovery-copy path, retaining preferences. Conflicts, missing files, first-sync choices and legacy cloud migration remain manual. Auto work is quiet; existing cloud status communicates pending/errors. Disabling the switch, going offline or hiding the app during the remote read prevents an automatic write. Edits during upload stay pending for another pass.
 
-Verification: **148 non-browser checks and 8 release browser flows passed**, covering desktop/mobile single-copy visibility, location/notes saves, normal inventory editing, multi-copy/named-piece flows, grouped tags, inventory/Notes offline smoke and checklist offline use. Final desktop/mobile screenshots inspected. Diff checks passed. Preview server stopped.
+Editor/checklist behavior is unchanged: single-copy numbered containers hidden, Notes beside location fields, Checklists/Tags row, branded checklist labels, Reset, house-location groups and text entries first.
+
+Verification: **156 non-browser checks and 7 release browser flows passed**. New sync tests cover upload/download, recovery, first-sync/missing/conflict guards, disable/hide/offline races, changes during reads/writes and SHA protection. Browser coverage includes automatic switch/reconnect, manual sync/restore, payload privacy, mobile Settings and offline reload. Tests use mocked GitHub; no real token/cloud writes. Updated stale browser assertions for the existing Checklists tab order and schema-7 favorites payload. Diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 

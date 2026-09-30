@@ -726,3 +726,47 @@ test('legacy cloud files preserve favorites and merges combine favorites', () =>
     assert.throws(()=>model.prepareSync(payload),/favorites are invalid/);
   }
 });
+
+test('auto sync uploads local changes quietly after an established baseline',async()=>{
+ const h=harness();h.setBaseline();changeNotes(h.state,'Automatic local edit');
+ h.respond=(url,options)=>options.method==='PUT'?response(200,{content:{sha:'auto-sha'}}):h.file();
+ assert.equal(await h.sync.autoSync(),true);
+ const write=h.requests.find(request=>request.options.method==='PUT');assert.ok(write);
+ assert.equal(JSON.parse(Buffer.from(JSON.parse(write.options.body).content,'base64')).data.notes,'Automatic local edit');
+ assert.equal(h.state.modules.cloudSync.baselineHash,h.App.stateModel.syncHash(h.state));assert.equal(h.toasts.length,0);
+});
+test('auto sync downloads remote-only changes with recovery and keeps device preferences',async()=>{
+ const h=harness();h.setBaseline();h.state.preferences.appearance.mode='dark';changeNotes(h.remote,'Other device');
+ assert.equal(await h.sync.autoSync(),true);assert.equal(h.state.notes.text,'Other device');assert.ok(h.recovery);assert.equal(h.state.preferences.appearance.mode,'dark');assert.equal(h.toasts.length,0);
+});
+test('auto sync leaves conflicts and missing remote files for manual review',async()=>{
+ const h=harness();h.setBaseline();changeNotes(h.state,'Local');changeNotes(h.remote,'Remote');
+ assert.equal(await h.sync.autoSync(),false);assert.equal(h.state.notes.text,'Local');assert.equal(h.choices.length,0);assert.equal(h.requests.some(request=>request.options.method==='PUT'),false);assert.equal(h.sync.getInfo().change,'conflict');
+ const missing=harness();missing.setBaseline();missing.respond=()=>response(404);
+ assert.equal(await missing.sync.autoSync(),false);assert.equal(missing.requests.some(request=>request.options.method==='PUT'),false);
+});
+test('auto sync requires a baseline, connection, online state and enabled preference',async()=>{
+ for(const setup of [h=>{},h=>{h.setBaseline();h.state.modules.cloudSync.autoSync=false;},h=>{h.setBaseline();h.context.navigator.onLine=false;},h=>{h.setBaseline();h.state.modules.cloudSync.baselineTarget='other/file';}]) {
+  const h=harness();setup(h);assert.equal(await h.sync.autoSync(),false);assert.equal(h.requests.length,0);
+ }
+});
+test('disabling auto sync during a read prevents a pending upload',async()=>{
+ const h=harness();h.setBaseline();changeNotes(h.state,'Local');const reading=deferred();h.respond=()=>reading.promise;
+ const syncing=h.sync.autoSync();h.sync.setAutoSync(false);reading.resolve(h.file());assert.equal(await syncing,false);assert.equal(h.requests.some(request=>request.options.method==='PUT'),false);
+});
+test('auto sync honors local changes made while checking the remote copy',async()=>{
+ const h=harness();h.setBaseline();changeNotes(h.remote,'Remote');const reading=deferred();h.respond=()=>reading.promise;
+ const syncing=h.sync.autoSync();changeNotes(h.state,'Local during read');reading.resolve(h.file());assert.equal(await syncing,false);assert.equal(h.state.notes.text,'Local during read');assert.equal(h.replacements.length,0);
+});
+test('automatic upload retains SHA protection and changes made during the write',async()=>{
+ const h=harness();h.setBaseline();changeNotes(h.state,'First edit');const started=deferred(),writing=deferred();
+ h.respond=(url,options)=>{if(options.method==='PUT'){started.resolve();return writing.promise;}return h.file();};
+ const syncing=h.sync.autoSync();await started.promise;const write=h.requests.find(request=>request.options.method==='PUT');assert.equal(JSON.parse(write.options.body).sha,'remote-sha');
+ changeNotes(h.state,'Second edit');writing.resolve(response(200,{content:{sha:'auto-sha'}}));assert.equal(await syncing,true);assert.equal(h.sync.getInfo().change,'local');assert.equal(h.state.notes.text,'Second edit');
+});
+test('auto sync stops before writing if the app becomes hidden or offline during a read',async()=>{
+ for (const interrupt of [h=>{h.context.document.visibilityState='hidden';},h=>{h.context.navigator.onLine=false;}]) {
+  const h=harness();h.setBaseline();changeNotes(h.state,'Local');const reading=deferred();h.respond=()=>reading.promise;
+  const syncing=h.sync.autoSync();interrupt(h);reading.resolve(h.file());assert.equal(await syncing,false);assert.equal(h.requests.some(request=>request.options.method==='PUT'),false);
+ }
+});
