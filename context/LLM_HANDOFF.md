@@ -2,15 +2,13 @@
 
 ## State
 
-Release **0.0.1.84** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
+Release **0.0.1.85** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
 
-Checklists and Reset List are grouped directly before All in quick actions, using the symbol-above-label layout. Golf now uses the user's supplied circular golfer symbol, distinct from the inventory Golfing category. Reset uses the supplied two-empty-circles symbol. Shared SVGs remain in `assets/js/icons.js`.
+The object editor now puts Checklists and Tags in one grid row, with selected tag chips to the right of the search input. The reorder hint spans the tag area above search and chips. Total Copies and pricing controls immediately follow this row, then Notes. The old location/tags/notes row-combining step was removed so it cannot undo the requested editor structure. Bracketed Custom Properties preset descriptions use flex alignment to remain vertically centered in their buttons.
 
-Checklist objects are grouped by existing inventory location paths (zone, room, space), in house-location order via `m.locationSections(items,true)`, then alphabetically within each location. Non-object text entries stay above all object groups. Unassigned objects form their own group.
+Checklist behavior remains unchanged: Volleyball/Golf/Swim, hover/click/keyboard quick menu directly before All, symbol-above-label actions, supplied Golf/Reset symbols, house-location object groups with text entries first, saved checkmarks and reset. Backups, optional sync and offline use retain checklist data.
 
-Existing Volleyball/Golf/Swim checklist behavior is retained: hover/click/keyboard menu, object membership through the editor and Settings, text management in Settings → Checklists, persisted checkmarks, Reset List, backups, optional sync and offline use.
-
-Verification: **148 non-browser checks passed**, plus desktop/mobile placement and location-order regressions, checklist offline completion/reset, Settings compatibility and inventory/Notes offline smoke. Final CSS adjustment passed all 3 checklist browser flows; the other 2 release browser flows already passed. Desktop/mobile screenshots inspected. Diff checks passed. Preview server stopped.
+Verification: **148 non-browser checks and 5 release browser flows passed**: editor save/tag/property/archive behavior, desktop/mobile checklists, existing inventory/Notes offline smoke, and checklist offline completion/reset. Final desktop/mobile editor screenshots inspected. Selected tags are beside search and copy totals follow the checklist/tag row. Diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 

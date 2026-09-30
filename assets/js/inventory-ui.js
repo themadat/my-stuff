@@ -287,13 +287,11 @@
     new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
     $("#clearInventoryFilters").addEventListener("click", function () { activeChecklist=''; instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
-    const combined=document.createElement('div'); combined.className='full item-location-notes-row';
-    $('.item-location-row').before(combined); Array.from($('.item-location-row').children).forEach(function (el) { combined.append(el); }); Array.from($('.item-tags-notes-row').children).forEach(function (el) { combined.append(el); }); $('.item-location-row').remove(); $('.item-tags-notes-row').remove();
     $$('input[name="itemOwnerChoice"]').forEach(function (el) { const text=el.parentElement.querySelector('span'); if (text) text.innerHTML=el.value==='me'?'<u>M</u>e':'<u>H</u>ouse'; });
     document.addEventListener('keydown',function (event) { if (!$('#itemDialog').open || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.target.isContentEditable || event.target.closest('textarea,select,input:not([type=radio]):not([type=checkbox]):not([type=button]):not([type=submit]):not([type=hidden])') || $$('dialog[open]').some(function (dialog) { return dialog.id!=='itemDialog'; })) return; const owner={m:'me',h:'house'}[event.key.toLowerCase()]; if (owner) { event.preventDefault(); const radio=$('input[name="itemOwnerChoice"][value="'+owner+'"]'); radio.checked=true; radio.dispatchEvent(new Event('change',{bubbles:true})); } });
     $('#itemValue').addEventListener('input',distributePieceValues);
     $('#itemQuantityPricing').prepend($('#itemCopiesField'));
-    $('#itemQuantityPricing').classList.add('full'); $('.item-purchase-row').before($('#itemQuantityPricing'));
+    $('#itemQuantityPricing').classList.add('full'); $('.item-checklists-tags-row').after($('#itemQuantityPricing'));
     $('#itemCopies').addEventListener('input',function () { renderCopyLocations(); renderPricing(); });
     $('#itemIsSet').addEventListener('change',function () { renderCopyLocations(); if (this.checked) distributePieceValues(); renderPricing(); });
     $('#itemPriceToggle').addEventListener('click',function () { $('#itemPriceMode').value=$('#itemPriceMode').value==='total'?'each':'total'; renderPricing(); });
@@ -668,7 +666,11 @@
   }
   function initChecklists(actions) {
     actions.insertAdjacentHTML('afterbegin','<button id="resetChecklist" class="button" type="button" hidden>'+icon('checklistReset')+'<span>Reset List</span></button><div class="checklist-quick"><button id="checklistButton" class="button" type="button" aria-expanded="false" aria-controls="checklistMenu" aria-pressed="false">'+icon('checklist')+'<span>Checklists</span></button></div>');
-    $('#itemCategories').closest('.item-tags-notes-row').insertAdjacentHTML('afterend','<fieldset class="full item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
+    const tagRow=$('#itemCategories').closest('.item-tags-notes-row'), tagArea=$('#itemCategories').parentElement, notes=$('#itemDescription').closest('label');
+    tagRow.className='full item-checklists-tags-row';tagArea.classList.add('item-tag-area');
+    tagArea.prepend($('label',$('#itemTagSearch').closest('.picker')));
+    notes.classList.add('full','item-editor-notes');tagRow.after(notes);
+    tagRow.insertAdjacentHTML('afterbegin','<fieldset class="item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
     const group=document.createElement('div');group.className='checklist-ownership-actions';
     actions.prepend(group);
     ['#resetChecklist','.checklist-quick','#inventoryStats'].forEach(function (selector) {group.append($(selector));});

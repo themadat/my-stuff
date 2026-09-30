@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.84",
-      buildId: "0.0.1.84",
+      version: "0.0.1.85",
+      buildId: "0.0.1.85",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.85",
+  "date": "2026-09-30",
+  "title": "Object Editor Rows",
+  "summary": "Checklist membership and tags share a row, selected tags sit beside search, and copy totals follow them.",
+  "features": [],
+  "improvements": [
+    "Checklists and Tags share an editor row, with selected tags to the right of tag search.",
+    "Total Copies and pricing controls follow checklist and tag controls, before Notes.",
+    "Bracketed Custom Properties preset descriptions are vertically centered within their buttons."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.84",
   "date": "2026-09-30",
   "title": "Checklist Layout and Locations",
