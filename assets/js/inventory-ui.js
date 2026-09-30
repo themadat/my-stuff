@@ -7,7 +7,8 @@
   let directArchive=false;
   const monthlyCosts = new Set();
   const viewSorts=new Map(), viewGroupings=new Map();
-  let currentSpecial='';
+  let currentSpecial='', activeChecklist='';
+  const checklistNames={volleyball:'Volleyball',golf:'Golf',swim:'Swim'};
   function specialSort() { return viewSorts.get(currentSpecial) || {key:'',direction:'ascending'}; }
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
@@ -123,10 +124,11 @@
       $$('#roomStats [data-location-date]').find(function (button) { return button.dataset.locationDate===locationDateKey; })?.focus({preventScroll:true});
     });
     $('.global-search-wrap').before($('.inventory-nav'));
-    $('.inventory-nav').addEventListener('click', function (event) { const nav = event.target.closest('[data-inventory-view]'); if (nav) { view = nav.dataset.inventoryView; render(); $('#inventoryTitle').focus({preventScroll:true}); } });
+    $('.inventory-nav').addEventListener('click', function (event) { const nav = event.target.closest('[data-inventory-view]'); if (nav) { activeChecklist=""; view = nav.dataset.inventoryView; render(); $('#inventoryTitle').focus({preventScroll:true}); } });
     const actions = document.createElement("div"); actions.className = "inventory-actions";
     $("#inventoryStats").before(actions);
     ["#inventoryStats", "#clearInventoryFilters", "#addItemButton"].forEach(function (selector) { actions.append($(selector)); });
+    initChecklists(actions);
     mobileInventory.addEventListener("change", renderList);
     initSmartControls();
     ["#itemPrice","#itemValue"].forEach(function (id) { $(id).addEventListener("blur", function () { setTimeout(fillMissingAmount,0); }); });
@@ -135,7 +137,7 @@
     $("#addItemButton").addEventListener("click", function () { openItem("", this); });
     $("#inventoryWorkspace").addEventListener("click", function (event) {
       const nav = event.target.closest("[data-inventory-view]"), item = event.target.closest("[data-edit-item]"), add = event.target.closest("[data-add-inventory]");
-      if (nav) { view = nav.dataset.inventoryView; render(); $("#inventoryTitle").focus({ preventScroll: true }); }
+      if (nav) { activeChecklist=""; view = nav.dataset.inventoryView; render(); $("#inventoryTitle").focus({ preventScroll: true }); }
       const filter = event.target.closest('[data-instant-filter]'), archive = event.target.closest('[data-row-archive]');
       if (filter) {
         const key = filter.dataset.instantFilter, value = JSON.parse(filter.dataset.filterValue), control = {owner:'#inventoryOwnerFilter',categories:'#inventoryCategoryFilter',room:'#inventoryRoomFilter'}[key];
@@ -166,7 +168,7 @@
       const toggle=event.target.closest('[data-ownership-toggle]');
       if (toggle) { ownershipExpanded.set(toggle.dataset.ownershipToggle,toggle.getAttribute('aria-expanded')!=='true'); renderList(); return; }
       const card=event.target.closest('[data-inventory-total]');
-      if (card) { $('#inventoryOwnerFilter').value=card.dataset.inventoryTotal==='all'?'':card.dataset.inventoryTotal; renderList(); }
+      if (card) { activeChecklist=''; $('#inventoryOwnerFilter').value=card.dataset.inventoryTotal==='all'?'':card.dataset.inventoryTotal; renderList(); }
     });
     function showCategory(event) {
       const card = event.target.closest('[data-category-group]');
@@ -283,7 +285,7 @@
     new ResizeObserver(updateFilterHeight).observe($('.inventory-toolbar-scroll')); updateFilterHeight();
     const updateSearchWidth=function () { const width=$('#roomOverview').getBoundingClientRect().width; if (width>0) $('#inventoryWorkspace').style.setProperty('--location-panel-width',width+'px'); };
     new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
-    $("#clearInventoryFilters").addEventListener("click", function () { instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
+    $("#clearInventoryFilters").addEventListener("click", function () { activeChecklist=''; instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
     const combined=document.createElement('div'); combined.className='full item-location-notes-row';
     $('.item-location-row').before(combined); Array.from($('.item-location-row').children).forEach(function (el) { combined.append(el); }); Array.from($('.item-tags-notes-row').children).forEach(function (el) { combined.append(el); }); $('.item-location-row').remove(); $('.item-tags-notes-row').remove();
@@ -652,6 +654,97 @@
     $("#selectedItemTags").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-tag]"); if (button) { smartManual.add("categories"); $("#itemCategories").removeAttribute("data-smart-field"); $("#itemCategories").value = m.tags($("#itemCategories").value).filter(function (tag) { return tag !== button.dataset.removeTag; }).join(", "); renderTags(); ($("#selectedItemTags button") || $("#itemTagSearch")).focus(); } });
   }
   function refreshOptions(selector, values, label) { const el = $(selector), value = el.value; el.innerHTML = options(values, label); el.value = values.includes(value) ? value : ""; }
+  function checklist(key) {
+    return inventory().checklists?.[key] || {objects:[],entries:[],checked:[]};
+  }
+  function changeChecklist(key, change) {
+    App.storage.mutate(function (state) {
+      if (!state.inventory.checklists) state.inventory.checklists={};
+      if (!state.inventory.checklists[key]) state.inventory.checklists[key]={objects:[],entries:[],checked:[]};
+      change(state.inventory.checklists[key]);
+    }, {reason:'checklist'});
+    const saved=App.storage.saveNow();
+    if (!saved) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
+  }
+  function initChecklists(actions) {
+    actions.insertAdjacentHTML('afterbegin','<button id="resetChecklist" class="button" type="button" hidden>Reset List</button><div class="checklist-quick"><button id="checklistButton" class="button" type="button" aria-expanded="false" aria-controls="checklistMenu" aria-pressed="false">'+icon('checklist')+'<span>Checklists</span></button></div>');
+    $('#itemCategories').closest('.item-tags-notes-row').insertAdjacentHTML('afterend','<fieldset class="full item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
+    const wrap=$('.checklist-quick');
+    // Body placement avoids clipping in the scrolling quick-actions toolbar.
+    document.body.insertAdjacentHTML('beforeend','<div id="checklistMenu" class="checklist-menu" aria-label="Available checklists" hidden>'+Object.entries(checklistNames).map(function ([key,name]) {return '<button class="button" type="button" data-checklist-view="'+key+'">'+icon('checklist'+name)+esc(name)+'</button>';}).join('')+'</div>');
+    const menu=$('#checklistMenu'), button=$('#checklistButton');
+    let closeTimer;
+    function close() { clearTimeout(closeTimer); menu.hidden=true; button.setAttribute('aria-expanded','false'); }
+    function open() {
+      clearTimeout(closeTimer); menu.hidden=false; button.setAttribute('aria-expanded','true');
+      const rect=button.getBoundingClientRect();
+      menu.style.left=Math.max(8,Math.min(rect.left,window.innerWidth-menu.offsetWidth-8))+'px';
+      menu.style.top=Math.min(rect.bottom,window.innerHeight-menu.offsetHeight-8)+'px';
+    }
+    function contains(target) { return target && (wrap.contains(target) || menu.contains(target)); }
+    [wrap,menu].forEach(function (el) {
+      el.addEventListener('pointerenter',open);
+      el.addEventListener('pointerleave',function () {closeTimer=setTimeout(function () {if (!contains(document.activeElement)) close();},180);});
+      el.addEventListener('focusout',function (event) {if (!contains(event.relatedTarget)) close();});
+    });
+    button.addEventListener('click',open);
+    button.addEventListener('keydown',function (event) {if (event.key==='ArrowDown') {event.preventDefault();open();menu.querySelector('button').focus({preventScroll:true});}});
+    document.addEventListener('keydown',function (event) {if (event.key==='Escape' && !menu.hidden) {close();button.focus();}});
+    document.addEventListener('pointerdown',function (event) {if (!contains(event.target)) close();});
+    window.addEventListener('resize',close);
+    window.addEventListener('scroll',function () {if (!menu.hidden) open();},true);
+    menu.addEventListener('click',function (event) {
+      const target=event.target.closest('[data-checklist-view]');if (!target) return;
+      activeChecklist=target.dataset.checklistView;view='have';close();render();button.focus();
+    });
+    $('#resetChecklist').addEventListener('click',function () {changeChecklist(activeChecklist,function (list) {list.checked=[];});renderList();this.focus();});
+    $('#inventoryList').addEventListener('change',function (event) {
+      const input=event.target.closest('[data-checklist-check]');if (!input) return;
+      const key=input.dataset.checklistCheck, checked=input.checked;
+      changeChecklist(activeChecklist,function (list) {list.checked=list.checked.filter(function (id) {return id!==key;});if (checked) list.checked.push(key);});
+      renderList();$$('[data-checklist-check]').find(function (el) {return el.dataset.checklistCheck===key;})?.focus();
+    });
+    $('#checklistSettings').addEventListener('submit',function (event) {
+      const form=event.target.closest('[data-checklist-add]');if (!form) return;event.preventDefault();
+      const input=$('input',form),text=input.value.trim();if (!text) return;
+      changeChecklist(form.dataset.checklistAdd,function (list) {list.entries.push({id:u.uid('check'),text:text});});
+      renderChecklistSettings();$('#checklistText-'+form.dataset.checklistAdd).focus();
+    });
+    $('#checklistSettings').addEventListener('change',function (event) {
+      const input=event.target.closest('[data-checklist-object]');if (!input) return;
+      const key=input.dataset.checklistObject,id=input.value,checked=input.checked;
+      changeChecklist(key,function (list) {list.objects=list.objects.filter(function (value) {return value!==id;});if (checked) list.objects.push(id);});
+      renderChecklistSettings();$$('[data-checklist-object]').find(function (el) {return el.dataset.checklistObject===key && el.value===id;})?.focus();
+    });
+    $('#checklistSettings').addEventListener('click',function (event) {
+      const button=event.target.closest('[data-checklist-remove]');if (!button) return;
+      const key=button.dataset.checklistRemove,id=button.dataset.entryId;
+      changeChecklist(key,function (list) {list.entries=list.entries.filter(function (entry) {return entry.id!==id;});});
+      renderChecklistSettings();$('#checklistText-'+key).focus();
+    });
+    renderChecklistSettings();
+  }
+  let lastChecklistSettings='';
+  function renderChecklistSettings() {
+    const signature=JSON.stringify([inventory().checklists,inventory().items.map(function (item) {return [item.id,item.name,item.room,Boolean(item.archive)];})]);
+    if (signature===lastChecklistSettings) return;lastChecklistSettings=signature;
+    const open=new Set($$('#checklistSettings details[open]').map(function (el) {return el.dataset.checklistDetails;}));
+    $('#checklistSettings').innerHTML=Object.entries(checklistNames).map(function ([key,name]) {
+      const list=checklist(key);
+      return '<section class="settings-section"><h3>'+icon('checklist'+name)+esc(name)+'</h3><form data-checklist-add="'+key+'" class="checklist-add"><label class="field" for="checklistText-'+key+'"><span>Non-object item</span><input id="checklistText-'+key+'" maxlength="500" required></label><button class="button" type="submit">Add Item</button></form><ul class="checklist-text-items">'+list.entries.map(function (entry) {return '<li><span>'+esc(entry.text)+'</span><button class="button small" type="button" data-checklist-remove="'+key+'" data-entry-id="'+esc(entry.id)+'" aria-label="Remove '+esc(entry.text)+'">Remove</button></li>';}).join('')+'</ul><details data-checklist-details="'+key+'"'+(open.has(key)?' open':'')+'><summary>Choose Objects ('+list.objects.length+')</summary><div class="checklist-object-picker">'+inventory().items.filter(function (item) {return !item.archive || list.objects.includes(item.id);}).sort(function (a,b) {return a.name.localeCompare(b.name);}).map(function (item) {return '<label><input type="checkbox" data-checklist-object="'+key+'" value="'+esc(item.id)+'"'+(list.objects.includes(item.id)?' checked':'')+'><span>'+esc(item.name)+(item.room?' · '+esc(item.room):'')+(item.archive?' · Had':'')+'</span></label>';}).join('')+(inventory().items.length?'':'<p>Add inventory objects first.</p>')+'</div></details></section>';
+    }).join('');
+  }
+  function renderChecklist() {
+    const list=checklist(activeChecklist), name=checklistNames[activeChecklist];
+    $('#inventoryBody').classList.add('checklist-active');
+    $('#roomOverview').hidden=true;$('#locationDivider').hidden=true;
+    $('#resetChecklist').hidden=false;$('#checklistButton').setAttribute('aria-pressed','true');
+    $('#inventoryViewLabel').textContent=name+' Checklist';
+    const rows=list.entries.map(function (entry) {return {key:'text:'+entry.id,text:entry.text};}).concat(list.objects.map(function (id) {return inventory().items.find(function (item) {return item.id===id;});}).filter(Boolean).map(function (item) {return {key:'object:'+item.id,text:item.name,item:item};}));
+    $('#inventoryResultCount').textContent=list.checked.length+' / '+rows.length+' checked';
+    $('#clearInventoryFilters').disabled=false;
+    $('#inventoryList').innerHTML='<div class="checklist-view">'+rows.map(function (row) {return '<div class="checklist-row"><label><input type="checkbox" data-checklist-check="'+esc(row.key)+'"'+(list.checked.includes(row.key)?' checked':'')+'><span>'+esc(row.text)+'</span></label>'+(row.item?'<button class="button small" type="button" data-edit-item="'+esc(row.item.id)+'">Edit Object</button>':'')+'</div>';}).join('')+(rows.length?'':'<p>This checklist is empty. Add items in Settings → Checklists.</p>')+'</div>';
+  }
   function render() {
     const data = inventory(), stats = m.stats(data.items);
     lastInventory = JSON.stringify(data);
@@ -849,6 +942,14 @@
     }).join(' ')+'</td>'; }).join('');
   }
   function renderList() {
+    renderChecklistSettings();
+    if (activeChecklist && view === "have") { renderChecklist(); return; }
+    $('#inventoryBody').classList.remove('checklist-active');
+    $('#inventoryViewLabel').textContent=view === 'previous' ? 'Had · Archived items' : 'Have · Current items';
+    $("#resetChecklist").hidden=true;
+    $("#checklistButton").setAttribute("aria-pressed","false");
+    $("#roomOverview").hidden=!(view === "have" || view === "previous");
+    $("#locationDivider").hidden=$("#roomOverview").hidden;
     const search = $("#inventorySearch").value.trim().toLowerCase(), owner = $("#inventoryOwnerFilter").value, room = $("#inventoryRoomFilter").value, category = $("#inventoryCategoryFilter").value;
     const selected=selectedCategories(), catalog=instantFilters.get('catalog');
     const selections=selected.concat(instantFilters.has('categories')?[instantFilters.get('categories')]:[],catalog?.kind==='tag'?[catalog.value]:catalog?.kind==='tags'?catalog.values:[]);
@@ -1125,6 +1226,7 @@
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
 
     suggestProperties(); fillMissingAmount(); syncDateUnknown(); if ($('#itemIsSet').checked) sumPieceValues(); renderPricing();
+    $$('[name="itemChecklist"]').forEach(function (input) {input.checked=checklist(input.value).objects.includes(editingId);});
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
   }
@@ -1186,7 +1288,14 @@
         }
       } else copies = previous ? [next] : m.createCopies(next, count, saveCopyLocations(count)).map(function (copy) { return m.normalizeItem(Object.assign({},copy,{archive:next.archive})); });
       const replaced = new Set(previous ? (editingCopies.length ? editingCopies : [previous]).map(function (entry) { return entry.id; }) : []);
-      App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(copies); }, { reason: "inventory-save" });
+      App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(copies);
+        $$('[name="itemChecklist"]').forEach(function (input) {
+          if (!state.inventory.checklists) state.inventory.checklists={};
+          const list=state.inventory.checklists[input.value] || {objects:[],entries:[],checked:[]};
+          list.objects=list.objects.filter(function (id) {return !replaced.has(id);});
+          if (input.checked) list.objects=Array.from(new Set(list.objects.concat(copies.map(function (copy) {return copy.id;}))));
+          state.inventory.checklists[input.value]=list;
+        }); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
       App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + (directArchive ? " is in Stuff I Had." : " is in your inventory.")) : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
       $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
@@ -1256,5 +1365,5 @@
     draft._autoProperties = $$('.item-property').map(function (row) { return $$('input', row).map(function (el) { return el.hasAttribute('data-smart-field'); }); });
     return draft;
   }
-  App.inventoryUI = { currentView: function () { return view; }, fromCatalog: function (filter) { instantFilters.clear(); instantFilters.set('catalog',filter); view='have'; ['#inventorySearch','#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); render(); $('#inventoryTitle').focus(); }, search: function (query) { instantFilters.clear(); view='have'; ['#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); $('#inventorySearch').value=query; render(); }, openSearchItem: function (id,trigger) { const item=inventory().items.find(function (entry) { return entry.id===id; }); if(item) { view=item.archive?'previous':'have'; render(); openItem(id,trigger); } }, home: function (destination) { instantFilters.clear(); view = destination === "previous" ? "previous" : "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
+  App.inventoryUI = { currentView: function () { return view; }, fromCatalog: function (filter) { activeChecklist=''; instantFilters.clear(); instantFilters.set('catalog',filter); view='have'; ['#inventorySearch','#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); render(); $('#inventoryTitle').focus(); }, search: function (query) { activeChecklist=''; instantFilters.clear(); view='have'; ['#inventoryOwnerFilter','#inventoryRoomFilter','#inventoryCategoryFilter'].forEach(function (id) { $(id).value=''; }); $('#inventorySearch').value=query; render(); }, openSearchItem: function (id,trigger) { const item=inventory().items.find(function (entry) { return entry.id===id; }); if(item) { activeChecklist=''; view=item.archive?'previous':'have'; render(); openItem(id,trigger); } }, home: function (destination) { activeChecklist=''; instantFilters.clear(); view = destination === "previous" ? "previous" : "have"; ["#inventorySearch","#inventoryOwnerFilter","#inventoryRoomFilter","#inventoryCategoryFilter"].forEach(function (id) { $(id).value = ""; }); render(); $("#inventoryTitle").focus(); }, init: init, render: render, openItem: openItem, captureDraft: captureDraft, openDraft: function (draft, trigger) { openItem("", trigger, false, draft); } };
 })();

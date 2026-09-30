@@ -163,6 +163,26 @@
     });
     return result;
   }
+  // Checklist membership refers to stable inventory IDs; text entries have their own IDs.
+  function normalizeChecklists(input, items) {
+    if (input == null) return null;
+    if (typeof input !== 'object' || Array.isArray(input)) throw new Error('Checklists must be an object.');
+    const ids = new Set(items.map(function (item) { return item.id; }));
+    const result = {};
+    ['volleyball', 'golf', 'swim'].forEach(function (key) {
+      const list = input[key] || {objects:[], entries:[], checked:[]};
+      if (!Array.isArray(list.objects) || !Array.isArray(list.entries) || !Array.isArray(list.checked) || list.entries.length > 1000) throw new Error('Invalid checklist contents.');
+      const objects = Array.from(new Set(list.objects.filter(function (id) { return typeof id === 'string' && ids.has(id); })));
+      const entries = list.entries.map(function (entry) {
+        if (!entry || typeof entry.id !== 'string' || !entry.id || entry.id.length > 200 || typeof entry.text !== 'string' || !entry.text.trim() || entry.text.length > 500) throw new Error('Invalid checklist text item.');
+        return {id:entry.id, text:entry.text.trim()};
+      });
+      if (new Set(entries.map(function (entry) { return entry.id; })).size !== entries.length) throw new Error('Duplicate checklist text item IDs.');
+      const keys = new Set(objects.map(function (id) { return 'object:'+id; }).concat(entries.map(function (entry) { return 'text:'+entry.id; })));
+      result[key] = {objects:objects, entries:entries, checked:Array.from(new Set(list.checked.filter(function (id) { return keys.has(id); })))};
+    });
+    return result;
+  }
   function normalize(input, favorites) {
     if (input === undefined) return { currency: App.config.inventory.defaultCurrency, items: [] };
     if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.items) || input.items.length > 5000) throw new Error("Inventory must contain a list of up to 5,000 items.");
@@ -170,8 +190,8 @@
     const items = input.items.map(function (item) { return favoriteTag(normalizeItem(item),favorites); });
     if (new Set(items.map(function (item) { return item.id; })).size !== items.length) throw new Error("Inventory contains duplicate item IDs.");
     // Earlier copies offered other labels without converting amounts. Keep amounts intact.
-    const reviews=locationReviews(input.locationReviews);
-    return { currency: App.config.inventory.defaultCurrency, items: items, ...(Object.keys(reviews).length ? {locationReviews:reviews} : {}) };
+    const reviews=locationReviews(input.locationReviews), checklists=normalizeChecklists(input.checklists,items);
+    return { currency: App.config.inventory.defaultCurrency, items: items, ...(checklists ? {checklists:checklists} : {}), ...(Object.keys(reviews).length ? {locationReviews:reviews} : {}) };
   }
   function daysOwned(item, end) {
     if (!item.obtainedDate || (item.archive && !item.archive.date && !end)) return null;
@@ -343,7 +363,8 @@
     });
     const reviews=locationReviews(local.locationReviews);
     Object.entries(locationReviews(remote.locationReviews)).forEach(function (entry) { const key=entry[0], incoming=entry[1], current=reviews[key]; if (!current || incoming.updatedAt>current.updatedAt || (incoming.updatedAt===current.updatedAt && incoming.date>current.date)) reviews[key]=incoming; });
-    return normalize({ currency: local.currency, items: Array.from(items.values()), locationReviews:reviews });
+    if (local.checklists && remote.checklists && JSON.stringify(local.checklists) !== JSON.stringify(remote.checklists)) throw new Error('Checklists differ between copies. Choose which copy to keep.');
+    return normalize({ currency: local.currency, items: Array.from(items.values()), locationReviews:reviews, checklists:local.checklists || remote.checklists });
   }
   // Recognized suffixes only: free text and unitless properties remain untouched.
   const measurementUnits = [

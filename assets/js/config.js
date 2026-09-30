@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.82",
-      buildId: "0.0.1.82",
+      version: "0.0.1.83",
+      buildId: "0.0.1.83",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,21 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.83",
+  "date": "2026-09-30",
+  "title": "Activity Checklists",
+  "summary": "Pack for Volleyball, Golf and Swim using saved checklists of inventory objects and extra text items.",
+  "features": [
+    "Checklists quick action before All, with hover, click and keyboard access to Volleyball, Golf and Swim.",
+    "Checklist views show saved checkboxes, text items before objects, and a Reset List button.",
+    "Settings Checklists tab manages text items and object membership; the object editor also assigns checklist membership."
+  ],
+  "improvements": [
+    "Checklists and checkmarks are included in local backups, optional GitHub Sync and offline use."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.82",
   "date": "2026-09-28",
   "title": "Conveyed ownership and clean item fields",

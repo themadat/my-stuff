@@ -2,30 +2,27 @@
 
 ## State
 
-Release **0.0.1.82** is prepared and verified, uncommitted/unpushed. All version/cache surfaces aligned once with `scripts/release.mjs`.
+Release **0.0.1.83** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
 
-Conveyed is recognized case-insensitively as a word, bracketed marker, or explicit acquisition method. Smart entry, household exports, mapped bulk imports and item saves set owner to House and acquisition to Conveyed. Existing defaults remain: price zero and obtained date 2020-12-17. The marker is removed from other saved item fields, preserving surrounding text. Original bulk source text is retained for review. Selecting Conveyed in the editor also selects House. Grouped current copies inherit Conveyed ownership and cleanup when saved.
+Checklists quick action appears before All, with Volleyball, Golf and Swim. The supplied checklist and sport symbols are shared SVG assets (Golf reuses its existing supplied symbol). The menu supports hover, click/touch, keyboard ArrowDown and Escape. Selected checklist views show text items first, then inventory objects, with saved checkboxes and a Reset List action immediately before Checklists. All and normal navigation exit checklist mode.
 
-The shared helper is `App.smartEntry.conveyedFields`; bulk cleanup runs after mapped fields so mapped owner cannot override Conveyed. Current stored data is not migrated wholesale; cleanup applies through parsing/saving.
+Settings → Checklists adds/removes text items and chooses object membership. Object editor checklist choices apply to saved objects/copies. Membership uses stable item IDs; deleting objects removes stale membership and completion. Archived members retain access. Checklist content and completion live in inventory, survive JSON backup/cloud payloads and work offline. Conflicting cloud checklist versions use the existing explicit copy-choice flow.
 
-Verification: **143 non-browser checks and 5 browser flows passed**, covering plain/bracketed/annotated and mapped Conveyed, household Have/Had exports, desktop/mobile saves, grouped copies, bulk review and offline reload. Diff checks passed. Preview server stopped. No unfinished work.
-
-Previous release 81 provides compact multi-select Network connections (including RF brand labels, BLE/UWB/NFC), Group by before Matching, and shared tag editing across grouped copies/pieces.
+Verification: **148 non-browser checks and 6 relevant browser flows passed** (desktop/mobile checklists, editor/Settings compatibility, existing inventory/Notes offline smoke and checklist offline completion/reset). Final checklist navigation changes also passed the 3 checklist browser flows. Diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 
-- User deploys by pushing `main`. Increment the four-part build once per completed application batch and run release checks before supplying deployment commands.
-- After every completed-work summary include `git add .`, a `Version - Description` commit subject, and `git push origin main`. User explicitly prefers staging everything. Provide commands; do not execute commit/push unless requested.
-- Runtime stays static and dependency-free. Preserve backup, sync, recovery and local storage.
-- Working tree was clean at this batch’s start. Keep this handoff under 500 words.
+- Static, local-first, runtime dependency-free. Preserve Notes, Settings, storage, recovery, backup/import, optional sync and PWA.
+- User deploys by pushing main. Release one application batch once; do not commit or push unless explicitly requested.
+- At release handoff provide staging, `Version - Description` commit and push commands. Working tree was clean at this batch’s start; every current change belongs to this task.
+- Keep this handoff under 500 words. Git and release notes retain history.
 
 ## Useful pointers
 
-- `assets/js/config.js`: identity, current version, locations/tags, Help/releases. Read relevant ranges only.
-- `assets/js/inventory-ui.js`, `assets/css/app.css`: views, editors, location navigation/layout.
-- `assets/js/core/inventory.js`: normalization, copies/sets, location grouping.
-- `assets/js/core/smart-entry.js`, `bulk-import.js`: parsing.
-- `tests/browser.test.mjs`: browser fixture and regression scenarios. New Add focuses `itemSmartEntry`; wait for that before filling controls.
-- `docs/TESTING.md`: browser prerequisites. `node scripts/verify.mjs`: concise non-browser checks.
-
-On this machine, Node is `/Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`; Playwright module is `/Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs`. Use these if not on PATH. Preview: `python3 -m http.server 8765 --bind 127.0.0.1`; stop after browser work.
+- `assets/js/inventory-ui.js`: checklist menu, views, Settings controls and object editor membership.
+- `assets/js/core/inventory.js`: checklist validation, deleted-reference cleanup and merge conflict handling.
+- `assets/js/core/state.js`: Checklists support tab; inventory already participates in backups and cloud sync.
+- `tests/checklists.test.mjs`, `tests/browser.test.mjs`: normalization, backup/sync and browser regressions.
+- `docs/DEVELOPMENT.md`, `docs/TESTING.md`: release and testing commands.
+- Node: `/Users/adamlauer/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`. System `/usr/local/bin/node` is too old for Node test flags.
+- Playwright: `/Users/adamlauer/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs`. Set `PLAYWRIGHT_MODULE` to this and `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to `/Applications/Brave Browser.app/Contents/MacOS/Brave Browser`. Isolated headless browser and local preview require sandbox escalation here.

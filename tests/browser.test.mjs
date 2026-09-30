@@ -1961,3 +1961,49 @@ test('Conveyed text sets House and acquisition without leaking into saved fields
   assert.match(item.description,/Keep outside/);
  }
 });
+
+for (const viewport of [{width:1440,height:1000},{width:390,height:844}]) {
+ test('checklists support objects, text, persistent checks and reset at '+viewport.width, {timeout:30000}, async t=>{
+  const {page}=await fixture(t,{viewport});page.setDefaultTimeout(5000);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+  await page.locator('#itemName').fill('Sport bag');await page.locator('[name="itemChecklist"][value="volleyball"]').check();await page.locator('#saveItemButton').click();
+  await page.locator('#supportButton').click();await page.locator('#checklistsTab').click();
+  await page.locator('#checklistText-volleyball').fill('Water <img src=x>');await page.locator('[data-checklist-add="volleyball"] button').click();
+  await page.locator('[data-checklist-details="golf"] summary').click();await page.locator('[data-checklist-object="golf"]').check();
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#checklistButton').click();await page.locator('#checklistButton').press('ArrowDown');
+  assert.equal(await page.locator('#checklistMenu').isVisible(),true);
+  await page.locator('[data-checklist-view="volleyball"]').click();
+  assert.deepEqual(await page.locator('.checklist-row label span').allTextContents(),['Water <img src=x>','Sport bag']);
+  assert.equal(await page.locator('.checklist-row img').count(),0);
+  await page.locator('[data-checklist-check]').nth(0).check();await page.locator('[data-checklist-check]').nth(1).check();
+  await page.reload();
+  await page.locator('#checklistButton').click();await page.locator('#checklistButton').press('ArrowDown');await page.locator('[data-checklist-view="volleyball"]').click();
+  assert.equal(await page.locator('[data-checklist-check]:checked').count(),2);
+  await page.locator('#resetChecklist').click();assert.equal(await page.locator('[data-checklist-check]:checked').count(),0);
+  await page.locator('#checklistButton').press('ArrowDown');await page.locator('[data-checklist-view="golf"]').click();
+  assert.deepEqual(await page.locator('.checklist-row label span').allTextContents(),['Sport bag']);
+  await page.locator('[data-inventory-total="all"] .ownership-select').click();
+  assert.equal(await page.locator('#resetChecklist').isVisible(),false);assert.equal(await page.locator('.checklist-row').count(),0);
+  assert.match(await page.locator('#inventoryViewLabel').textContent(),/Have/);
+  await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+  await page.evaluate(()=>window.LocalApp.inventoryUI.home());
+  assert.equal(await page.locator('#resetChecklist').isVisible(),false);
+ });
+}
+
+test('checklists remain usable and save completion and reset offline', {timeout:30000}, async t=>{
+ const context=await browser.newContext();t.after(()=>context.close());
+ const page=await context.newPage(),errors=[];page.setDefaultTimeout(5000);page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(base);await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Offline swim bag');await page.locator('[name="itemChecklist"][value="swim"]').check();await page.locator('#saveItemButton').click();
+ await page.evaluate(async()=>{window.LocalApp.storage.saveNow();await navigator.serviceWorker.ready;});await page.reload();
+ assert.ok(await page.evaluate(()=>navigator.serviceWorker.controller));await context.setOffline(true);await page.reload();
+ await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+ assert.match(await page.locator('.checklist-row').textContent(),/Offline swim bag/);await page.locator('[data-checklist-check]').check();
+ await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+ assert.equal(await page.locator('[data-checklist-check]').isChecked(),true);await page.locator('#resetChecklist').click();
+ await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+ assert.equal(await page.locator('[data-checklist-check]').isChecked(),false);assert.deepEqual(errors,[]);
+});

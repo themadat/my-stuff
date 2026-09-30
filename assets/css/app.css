@@ -1437,3 +1437,28 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 @media (max-width:620px) { #itemDialog .network-property > label:first-child { grid-column:1; grid-row:1; } #itemDialog .network-property.unitless { grid-template-columns:minmax(0,1fr) auto; } #itemDialog .network-property > label:nth-child(2) { grid-column:1 / -1; } #itemDialog .network-property > [data-remove-property] { grid-column:2; grid-row:1; } }
 
 #itemDialog .network-property > label { grid-template-rows:auto 1fr; }
+
+/* Checklists share the inventory storage and quick-action surface. */
+.checklist-quick { display: flex; align-items: center; }
+.checklist-menu { position: fixed; z-index: 120; min-width: 170px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 8px 28px #0003; }
+.checklist-menu:not([hidden]) { display: grid; gap: 4px; }
+.checklist-menu .button { justify-content: flex-start; }
+.checklist-row, .checklist-text-items li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid var(--line); }
+.checklist-row label, .checklist-object-picker label, .item-checklists label { display: flex; align-items: center; gap: 10px; }
+.checklist-row label { flex: 1; min-width: 0; }
+.checklist-row span, .checklist-object-picker span, .checklist-text-items span { overflow-wrap: anywhere; }
+.checklist-row input, .checklist-object-picker input, .item-checklists input { width: 20px; height: 20px; flex-shrink: 0; }
+.checklist-row input:checked + span { text-decoration: line-through; opacity: .65; }
+.checklist-add { display: flex; align-items: end; gap: 8px; }
+.checklist-add .field { flex: 1; min-width: 0; }
+.checklist-text-items { list-style: none; padding: 0; }
+.checklist-object-picker { display: grid; gap: 12px; max-height: 300px; overflow: auto; padding: 12px 0; }
+.item-checklists { display: flex; flex-wrap: wrap; gap: 16px; }
+#checklistSettings h3 { display: flex; align-items: center; gap: 8px; }
+#checklistSettings h3 .sf-symbol { width: 24px; height: 24px; }
+#checklistSettings summary { cursor: pointer; }
+
+.inventory-body.checklist-active { grid-template-columns: minmax(0,1fr); }
+.checklist-quick .button { height: 100%; }
+
+.inventory-body.checklist-active .inventory-collection { grid-column: 1; padding-left: 0; }
