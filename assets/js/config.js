@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.85",
-      buildId: "0.0.1.85",
+      version: "0.0.1.86",
+      buildId: "0.0.1.86",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.86",
+  "date": "2026-09-30",
+  "title": "Checklist Labels",
+  "summary": "Checklists follows Inventory in Settings, object labels include brands, and the reset action is named Reset.",
+  "features": [],
+  "improvements": [
+    "Checklists settings tab appears immediately below Inventory.",
+    "Checklist object labels include brand names in both checklist views and object selection.",
+    "Reset List is renamed Reset."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.85",
   "date": "2026-09-30",
   "title": "Object Editor Rows",

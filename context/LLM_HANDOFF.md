@@ -2,13 +2,13 @@
 
 ## State
 
-Release **0.0.1.85** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
+Release **0.0.1.86** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
 
-The object editor now puts Checklists and Tags in one grid row, with selected tag chips to the right of the search input. The reorder hint spans the tag area above search and chips. Total Copies and pricing controls immediately follow this row, then Notes. The old location/tags/notes row-combining step was removed so it cannot undo the requested editor structure. Bracketed Custom Properties preset descriptions use flex alignment to remain vertically centered in their buttons.
+Checklists appears immediately below Inventory in the Settings tabs. Checklist object labels now include Brand properties before the object name, both in checklist views and the Settings object picker. The shared helper is `checklistObjectName` in `assets/js/inventory-ui.js`; Settings render caching includes this label so brand edits refresh immediately. Labels remain escaped. Reset List is now named Reset.
 
-Checklist behavior remains unchanged: Volleyball/Golf/Swim, hover/click/keyboard quick menu directly before All, symbol-above-label actions, supplied Golf/Reset symbols, house-location object groups with text entries first, saved checkmarks and reset. Backups, optional sync and offline use retain checklist data.
+Retained editor layout: Checklists and Tags share a row, selected tags appear right of search, Total Copies/pricing follow the row, then Notes. Bracketed Custom Properties descriptions are vertically centered. Checklist objects remain grouped by the existing house-location order; text entries remain first. Backups, optional sync, saved checks/reset and offline use remain intact.
 
-Verification: **148 non-browser checks and 5 release browser flows passed**: editor save/tag/property/archive behavior, desktop/mobile checklists, existing inventory/Notes offline smoke, and checklist offline completion/reset. Final desktop/mobile editor screenshots inspected. Selected tags are beside search and copy totals follow the checklist/tag row. Diff checks passed. Preview server stopped.
+Verification: **148 non-browser checks and 5 release browser flows passed**: Settings, desktop/mobile checklist labels, inventory/Notes offline smoke and checklist offline completion/reset. The final brand-refresh adjustment also passed both desktop/mobile checklist flows, including a changed brand containing HTML-like text. Diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 

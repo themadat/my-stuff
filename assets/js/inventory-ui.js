@@ -652,6 +652,10 @@
     $("#selectedItemTags").addEventListener("click", function (event) { const button = event.target.closest("[data-remove-tag]"); if (button) { smartManual.add("categories"); $("#itemCategories").removeAttribute("data-smart-field"); $("#itemCategories").value = m.tags($("#itemCategories").value).filter(function (tag) { return tag !== button.dataset.removeTag; }).join(", "); renderTags(); ($("#selectedItemTags button") || $("#itemTagSearch")).focus(); } });
   }
   function refreshOptions(selector, values, label) { const el = $(selector), value = el.value; el.innerHTML = options(values, label); el.value = values.includes(value) ? value : ""; }
+  function checklistObjectName(item) {
+    const brands=Array.from(new Set(item.properties.filter(function (property) {return property.name.toLowerCase()==='brand';}).map(function (property) {return property.value;}).filter(Boolean)));
+    return brands.concat(item.name).join(' ');
+  }
   function checklist(key) {
     return inventory().checklists?.[key] || {objects:[],entries:[],checked:[]};
   }
@@ -665,7 +669,7 @@
     if (!saved) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
   }
   function initChecklists(actions) {
-    actions.insertAdjacentHTML('afterbegin','<button id="resetChecklist" class="button" type="button" hidden>'+icon('checklistReset')+'<span>Reset List</span></button><div class="checklist-quick"><button id="checklistButton" class="button" type="button" aria-expanded="false" aria-controls="checklistMenu" aria-pressed="false">'+icon('checklist')+'<span>Checklists</span></button></div>');
+    actions.insertAdjacentHTML('afterbegin','<button id="resetChecklist" class="button" type="button" hidden>'+icon('checklistReset')+'<span>Reset</span></button><div class="checklist-quick"><button id="checklistButton" class="button" type="button" aria-expanded="false" aria-controls="checklistMenu" aria-pressed="false">'+icon('checklist')+'<span>Checklists</span></button></div>');
     const tagRow=$('#itemCategories').closest('.item-tags-notes-row'), tagArea=$('#itemCategories').parentElement, notes=$('#itemDescription').closest('label');
     tagRow.className='full item-checklists-tags-row';tagArea.classList.add('item-tag-area');
     tagArea.prepend($('label',$('#itemTagSearch').closest('.picker')));
@@ -731,12 +735,12 @@
   }
   let lastChecklistSettings='';
   function renderChecklistSettings() {
-    const signature=JSON.stringify([inventory().checklists,inventory().items.map(function (item) {return [item.id,item.name,item.room,Boolean(item.archive)];})]);
+    const signature=JSON.stringify([inventory().checklists,inventory().items.map(function (item) {return [item.id,checklistObjectName(item),item.room,Boolean(item.archive)];})]);
     if (signature===lastChecklistSettings) return;lastChecklistSettings=signature;
     const open=new Set($$('#checklistSettings details[open]').map(function (el) {return el.dataset.checklistDetails;}));
     $('#checklistSettings').innerHTML=Object.entries(checklistNames).map(function ([key,name]) {
       const list=checklist(key);
-      return '<section class="settings-section"><h3>'+icon('checklist'+name)+esc(name)+'</h3><form data-checklist-add="'+key+'" class="checklist-add"><label class="field" for="checklistText-'+key+'"><span>Non-object item</span><input id="checklistText-'+key+'" maxlength="500" required></label><button class="button" type="submit">Add Item</button></form><ul class="checklist-text-items">'+list.entries.map(function (entry) {return '<li><span>'+esc(entry.text)+'</span><button class="button small" type="button" data-checklist-remove="'+key+'" data-entry-id="'+esc(entry.id)+'" aria-label="Remove '+esc(entry.text)+'">Remove</button></li>';}).join('')+'</ul><details data-checklist-details="'+key+'"'+(open.has(key)?' open':'')+'><summary>Choose Objects ('+list.objects.length+')</summary><div class="checklist-object-picker">'+inventory().items.filter(function (item) {return !item.archive || list.objects.includes(item.id);}).sort(function (a,b) {return a.name.localeCompare(b.name);}).map(function (item) {return '<label><input type="checkbox" data-checklist-object="'+key+'" value="'+esc(item.id)+'"'+(list.objects.includes(item.id)?' checked':'')+'><span>'+esc(item.name)+(item.room?' · '+esc(item.room):'')+(item.archive?' · Had':'')+'</span></label>';}).join('')+(inventory().items.length?'':'<p>Add inventory objects first.</p>')+'</div></details></section>';
+      return '<section class="settings-section"><h3>'+icon('checklist'+name)+esc(name)+'</h3><form data-checklist-add="'+key+'" class="checklist-add"><label class="field" for="checklistText-'+key+'"><span>Non-object item</span><input id="checklistText-'+key+'" maxlength="500" required></label><button class="button" type="submit">Add Item</button></form><ul class="checklist-text-items">'+list.entries.map(function (entry) {return '<li><span>'+esc(entry.text)+'</span><button class="button small" type="button" data-checklist-remove="'+key+'" data-entry-id="'+esc(entry.id)+'" aria-label="Remove '+esc(entry.text)+'">Remove</button></li>';}).join('')+'</ul><details data-checklist-details="'+key+'"'+(open.has(key)?' open':'')+'><summary>Choose Objects ('+list.objects.length+')</summary><div class="checklist-object-picker">'+inventory().items.filter(function (item) {return !item.archive || list.objects.includes(item.id);}).sort(function (a,b) {return a.name.localeCompare(b.name);}).map(function (item) {return '<label><input type="checkbox" data-checklist-object="'+key+'" value="'+esc(item.id)+'"'+(list.objects.includes(item.id)?' checked':'')+'><span>'+esc(checklistObjectName(item))+(item.room?' · '+esc(item.room):'')+(item.archive?' · Had':'')+'</span></label>';}).join('')+(inventory().items.length?'':'<p>Add inventory objects first.</p>')+'</div></details></section>';
     }).join('');
   }
   function renderChecklist() {
@@ -745,7 +749,7 @@
     $('#roomOverview').hidden=true;$('#locationDivider').hidden=true;
     $('#resetChecklist').hidden=false;$('#checklistButton').setAttribute('aria-pressed','true');
     $('#inventoryViewLabel').textContent=name+' Checklist';
-    const rows=list.entries.map(function (entry) {return {key:'text:'+entry.id,text:entry.text};}).concat(list.objects.map(function (id) {return inventory().items.find(function (item) {return item.id===id;});}).filter(Boolean).map(function (item) {return {key:'object:'+item.id,text:item.name,item:item};}));
+    const rows=list.entries.map(function (entry) {return {key:'text:'+entry.id,text:entry.text};}).concat(list.objects.map(function (id) {return inventory().items.find(function (item) {return item.id===id;});}).filter(Boolean).map(function (item) {return {key:'object:'+item.id,text:checklistObjectName(item),item:item};}));
     $('#inventoryResultCount').textContent=list.checked.length+' / '+rows.length+' checked';
     $('#clearInventoryFilters').disabled=false;
     function rowMarkup(row) {return '<div class="checklist-row"><label><input type="checkbox" data-checklist-check="'+esc(row.key)+'"'+(list.checked.includes(row.key)?' checked':'')+'><span>'+esc(row.text)+'</span></label>'+(row.item?'<button class="button small" type="button" data-edit-item="'+esc(row.item.id)+'">Edit Object</button>':'')+'</div>';}
@@ -753,7 +757,7 @@
     const sections=m.locationSections(objects.map(function (row) {return row.item;}),true);
     $('#inventoryList').innerHTML='<div class="checklist-view">'+rows.filter(function (row) {return !row.item;}).map(rowMarkup).join('')+sections.map(function (section) {
       const location=section.path.filter(Boolean).join(' › ') || 'Unassigned';
-      return '<section class="checklist-location"><h3>'+esc(location)+'</h3>'+section.items.slice().sort(function (a,b) {return a.name.localeCompare(b.name);}).map(function (item) {return rowMarkup({key:'object:'+item.id,text:item.name,item:item});}).join('')+'</section>';
+      return '<section class="checklist-location"><h3>'+esc(location)+'</h3>'+section.items.slice().sort(function (a,b) {return a.name.localeCompare(b.name);}).map(function (item) {return rowMarkup({key:'object:'+item.id,text:checklistObjectName(item),item:item});}).join('')+'</section>';
     }).join('')+(rows.length?'':'<p>This checklist is empty. Add items in Settings → Checklists.</p>')+'</div>';
   }
   function render() {
