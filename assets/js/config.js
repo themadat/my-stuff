@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.83",
-      buildId: "0.0.1.83",
+      version: "0.0.1.84",
+      buildId: "0.0.1.84",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,21 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.84",
+  "date": "2026-09-30",
+  "title": "Checklist Layout and Locations",
+  "summary": "Checklist actions sit directly before All with symbols above labels, and checklist objects follow house-location groups.",
+  "features": [],
+  "improvements": [
+    "Checklist and Reset List actions use the quick-action symbol-above-label layout and stay beside All.",
+    "Checklist objects are grouped in the existing house-location order, with non-object items first.",
+    "Golf checklist and Reset List use the supplied symbols."
+  ],
+  "fixes": [
+    "Checklist controls stay in the ownership quick-action group instead of occupying separate toolbar grid cells."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.83",
   "date": "2026-09-30",
   "title": "Activity Checklists",

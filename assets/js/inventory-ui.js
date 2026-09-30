@@ -667,8 +667,11 @@
     if (!saved) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
   }
   function initChecklists(actions) {
-    actions.insertAdjacentHTML('afterbegin','<button id="resetChecklist" class="button" type="button" hidden>Reset List</button><div class="checklist-quick"><button id="checklistButton" class="button" type="button" aria-expanded="false" aria-controls="checklistMenu" aria-pressed="false">'+icon('checklist')+'<span>Checklists</span></button></div>');
+    actions.insertAdjacentHTML('afterbegin','<button id="resetChecklist" class="button" type="button" hidden>'+icon('checklistReset')+'<span>Reset List</span></button><div class="checklist-quick"><button id="checklistButton" class="button" type="button" aria-expanded="false" aria-controls="checklistMenu" aria-pressed="false">'+icon('checklist')+'<span>Checklists</span></button></div>');
     $('#itemCategories').closest('.item-tags-notes-row').insertAdjacentHTML('afterend','<fieldset class="full item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
+    const group=document.createElement('div');group.className='checklist-ownership-actions';
+    actions.prepend(group);
+    ['#resetChecklist','.checklist-quick','#inventoryStats'].forEach(function (selector) {group.append($(selector));});
     const wrap=$('.checklist-quick');
     // Body placement avoids clipping in the scrolling quick-actions toolbar.
     document.body.insertAdjacentHTML('beforeend','<div id="checklistMenu" class="checklist-menu" aria-label="Available checklists" hidden>'+Object.entries(checklistNames).map(function ([key,name]) {return '<button class="button" type="button" data-checklist-view="'+key+'">'+icon('checklist'+name)+esc(name)+'</button>';}).join('')+'</div>');
@@ -743,7 +746,13 @@
     const rows=list.entries.map(function (entry) {return {key:'text:'+entry.id,text:entry.text};}).concat(list.objects.map(function (id) {return inventory().items.find(function (item) {return item.id===id;});}).filter(Boolean).map(function (item) {return {key:'object:'+item.id,text:item.name,item:item};}));
     $('#inventoryResultCount').textContent=list.checked.length+' / '+rows.length+' checked';
     $('#clearInventoryFilters').disabled=false;
-    $('#inventoryList').innerHTML='<div class="checklist-view">'+rows.map(function (row) {return '<div class="checklist-row"><label><input type="checkbox" data-checklist-check="'+esc(row.key)+'"'+(list.checked.includes(row.key)?' checked':'')+'><span>'+esc(row.text)+'</span></label>'+(row.item?'<button class="button small" type="button" data-edit-item="'+esc(row.item.id)+'">Edit Object</button>':'')+'</div>';}).join('')+(rows.length?'':'<p>This checklist is empty. Add items in Settings → Checklists.</p>')+'</div>';
+    function rowMarkup(row) {return '<div class="checklist-row"><label><input type="checkbox" data-checklist-check="'+esc(row.key)+'"'+(list.checked.includes(row.key)?' checked':'')+'><span>'+esc(row.text)+'</span></label>'+(row.item?'<button class="button small" type="button" data-edit-item="'+esc(row.item.id)+'">Edit Object</button>':'')+'</div>';}
+    const objects=rows.filter(function (row) {return row.item;});
+    const sections=m.locationSections(objects.map(function (row) {return row.item;}),true);
+    $('#inventoryList').innerHTML='<div class="checklist-view">'+rows.filter(function (row) {return !row.item;}).map(rowMarkup).join('')+sections.map(function (section) {
+      const location=section.path.filter(Boolean).join(' › ') || 'Unassigned';
+      return '<section class="checklist-location"><h3>'+esc(location)+'</h3>'+section.items.slice().sort(function (a,b) {return a.name.localeCompare(b.name);}).map(function (item) {return rowMarkup({key:'object:'+item.id,text:item.name,item:item});}).join('')+'</section>';
+    }).join('')+(rows.length?'':'<p>This checklist is empty. Add items in Settings → Checklists.</p>')+'</div>';
   }
   function render() {
     const data = inventory(), stats = m.stats(data.items);

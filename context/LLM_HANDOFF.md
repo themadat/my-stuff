@@ -2,13 +2,15 @@
 
 ## State
 
-Release **0.0.1.83** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
+Release **0.0.1.84** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
 
-Checklists quick action appears before All, with Volleyball, Golf and Swim. The supplied checklist and sport symbols are shared SVG assets (Golf reuses its existing supplied symbol). The menu supports hover, click/touch, keyboard ArrowDown and Escape. Selected checklist views show text items first, then inventory objects, with saved checkboxes and a Reset List action immediately before Checklists. All and normal navigation exit checklist mode.
+Checklists and Reset List are grouped directly before All in quick actions, using the symbol-above-label layout. Golf now uses the user's supplied circular golfer symbol, distinct from the inventory Golfing category. Reset uses the supplied two-empty-circles symbol. Shared SVGs remain in `assets/js/icons.js`.
 
-Settings → Checklists adds/removes text items and chooses object membership. Object editor checklist choices apply to saved objects/copies. Membership uses stable item IDs; deleting objects removes stale membership and completion. Archived members retain access. Checklist content and completion live in inventory, survive JSON backup/cloud payloads and work offline. Conflicting cloud checklist versions use the existing explicit copy-choice flow.
+Checklist objects are grouped by existing inventory location paths (zone, room, space), in house-location order via `m.locationSections(items,true)`, then alphabetically within each location. Non-object text entries stay above all object groups. Unassigned objects form their own group.
 
-Verification: **148 non-browser checks and 6 relevant browser flows passed** (desktop/mobile checklists, editor/Settings compatibility, existing inventory/Notes offline smoke and checklist offline completion/reset). Final checklist navigation changes also passed the 3 checklist browser flows. Diff checks passed. Preview server stopped.
+Existing Volleyball/Golf/Swim checklist behavior is retained: hover/click/keyboard menu, object membership through the editor and Settings, text management in Settings → Checklists, persisted checkmarks, Reset List, backups, optional sync and offline use.
+
+Verification: **148 non-browser checks passed**, plus desktop/mobile placement and location-order regressions, checklist offline completion/reset, Settings compatibility and inventory/Notes offline smoke. Final CSS adjustment passed all 3 checklist browser flows; the other 2 release browser flows already passed. Desktop/mobile screenshots inspected. Diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 

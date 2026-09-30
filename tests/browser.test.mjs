@@ -1968,14 +1968,30 @@ for (const viewport of [{width:1440,height:1000},{width:390,height:844}]) {
   await page.locator('[data-close-dialog="supportDialog"]').click();
   await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
   await page.locator('#itemName').fill('Sport bag');await page.locator('[name="itemChecklist"][value="volleyball"]').check();await page.locator('#saveItemButton').click();
+  await page.evaluate(()=>{
+   const app=window.LocalApp;
+   app.storage.mutate(state=>{
+    for (const [id,name,room,zone] of [['office-kit','Office kit','Office','Upstairs'],['kitchen-kit','Kitchen kit','Kitchen','Main Level']]) {
+     state.inventory.items.push(app.inventoryModel.normalizeItem({id,name,owner:'me',room,properties:[{name:'Zone',value:zone,unit:''}]}));
+     state.inventory.checklists.volleyball.objects.push(id);
+    }
+   });app.storage.saveNow();
+  });
+  const placement=await page.evaluate(()=>{
+   const button=document.querySelector('#checklistButton'),all=document.querySelector('[data-inventory-total="all"]');
+   const b=button.getBoundingClientRect(),a=all.getBoundingClientRect(),symbol=button.querySelector('svg').getBoundingClientRect(),label=button.querySelector('span:last-child').getBoundingClientRect();
+   return {left:b.right<=a.left+1,sameRow:Math.abs(b.top-a.top)<2,stacked:symbol.bottom<=label.top+1};
+  });assert.deepEqual(placement,{left:true,sameRow:true,stacked:true});
   await page.locator('#supportButton').click();await page.locator('#checklistsTab').click();
   await page.locator('#checklistText-volleyball').fill('Water <img src=x>');await page.locator('[data-checklist-add="volleyball"] button').click();
-  await page.locator('[data-checklist-details="golf"] summary').click();await page.locator('[data-checklist-object="golf"]').check();
+  await page.locator('[data-checklist-details="golf"] summary').click();await page.locator('[data-checklist-object="golf"]').last().check();
   await page.locator('[data-close-dialog="supportDialog"]').click();
   await page.locator('#checklistButton').click();await page.locator('#checklistButton').press('ArrowDown');
   assert.equal(await page.locator('#checklistMenu').isVisible(),true);
   await page.locator('[data-checklist-view="volleyball"]').click();
-  assert.deepEqual(await page.locator('.checklist-row label span').allTextContents(),['Water <img src=x>','Sport bag']);
+  assert.deepEqual(await page.locator('.checklist-row label span').allTextContents(),['Water <img src=x>','Kitchen kit','Office kit','Sport bag']);
+  assert.deepEqual(await page.locator('.checklist-location h3').allTextContents(),['Main Level › Kitchen','Upstairs › Office','Unassigned']);
+  if (process.env.QA_SCREENSHOTS) await page.screenshot({path:'/tmp/checklist-layout-'+viewport.width+'.png'});
   assert.equal(await page.locator('.checklist-row img').count(),0);
   await page.locator('[data-checklist-check]').nth(0).check();await page.locator('[data-checklist-check]').nth(1).check();
   await page.reload();
