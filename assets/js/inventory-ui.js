@@ -673,7 +673,7 @@
     const tagRow=$('#itemCategories').closest('.item-tags-notes-row'), tagArea=$('#itemCategories').parentElement, notes=$('#itemDescription').closest('label');
     tagRow.className='full item-checklists-tags-row';tagArea.classList.add('item-tag-area');
     tagArea.prepend($('label',$('#itemTagSearch').closest('.picker')));
-    notes.classList.add('full','item-editor-notes');tagRow.after(notes);
+    notes.classList.add('item-editor-notes');$('.item-location-row').classList.add('item-location-description-row');$('.item-location-row').append(notes);
     tagRow.insertAdjacentHTML('afterbegin','<fieldset class="item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
     const group=document.createElement('div');group.className='checklist-ownership-actions';
     actions.prepend(group);
@@ -1133,11 +1133,19 @@
       return row;
     });
   }
-  function copyLocations() { return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value, size: $('[data-copy-shared-size]',row)?.checked === false ? $('[data-copy-size]',row).value : null, color: $('[data-copy-shared-color]',row)?.checked === false ? $('[data-copy-color]',row).value : null, value: $('[data-copy-value]',row)?.value ?? '', piece: $('#itemIsSet').checked ? $('[data-copy-piece]',row).value : '', obtainedDate: $('[data-copy-shared-date]',row)?.checked === false ? $('[data-copy-date]',row).value : null, notes: $('[data-copy-shared-notes]',row)?.checked === false ? $('[data-copy-notes]',row).value : null }; }); }
+  function copyLocations() {
+    if ($('#itemCopyLocations').hidden && Number($('#itemCopies').value)===1) {
+      const row=$('[data-copy-location]');
+      return [{zone:$('#itemZone').value,room:$('#itemRoom').value,space:$('#itemSpace').value,size:null,color:null,notes:null,obtainedDate:null,value:$('#itemValue').value,piece:$('#itemIsSet').checked ? $('[data-copy-piece]',row)?.value || '' : ''}];
+    }
+    return $$('[data-copy-location]').map(function (row) { return { zone: $('[data-copy-zone]',row).value, room: $('[data-copy-room]',row).value, space: $('[data-copy-space]',row).value, size: $('[data-copy-shared-size]',row)?.checked === false ? $('[data-copy-size]',row).value : null, color: $('[data-copy-shared-color]',row)?.checked === false ? $('[data-copy-color]',row).value : null, value: $('[data-copy-value]',row)?.value ?? '', piece: $('#itemIsSet').checked ? $('[data-copy-piece]',row).value : '', obtainedDate: $('[data-copy-shared-date]',row)?.checked === false ? $('[data-copy-date]',row).value : null, notes: $('[data-copy-shared-notes]',row)?.checked === false ? $('[data-copy-notes]',row).value : null }; }); }
   function renderCopyLocations(saved) {
     const count = Number($('#itemCopies').value), root = $('#itemCopyLocations'), old = Array.isArray(saved) ? saved : copyLocations();
-    root.hidden = Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < (editingId || $('#itemIsSet').checked ? 1 : 2) || count > 100;
-    if (root.hidden) { root.innerHTML = ''; return; }
+    const unavailable=Boolean(editingId && !editingCopies.length) || !Number.isInteger(count) || count < 1 || count > 100;
+    root.hidden = unavailable || count === 1;
+    $('#itemIsSet').closest('label').hidden=count===1;
+    if (count===1 && !old[0]?.piece) $('#itemIsSet').checked=false;
+    if (unavailable) { root.innerHTML = ''; return; }
     root.dataset.pieces=String($('#itemIsSet').checked);
     root.innerHTML = '<div class="copy-room-grid">' + Array.from({ length: count }, function (_, index) {
       return '<div data-copy-location><strong>#' + (index+1)  + '</strong>' + '<label class="field piece-name" '+($('#itemIsSet').checked?'':'hidden')+'><span>Name</span><input data-copy-piece '+($('#itemIsSet').checked?'required':'')+' placeholder="Base station, sensor…"></label><label class="field piece-value" '+($('#itemIsSet').checked?'':'hidden')+'><span>Value</span><input data-copy-value type="number" min="0" max="999999999.99" step="0.01" placeholder="Unknown"></label><div class="copy-date"><div class="copy-field-heading"><span>Date Obtained</span><label>Shared <input type="checkbox" data-copy-shared-date checked aria-label="Use Shared Date"></label></div><label class="field"><input type="text" data-copy-date disabled aria-label="Date Obtained for this copy or piece" placeholder="Unknown or MM/DD/YY"></label></div>' + picker('copy'+index+'Zone','Zone','Use location above') + picker('copy'+index+'Room','Room','Use location above') + picker('copy'+index+'Space','Space','Search spaces…') + ('<div class="copy-color"><div class="copy-field-heading"><label for="copy' + index + 'color">Color</label><label>Shared <input type="checkbox" data-copy-shared-color checked aria-label="Use Shared Color"></label></div><label class="field"><input id="copy' + index + 'color" data-copy-color list="inventoryColorValues" disabled placeholder="Color for this copy…"></label></div><div class="copy-size"><div class="copy-field-heading"><label for="copy' + index + 'size">Size</label><label>Shared <input type="checkbox" data-copy-shared-size checked aria-label="Use Shared Size"></label></div><label class="field"><input id="copy' + index + 'size" data-copy-size list="inventorySizeValues" disabled placeholder="Size for this copy…"></label></div><div class="copy-notes"><div class="copy-field-heading"><label for="copy' + index + 'notes">Notes/Description</label><label>Shared <input type="checkbox" data-copy-shared-notes checked aria-label="Use Shared Notes/Description"></label></div><label class="field"><textarea id="copy' + index + 'notes" data-copy-notes rows="1" disabled placeholder="Notes for this copy…"></textarea></label></div>') + '</div>';

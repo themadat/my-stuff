@@ -1497,3 +1497,10 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .item-tag-area > label { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; font-size: .75rem; font-weight: 700; }
 .item-tag-area > .picker, .item-tag-area > .selected-tags { grid-row: 2; }
 .item-checklists-tags-row .item-checklists { align-self: end; }
+
+#itemDialog .item-location-description-row { grid-template-columns: repeat(3,minmax(0,1fr)) minmax(0,2fr); align-items: stretch; }
+.item-location-description-row .item-editor-notes { min-width: 0; }
+.item-location-description-row .item-editor-notes textarea { height: var(--control-height); box-sizing: border-box; }
+@media(max-width:700px) {
+ #itemDialog .item-location-description-row { grid-template-columns: repeat(4,minmax(0,1fr)); gap: .3rem; }
+}

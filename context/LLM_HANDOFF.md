@@ -2,13 +2,15 @@
 
 ## State
 
-Release **0.0.1.86** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
+Release **0.0.1.87** is prepared and verified, uncommitted/unpushed. Version/cache surfaces were aligned once with `scripts/release.mjs`. No unfinished work.
 
-Checklists appears immediately below Inventory in the Settings tabs. Checklist object labels now include Brand properties before the object name, both in checklist views and the Settings object picker. The shared helper is `checklistObjectName` in `assets/js/inventory-ui.js`; Settings render caching includes this label so brand edits refresh immediately. Labels remain escaped. Reset List is now named Reset.
+Notes/Description now shares the Zone/Room/Space row on desktop and mobile. Checklists and Tags still share the next row, with selected tags to the right of search; Total Copies/pricing follow it. Bracketed Custom Properties descriptions remain vertically centered.
 
-Retained editor layout: Checklists and Tags share a row, selected tags appear right of search, Total Copies/pricing follow the row, then Notes. Bracketed Custom Properties descriptions are vertically centered. Checklist objects remain grouped by the existing house-location order; text entries remain first. Backups, optional sync, saved checks/reset and offline use remain intact.
+Single-copy items hide the numbered per-copy containers and named-piece choice. Increasing count above one reveals the copy UI. Hidden single-copy save data uses primary location/notes/date/color/size/value fields, retaining any named-piece metadata needed for existing one-piece sets. Copy controls may remain in hidden DOM for serialization, but no numbered container is displayed. Multi-copy and named-set editing remain intact.
 
-Verification: **148 non-browser checks and 5 release browser flows passed**: Settings, desktop/mobile checklist labels, inventory/Notes offline smoke and checklist offline completion/reset. The final brand-refresh adjustment also passed both desktop/mobile checklist flows, including a changed brand containing HTML-like text. Diff checks passed. Preview server stopped.
+Prior checklist behavior retained: Checklists tab below Inventory; brand names in object labels and immediate label refresh after brand edits; Reset label; house-location object groups with text entries first; saved checks, backup/sync and offline use.
+
+Verification: **148 non-browser checks and 8 release browser flows passed**, covering desktop/mobile single-copy visibility, location/notes saves, normal inventory editing, multi-copy/named-piece flows, grouped tags, inventory/Notes offline smoke and checklist offline use. Final desktop/mobile screenshots inspected. Diff checks passed. Preview server stopped.
 
 ## Constraints and user preferences
 

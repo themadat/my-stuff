@@ -2026,3 +2026,23 @@ test('checklists remain usable and save completion and reset offline', {timeout:
  await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
  assert.equal(await page.locator('[data-checklist-check]').isChecked(),false);assert.deepEqual(errors,[]);
 });
+
+for (const width of [1440,390]) {
+ test('single-copy editor keeps primary fields and hides copy containers at '+width,{timeout:30000},async t=>{
+  const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+  await page.locator('#itemName').fill('Single object');await page.locator('#itemRoom').fill('Office');await page.locator('#itemDescription').fill('First notes');
+  assert.equal(await page.locator('#itemCopyLocations').isVisible(),false);
+  await page.locator('#itemCopies').fill('2');assert.equal(await page.locator('#itemCopyLocations').isVisible(),true);
+  await page.locator('#itemCopies').fill('1');assert.equal(await page.locator('#itemCopyLocations').isVisible(),false);
+  await page.locator('#saveItemButton').click();await page.locator('[data-edit-item]').first().click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+  assert.equal(await page.locator('#itemCopyLocations').isVisible(),false);
+  const alignment=await page.locator('.item-location-description-row').evaluate(el=>Array.from(el.children).map(child=>child.getBoundingClientRect().top));
+  assert.ok(Math.max(...alignment)-Math.min(...alignment)<2);
+  await page.locator('#itemRoom').fill('Kitchen');await page.locator('#itemRoomOptions [data-option]').filter({hasText:'Kitchen'}).first().click();await page.locator('#itemDescription').fill('Updated notes');await page.locator('#saveItemButton').click();
+  await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+  const item=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items[0]);
+  assert.equal(item.room,'Kitchen');assert.equal(item.description,'Updated notes');
+ });
+}
