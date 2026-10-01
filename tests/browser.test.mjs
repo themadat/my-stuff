@@ -2179,3 +2179,22 @@ for (const width of [1440,390]) test('Dimensions common property is unitless and
  assert.equal(await row.locator('[data-property-value]').inputValue(),'24 x 18 x 6 in');
  assert.equal(await row.locator('[data-property-unit]').inputValue(),'');
 });
+
+
+for (const width of [1440,390]) test('Unknown Location leads object tables in Have and Had at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const a=window.LocalApp,m=a.inventoryModel;
+  a.storage.mutate(state=>{state.inventory.items=['known','unknown'].flatMap((kind,i)=>[false,true].map(archived=>m.normalizeItem({id:kind+(archived?'-had':''),name:'Order '+kind,owner:'me',room:i?'':'Office',archive:archived?{date:'2026-09-01',reason:'Sold'}:null})));},{reason:'inventory-save'});
+  a.storage.saveNow();
+ });
+ for (const view of ['have','previous']) {
+  await page.locator('[data-inventory-view="'+view+'"]').click();
+  assert.match(await page.locator('#inventoryList .table-location-toggle').first().innerText(),/Unknown Location/);
+  assert.equal(await page.locator('#inventoryList [data-instant-filter="name"]').first().innerText(),'Order unknown');
+  await page.locator('#inventorySearch').fill('Order');
+  assert.match(await page.locator('#inventoryList .table-location-toggle').first().innerText(),/Unknown Location/);
+  await page.locator('#inventorySearch').fill('');
+ }
+});

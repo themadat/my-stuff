@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.93",
-      buildId: "0.0.1.93",
+      version: "0.0.1.94",
+      buildId: "0.0.1.94",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.94",
+  "date": "2026-10-01",
+  "title": "Unknown Location First in Object Tables",
+  "summary": "Place objects with unknown locations before configured zones in the object table.",
+  "features": [],
+  "improvements": [
+    "Unknown Location appears first in Have and Had object tables."
+  ],
+  "fixes": [
+    "Prioritize unknown locations before configured zone ordering."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.93",
   "date": "2026-10-01",
   "title": "Dimensions and Unknown Location",

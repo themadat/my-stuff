@@ -221,9 +221,9 @@
     return Array.from(sections.values()).sort(function (a,b) {
       const order=App.config.inventory.zoneOrder || [];
       const rank=function (zone) { const i=order.indexOf(zone); return i<0?order.length:i; };
-      const zoneDifference=rank(a.path[0])-rank(b.path[0]); if (ordered && zoneDifference) return zoneDifference;
       const known = Number(a.path.some(Boolean)) - Number(b.path.some(Boolean));
       if (known) return known;
+      const zoneDifference=rank(a.path[0])-rank(b.path[0]); if (ordered && zoneDifference) return zoneDifference;
       for (let i=0;i<3;i++) {
         if ((i===2 || (ordered && i===1)) && Boolean(a.path[i])!==Boolean(b.path[i])) return a.path[i] ? 1 : -1;
         const order = (a.path[i] || '\uffff').localeCompare(b.path[i] || '\uffff'); if (order) return order;

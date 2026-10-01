@@ -137,3 +137,9 @@ test('Dimensions stays free text without splitting measurement suffixes',()=>{
  const item=m.normalizeItem({...base,properties:[{name:'Dimensions',value:'24 x 18 x 6 in',unit:''}]});
  assert.equal(item.properties.find(p=>p.name==='Dimensions').value,'24 x 18 x 6 in');
 });
+
+
+test('Unknown Location precedes configured zones in ordered object table sections',()=>{
+ const rows=[m.normalizeItem({...base,id:'outside',room:'Yard'}),m.normalizeItem({...base,id:'inside',room:'Office'}),m.normalizeItem({...base,id:'unknown',room:''})];
+ for (const ordered of [true,false]) assert.equal(m.locationSections(rows,ordered)[0].items[0].id,'unknown');
+});
