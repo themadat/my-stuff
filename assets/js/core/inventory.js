@@ -401,7 +401,7 @@
       if (stack) { result.value=stack[1]+'→'+stack[2]; result.unit=(stack[3] || result.unit || 'mm').toLowerCase(); }
       return result;
     }
-    if (['type','mileage','connection type','color','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
+    if (['type','mileage','connection type','color','dimensions','size','end a','end b','output ports','brand','zone','space'].includes(String(property.name).trim().toLowerCase())) return result;
     const match = result.value.trim().match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s+\d+\/\d+|\/\d+)?)\s*(.*?)$/);
     if (!match) return result;
     const suffix = (match[2] || result.unit).trim().toLowerCase();

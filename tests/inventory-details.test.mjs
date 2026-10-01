@@ -129,3 +129,11 @@ test('backpacking totals convert units, count copies and flag missing or invalid
  assert.equal(m.packCategory(item('1','oz','unknown')),'Uncategorized');
  assert.equal(item('1').properties.find(p=>p.name==='Weight Level').value,'Cold');
 });
+
+test('Dimensions stays free text without splitting measurement suffixes',()=>{
+ const measured=m.measurement({name:'Dimensions',value:'24 x 18 x 6 in',unit:''});
+ assert.equal(measured.value,'24 x 18 x 6 in');assert.equal(measured.unit,'');
+ assert.equal(m.measurement({name:'Dimensions',value:'250g',unit:''}).value,'250g');
+ const item=m.normalizeItem({...base,properties:[{name:'Dimensions',value:'24 x 18 x 6 in',unit:''}]});
+ assert.equal(item.properties.find(p=>p.name==='Dimensions').value,'24 x 18 x 6 in');
+});

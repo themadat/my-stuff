@@ -2158,3 +2158,24 @@ for (const width of [1440,390]) test('Travel and RoadTrip support objects, text,
  }
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 });
+
+for (const width of [1440,390]) test('Dimensions common property is unitless and preserves text at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Dimension box');
+ assert.equal(await page.locator('#addColorButton').evaluate(el=>el.nextElementSibling.id),'addDimensionsButton');
+ await page.locator('#addDimensionsButton').click();
+ const row=page.locator('.item-property').filter({has:page.locator('[data-property-name][value="Dimensions"]')});
+ assert.equal(await row.locator('[data-property-unit]').isVisible(),false);
+ await row.locator('[data-property-value]').fill('24 x 18 x 6 in');
+ await page.locator('#addDimensionsButton').click();assert.equal(await row.count(),1);
+ assert.equal(await row.locator('[data-property-value]').evaluate(el=>el===document.activeElement),true);
+ await page.locator('#saveItemButton').click();await page.reload();
+ assert.equal(await page.locator('#roomStats .location-jump').first().innerText(),'Unknown Location');
+ await page.locator('#inventorySearch').fill('Dimension box');
+ assert.equal(await page.locator('#roomStats .location-jump').first().innerText(),'Unknown Location');
+ await page.locator('[data-edit-item]').first().click();
+ assert.equal(await row.locator('[data-property-value]').inputValue(),'24 x 18 x 6 in');
+ assert.equal(await row.locator('[data-property-unit]').inputValue(),'');
+});

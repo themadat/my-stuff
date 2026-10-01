@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.92",
-      buildId: "0.0.1.92",
+      version: "0.0.1.93",
+      buildId: "0.0.1.93",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -53,7 +53,7 @@
         { match: "board game|card game|puzzle", tags: ["Games"], room: "Game Room" }
       ],
       cableEnds: ["USB-C", "USB-A", "USB-B", "Micro-USB", "Mini-USB", "Lightning", "HDMI", "Mini HDMI", "Micro HDMI", "DisplayPort", "Mini DisplayPort", "Thunderbolt", "Ethernet (RJ45)", "Coax (F-type)", "3.5 mm", "6.35 mm", "RCA", "XLR", "Optical (TOSLINK)", "DC Barrel", "AC Plug", "IEC C7", "IEC C13"],
-      commonProperties: [{ name: "Size", unit: "", values: ["XS", "S", "M", "L", "XL", "XXL"] },{ name: "Color", unit: "", values: ["Black", "White", "Gray", "Silver", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Brown", "Beige", "Clear", "Multicolor"] }],
+      commonProperties: [{ name: "Size", unit: "", values: ["XS", "S", "M", "L", "XL", "XXL"] },{ name: "Color", unit: "", values: ["Black", "White", "Gray", "Silver", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Brown", "Beige", "Clear", "Multicolor"] },{ name: "Dimensions", unit: "", values: [] }],
       removedTags: ["HVAC", "Hiking", "Fridge", "Memorabilia"],
       tagAliases: { "art": "Decoration", "decor": "Fixture", "headware": "Headwear", "handware": "Handwear", "shades": "Shade", "shade": "Shade", "appliance": "Appliances", "coax": "Coax/Ethernet", "ethernet": "Coax/Ethernet", "coax/ethernet": "Coax/Ethernet", "temperature": "Climate", "led": "Strip", "backpacking gear": "Backpacking", "shoes": "Footwear", "footware": "Footwear", "water bottle": "Water Bottles", "powerbank": "Powerbanks", "charger": "Chargers", "water": "Water Bottles" },
       connectionTypes: ["Wi-Fi 2.4 GHz", "Wi-Fi 5.0 GHz", "Ethernet", "Zigbee", "RF (433 MHz)", "RF (434 MHz)", "RF (915 MHz)", "Bluetooth", "Thread", "BLE", "UWB", "NFC", "Inactive"],
@@ -89,6 +89,20 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.93",
+  "date": "2026-10-01",
+  "title": "Dimensions and Unknown Location",
+  "summary": "Add unitless Dimensions and show Unknown Location first in Around the House.",
+  "features": [
+    "Dimensions is a common property with a button immediately after Color."
+  ],
+  "improvements": [
+    "Dimensions preserves free text with no unit control.",
+    "Unknown Location appears first in Around the House."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.92",
   "date": "2026-10-01",
   "title": "Travel and RoadTrip Checklists",

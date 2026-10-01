@@ -89,7 +89,7 @@
           <details id="itemMoreDetails" class="item-more" open><summary>More Details <span id="itemMoreCount"></span></summary>
             <div class="item-more-content">
               <fieldset class="item-fieldset"><legend>Custom Properties</legend>
-                <div class="item-property-tools"><button id="addSizeButton" class="button small" type="button">${icon("inventoryPlus")} Size</button><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><div id="categoryPresets" class="category-presets" aria-label="Categories">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
+                <div class="item-property-tools"><button id="addSizeButton" class="button small" type="button">${icon("inventoryPlus")} Size</button><button id="addColorButton" class="button small" type="button">${icon("inventoryPlus")} Color</button><button id="addDimensionsButton" class="button small" type="button">${icon("inventoryPlus")} Dimensions</button><div id="categoryPresets" class="category-presets" aria-label="Categories">${App.config.inventory.categories.map(function (category, index) { return '<button class="button small" type="button" data-category-preset="' + index + '">' + icon("inventoryPlus") + ' ' + esc(category.name) + '</button>'; }).join("")}</div><button id="addPropertyButton" class="button small" type="button">${icon("inventoryPlus")} Add a Property</button></div>
                 <div id="itemProperties"></div>
               </fieldset>
             </div>
@@ -337,6 +337,11 @@
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "color"; });
       if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
       else addProperty({ name: "Color", value: "", unit: "" }, true);
+    });
+    $("#addDimensionsButton").addEventListener("click", function () {
+      const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "dimensions"; });
+      if (existing) { $("#itemMoreDetails").open = true; $('[data-property-value]', existing.closest('.item-property')).focus(); }
+      else addProperty({ name: "Dimensions", value: "", unit: "" }, true);
     });
     $("#addSizeButton").addEventListener("click", function () {
       const existing = $$('[data-property-name]').find(function (el) { return el.value.trim().toLowerCase() === "size"; });
@@ -876,7 +881,7 @@
       });
     });
     const zoneOrder=App.config.inventory.zoneOrder;
-    const values=Array.from(nodes.values()).sort(function (a,b) { const rank=function (zone) { const index=zoneOrder.indexOf(zone); return index<0?zoneOrder.length:index; }; return rank(a.path[0])-rank(b.path[0]) || a.path.join('/').localeCompare(b.path.join('/')); });
+    const values=Array.from(nodes.values()).sort(function (a,b) { const rank=function (zone) { if (zone==='Unknown Location') return -1; const index=zoneOrder.indexOf(zone); return index<0?zoneOrder.length:index; }; return rank(a.path[0])-rank(b.path[0]) || a.path.join('/').localeCompare(b.path.join('/')); });
     $('#roomStats').style.setProperty('--location-count-width',Math.max(2,...values.map(function (node) { return String(node.count).length; }))+'ch');
     $('#roomStats').style.setProperty('--location-value-width',Math.max(4,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
     function branch(node) {
@@ -1078,7 +1083,7 @@
     row.addEventListener('input',function () { updateMeasurement(row,false); });
     row.addEventListener('change',function () { if (endpoint()) $('[data-property-value]',row).value=m.cableEnd($('[data-property-value]',row).value); splitShoeGeometry(row); updateMeasurement(row,true); ensureRunningMileage(); });
     const endpoint = function () { return ['end a','end b'].includes($('[data-property-name]',row).value.trim().toLowerCase()); };
-    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['type','color','size','mileage','connection type','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const name=$('[data-property-name]',row).value.trim().toLowerCase(); let value=$('[data-property-value]',row); row.classList.toggle('network-property',name==='connection type'); value.type=name==='connection type'?'hidden':'text'; $('.connection-options',row)?.remove(); if (name==='connection type') {
+    function propertySuggestions() { const unit = $('[data-property-unit]',row), unitless = ['type','color','dimensions','size','mileage','connection type','end a','end b','output ports'].includes($('[data-property-name]',row).value.trim().toLowerCase()); unit.closest('label').hidden = unitless; row.classList.toggle('unitless',unitless); if (unitless) unit.value = ''; else if (!unit.value && $('[data-property-name]',row).value.trim().toLowerCase()==='weight') unit.value='oz'; const name=$('[data-property-name]',row).value.trim().toLowerCase(); let value=$('[data-property-value]',row); row.classList.toggle('network-property',name==='connection type'); value.type=name==='connection type'?'hidden':'text'; $('.connection-options',row)?.remove(); if (name==='connection type') {
       const choices=document.createElement('div'); choices.className='connection-options'; choices.setAttribute('role','group'); choices.setAttribute('aria-label','Connection Type');
       const selected=m.connectionTypes(value.value);
       choices.innerHTML=Array.from(new Set(App.config.inventory.connectionTypes.concat(selected))).map(function (type) { return '<button type="button" class="connection-toggle" data-connection="'+esc(type)+'" aria-pressed="'+selected.includes(type)+'">'+esc(m.connectionLabel(type))+'</button>'; }).join('');
