@@ -161,6 +161,21 @@
       renderList(); $$('#inventoryList [data-table-location-toggle]').find(function (entry) { return entry.dataset.tableLocationToggle===key; })?.focus({preventScroll:true});
     });
     document.addEventListener('change',function (event) {
+      const pack=event.target.closest('[data-pack-property]');
+      if (pack) {
+        if (!pack.reportValidity()) return;
+        const id=pack.dataset.packItem,name=pack.dataset.packProperty,value=pack.value;
+        App.storage.mutate(function (state) {
+          const item=state.inventory.items.find(function (entry) { return entry.id===id; }); if (!item) return;
+          const properties=item.properties.filter(function (p) { return p.name.toLowerCase()!==name.toLowerCase(); });
+          if (value) properties.push({name:name,value:value,unit:name==='Weight'?'oz':''});
+          if (properties.length>40) { App.components.toast('Use up to 40 properties per item.',{kind:'warning'}); return; }
+          item.properties=properties;
+        },{reason:'backpacking-property'});
+        if (!App.storage.saveNow()) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
+        renderList(); $$('[data-pack-property]').find(function (el) { return el.dataset.packItem===id && el.dataset.packProperty===name; })?.focus();
+      }
+
       if (event.target.matches('[data-view-grouping]')) { viewGroupings.set(currentSpecial,event.target.value); renderList(); $('[data-view-grouping]')?.focus(); }
       if (event.target.matches('[data-special-sort-select]')) { const parts=event.target.value.split(':'); viewSorts.set(currentSpecial,{key:parts[0],direction:parts[1] || 'ascending'}); renderList(); $('[data-special-sort-select]')?.focus(); }
     });
@@ -934,12 +949,12 @@
     return viewColumns(kind).map(function (column) { const active=sort.key===column[0]; return '<th scope="col" aria-sort="'+(active?sort.direction:'none')+'"'+(['color','size','weight','stack height','drop','connection type'].includes(column[0])?' class="footwear-property"':'')+'><button type="button" class="column-sort" data-special-sort="'+column[0]+'" aria-label="Sort by '+(column[0]==='count'?'Count':column[1])+'">'+column[1]+' <span aria-hidden="true">'+(active?(sort.direction==='ascending'?'↑':'↓'):'↕')+'</span></button></th>'; }).join('')+'<th>Actions</th>';
   }
   function groupingControl(kind) {
-    if (!kind) return '';
+    if (!kind || kind==='backpacking') return '';
     const labels={footwear:'Type',network:'Connection Type',smart:'Tag Type'};
     return '<label class="view-grouping">Group by <select data-view-grouping><option value="special">'+labels[kind]+'</option><option value="location"'+(viewGroupings.get(kind)==='location'?' selected':'')+'>Location</option></select></label>';
   }
   function specialControls(kind) {
-    if (!kind) return '';
+    if (!kind || kind==='backpacking') return '';
     const names={footwear:['Footwear','Type'],network:['Network','Connection Type'],smart:['Smart Home','Tag Type']}, sort=specialSort();
     return '<div class="special-view-controls"><strong>'+names[kind][0]+' View</strong><label class="special-sort-picker">Sort within groups <select data-special-sort-select><option value="">Default order</option>'+viewColumns(kind).flatMap(function (column) { return ['ascending','descending'].map(function (direction) { return '<option value="'+column[0]+':'+direction+'"'+(sort.key===column[0] && sort.direction===direction?' selected':'')+'>'+column[1]+' · '+direction+'</option>'; }); }).join('')+'</select></label></div>';
   }
@@ -955,6 +970,23 @@
       }
       return label;
     }).join(' ')+'</td>'; }).join('');
+  }
+  function packWeightLabel(total) {
+    return total.ounces.toFixed(2)+' oz / '+(total.ounces/16).toFixed(2)+' lb'+(total.unknown?' · '+total.unknown+' missing weight (partial total)':'');
+  }
+  function renderBackpacking(items) {
+    const packed=items.filter(function (item) { return m.packCategory(item)!=='Wear'; });
+    function select(item,name,choices) {
+      const value=item.properties.find(function (p) { return p.name.toLowerCase()===name.toLowerCase(); })?.value || '';
+      return '<select data-pack-property="'+name+'" data-pack-item="'+esc(item.id)+'" aria-label="'+esc(name+' for '+item.name)+'"><option value="">Unassigned</option>'+choices.map(function (choice) { return '<option'+(choice===value?' selected':'')+'>'+esc(choice)+'</option>'; }).join('')+'</select>';
+    }
+    $('#inventoryList').innerHTML='<div class="backpacking-view"><div class="pack-summary" role="status"><h2>Backpacking · Total Pack Weight</h2><strong>'+packWeightLabel(m.packTotal(packed))+'</strong><p>Shown items · Wear excluded; Consumable and Food/Water included. Each inventory copy counts once. Category targets are shown in pounds.</p></div>'+m.packCategories.concat([['Uncategorized',null]]).map(function ([category,target]) {
+      const rows=items.filter(function (item) { return m.packCategory(item)===category; });
+      return '<section class="pack-section"><h3>'+esc(category)+' <span>'+packWeightLabel(m.packTotal(rows))+(target===null?'':' · Target '+target+' lb')+'</span></h3>'+(rows.length?'<table class="pack-table"><thead><tr><th scope="col">Item</th><th scope="col">Weight · oz / lb</th><th scope="col">Category</th><th scope="col">Weight Level</th></tr></thead><tbody>'+rows.map(function (item) {
+        const ounces=m.weightOunces(item),level=item.properties.find(function (p) { return p.name.toLowerCase()==='weight level'; })?.value || '';
+        return '<tr><td data-label="Item"><button type="button" class="button small" data-edit-item="'+esc(item.id)+'">'+esc(checklistObjectName(item))+'</button></td><td data-label="Weight · oz / lb"><input type="number" min="0" step="any" data-pack-property="Weight" data-pack-item="'+esc(item.id)+'" aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Missing weight':ounces.toFixed(2)+' oz / '+(ounces/16).toFixed(2)+' lb')+'</small></td><td data-label="Category">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'</td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td></tr>';
+      }).join('')+'</tbody></table>':'<p class="pack-empty">No items in this category.</p>')+'</section>';
+    }).join('')+'</div>';
   }
   function renderList() {
     renderChecklistSettings();
@@ -1001,6 +1033,7 @@
     }
     $('#inventoryResultCount').insertAdjacentHTML('beforeend', Array.from(instantFilters).map(function (entry) { return ' ' + filterButton(entry[0],entry[1],(entry[0] === 'catalog' ? entry[1].label : entry[0].replace('property:','') + ': ' + (Array.isArray(entry[1]) ? entry[1].join(' ') : entry[1] ?? 'Unknown')) + ' ×'); }).join(''));
     let sections = m.locationSections(items,true).map(function (section) { return section.path.some(Boolean) ? section : Object.assign({},section,{path:["Unknown Location","",""]}); }); const locationTotals=renderLocationNavigation(sections);
+    if (special==='backpacking') { renderBackpacking(items); return; }
     if (typeGroups) sections=m.specialSections(items,special);
     if (!items.length) {
       $("#inventoryList").innerHTML = controls + '<div class="inventory-empty">' + icon(view === "previous" ? "inventoryArchive" : "inventoryBox") + '<h2>' + (all.length ? "Nothing Matches Just Yet" : view === "previous" ? "A History, Without the Clutter" : "Start with Something You See") + '</h2><p>' + (all.length ? "Try another search or clear your filters." : view === "previous" ? "Archive an item when it’s lost, broken, sold, or otherwise gone. Its story stays here." : "Your favorite shoes. The kitchen table. That cable in the drawer. Add one object and build from there.") + '</p>' + (!all.length && view === "have" ? '<button class="button primary" type="button" data-add-inventory>' + icon("inventoryAdd") + ' Add Item</button>' : '') + '</div>'; return;

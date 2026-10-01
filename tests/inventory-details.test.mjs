@@ -116,3 +116,16 @@ test('Conveyed in plain text and annotations only populates acquisition and Hous
   for(const [key,value] of Object.entries(f)) if(key!=='obtainedHow') assert.doesNotMatch(String(value),/conveyed/i);
  }
 });
+
+test('backpacking totals convert units, count copies and flag missing or invalid weights',()=>{
+ const item=(value,unit='oz',category='Equipment')=>m.normalizeItem({...base,properties:[{name:'Weight',value,unit},{name:'Backpacking Category',value:category},{name:'Weight Level',value:'Cold'}]});
+ assert.equal(m.specialView(['Backpacking']),'backpacking');
+ assert.equal(m.specialView(['Backpacking','Footwear']),'');
+ for(const [value,unit,expected] of [['16','oz',16],['1','lbs',16],['453.59237','g',16],['0.45359237','kg',16],['1/2 lb','',8],['0','oz',0]]) assert.ok(Math.abs(m.weightOunces(item(value,unit))-expected)<1e-8);
+ for(const [value,unit] of [['','oz'],['bad','oz'],['-1','oz'],['1','fl oz']]) assert.equal(m.weightOunces(item(value,unit)),null);
+ const rows=[item('16'),item('16'),item(''),item('32','oz','Wear')];
+ const total=m.packTotal(rows.filter(i=>m.packCategory(i)!=='Wear'));
+ assert.equal(total.ounces,32);assert.equal(total.unknown,1);
+ assert.equal(m.packCategory(item('1','oz','unknown')),'Uncategorized');
+ assert.equal(item('1').properties.find(p=>p.name==='Weight Level').value,'Cold');
+});

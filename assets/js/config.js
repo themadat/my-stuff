@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.88",
-      buildId: "0.0.1.88",
+      version: "0.0.1.89",
+      buildId: "0.0.1.89",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,22 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.89",
+  "date": "2026-10-01",
+  "title": "Backpacking View",
+  "summary": "Plan pack weight with editable item weights, categories and colored weight levels.",
+  "features": [
+    "Backpacking tag opens a dedicated view with ounces and pounds, category totals and category weight targets.",
+    "Assign Consumable, Wear, Equipment, Emergency, Food/Water, Clothing, Other or Luxury and Ultralight, Middleweight, Heavy or Cold weight levels.",
+    "Total pack weight excludes Wear and includes Consumable and Food/Water."
+  ],
+  "improvements": [
+    "Edit weights and labels directly; saved properties remain part of existing backup and sync.",
+    "Missing weights are flagged in partial totals; layout adapts to mobile screens."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.88",
   "date": "2026-09-30",
   "title": "Automatic GitHub Sync",

@@ -241,11 +241,27 @@
   }
   function specialView(selections) {
     if (!selections.length) return '';
+    if (selections.every(function (tag) { return tag==='Backpacking'; })) return 'backpacking';
     if (selections.every(function (tag) { return tag==='Footwear'; })) return 'footwear';
     if (selections.every(function (tag) { return tag==='Network'; })) return 'network';
     const smart=App.config.inventory.tagGroups.find(function (group) { return group.name==='Smart'; }).tags;
     if (selections.every(function (tag) { return tag==='group:Smart' || tag==='Smart' || smart.includes(tag); })) return 'smart';
     return '';
+  }
+  const packCategories = [['Consumable',null],['Wear',null],['Equipment',6],['Emergency',1],['Food/Water',1],['Clothing',2],['Other',1],['Luxury',null]];
+  const packLevels = ['Ultralight','Middleweight','Heavy','Cold'];
+  function packCategory(item) {
+    const value=item.properties.find(function (p) { return p.name.toLowerCase()==='backpacking category'; })?.value || '';
+    return packCategories.some(function (entry) { return entry[0]===value; }) ? value : 'Uncategorized';
+  }
+  function weightOunces(item) {
+    const property=item.properties.find(function (p) { return p.name.toLowerCase()==='weight'; });
+    if (!property || !property.value.trim()) return null;
+    const parsed=measurement(property), factor={oz:1,lb:16,g:1/28.349523125,kg:1000/28.349523125}[parsed.unit || 'oz'], value=Number(parsed.value);
+    return factor && Number.isFinite(value) && value>=0 ? value*factor : null;
+  }
+  function packTotal(items) {
+    return items.reduce(function (total,item) { const weight=weightOunces(item); if (weight===null) total.unknown++; else total.ounces+=weight; return total; },{ounces:0,unknown:0});
   }
   function connectionTypes(value) {
     const values=Array.from(new Set(String(value || '').split('|').map(function (v) { return v.trim(); }).filter(Boolean)));
@@ -396,5 +412,5 @@
     if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
     return result;
   }
-  App.inventoryModel = { connectionTypes:connectionTypes, connectionLabel:connectionLabel, specialView:specialView, specialSections:specialSections, ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { packCategories:packCategories, packLevels:packLevels, packCategory:packCategory, weightOunces:weightOunces, packTotal:packTotal, connectionTypes:connectionTypes, connectionLabel:connectionLabel, specialView:specialView, specialSections:specialSections, ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

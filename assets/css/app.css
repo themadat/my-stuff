@@ -1504,3 +1504,27 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 @media(max-width:700px) {
  #itemDialog .item-location-description-row { grid-template-columns: repeat(4,minmax(0,1fr)); gap: .3rem; }
 }
+
+/* Backpacking uses existing item properties, with one row per physical copy. */
+.pack-summary { padding:1rem; border:1px solid var(--line); border-radius:12px; margin-bottom:1rem; }
+.pack-summary h2 { margin:0 0 .5rem; font-size:1.1rem; }
+.pack-summary strong { font-size:1.3rem; }
+.pack-summary p,.pack-empty { font-size:.85rem; }
+.pack-section h3 { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:baseline; }
+.pack-section h3 span { font-size:.85rem; font-weight:normal; }
+.pack-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.pack-table th,.pack-table td { text-align:left; padding:.6rem; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+.pack-table input,.pack-table select { width:100%; min-width:0; }
+.pack-table small { display:block; margin-top:.3rem; }
+.pack-level[data-level=""] select { color:var(--text); background:var(--surface); }
+.pack-level select { color:#1b1b1b; border:2px solid #777; }
+.pack-level[data-level="Ultralight"] select { background:#ffe66b; }
+.pack-level[data-level="Middleweight"] select { background:#ffc04d; }
+.pack-level[data-level="Heavy"] select { background:#ff943d; }
+.pack-level[data-level="Cold"] select { background:#8bc8ff; }
+@media(max-width:700px) {
+ .pack-table,.pack-table tbody,.pack-table tr,.pack-table td { display:block; width:100%; }
+ .pack-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ .pack-table tr { margin-bottom:1rem; border:1px solid var(--line); border-radius:8px; }
+ .pack-table td::before { content:attr(data-label); display:block; font-size:.8rem; margin-bottom:.25rem; }
+}

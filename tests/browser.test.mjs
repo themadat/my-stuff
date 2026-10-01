@@ -2063,3 +2063,26 @@ test('automatic GitHub sync debounces edits, honors its switch and resumes onlin
  await page.locator('#notesTextarea').fill('Offline change');await page.waitForTimeout(1400);assert.equal(writes.length,beforeOffline);
  await context.setOffline(false);await page.waitForFunction(()=>window.LocalApp.sync.getInfo().state==='upToDate');assert.equal(writes.at(-1).data.notes,'Offline change');
 });
+
+test('Backpacking view edits labels and weights, persists, and fits mobile', {timeout:30000}, async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const app=window.LocalApp;
+  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',categories:['Backpacking'],properties:[{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.saveNow();
+ });
+ await page.reload();
+ const open=async()=>page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ await open();
+ assert.match(await page.locator('.pack-summary').textContent(),/48.00 oz \/ 3.00 lb.*1 missing/);
+ await page.locator('[data-pack-item="pack0"][data-pack-property="Weight Level"]').selectOption('Ultralight');
+ assert.equal(await page.locator('.pack-level[data-level="Ultralight"]').count(),1);
+ await page.locator('[data-pack-item="pack3"][data-pack-property="Backpacking Category"]').selectOption('Luxury');
+ const weight=page.locator('[data-pack-item="pack3"][data-pack-property="Weight"]');await weight.fill('4');await weight.press('Tab');
+ assert.match(await page.locator('.pack-summary').textContent(),/52.00 oz \/ 3.25 lb/);
+ assert.doesNotMatch(await page.locator('.pack-summary').textContent(),/missing/);
+ await page.reload();await open();
+ assert.equal(await page.locator('[data-pack-item="pack0"][data-pack-property="Weight Level"]').inputValue(),'Ultralight');
+ assert.equal(await page.locator('[data-pack-item="pack3"][data-pack-property="Backpacking Category"]').inputValue(),'Luxury');
+ for(const width of [390,320]) {await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+});
