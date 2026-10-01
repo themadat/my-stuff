@@ -143,3 +143,16 @@ test('Unknown Location precedes configured zones in ordered object table section
  const rows=[m.normalizeItem({...base,id:'outside',room:'Yard'}),m.normalizeItem({...base,id:'inside',room:'Office'}),m.normalizeItem({...base,id:'unknown',room:''})];
  for (const ordered of [true,false]) assert.equal(m.locationSections(rows,ordered)[0].items[0].id,'unknown');
 });
+
+test('House Conveyed and New stats partition counts and current values',()=>{
+ const stats=m.stats([
+  {...base,id:'conveyed',obtainedHow:'Conveyed',value:25},
+  {...base,id:'new',obtainedHow:'Gift',value:60},
+  {...base,id:'unknown',obtainedHow:'',value:null},
+  {...base,id:'me',owner:'me',obtainedHow:'Conveyed',value:100},
+  {...base,id:'gone',obtainedHow:'Conveyed',value:500,archive:{date:'2026-01-01',reason:'Sold'}}
+ ]);
+ assert.equal(stats.house.count,3);assert.equal(stats.house.valueCents,8500);
+ assert.equal(stats.houseConveyed.count,1);assert.equal(stats.houseConveyed.valueCents,2500);
+ assert.equal(stats.houseNew.count,2);assert.equal(stats.houseNew.valueCents,6000);assert.equal(stats.houseNew.unknown,1);
+});

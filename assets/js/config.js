@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.94",
-      buildId: "0.0.1.94",
+      version: "0.0.1.96",
+      buildId: "0.0.1.96",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,38 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.96",
+  "date": "2026-10-01",
+  "title": "Shared Copy Identity and House Totals",
+  "summary": "Share Object, Seller and ownership edits across copies, show Conveyed/New House totals, and support checklist taps.",
+  "features": [
+    "House totals include Conveyed and New counts and current values between Everything and Filtered."
+  ],
+  "improvements": [
+    "Object name, Seller and ownership edits apply across current copies in the editor.",
+    "New includes every House item whose acquisition method is not Conveyed."
+  ],
+  "fixes": [
+    "Touch checklist menus remain open for selection and support tap toggling and outside dismissal."
+  ],
+  "knownIssues": []
+}, {
+  "version": "0.0.1.95",
+  "date": "2026-10-01",
+  "title": "Seller to Brand and Shared Brand Edits",
+  "summary": "Copy Seller into Brand and apply Brand edits to every current copy.",
+  "features": [
+    "Arrow between Seller and Brand copies the seller into the brand field."
+  ],
+  "improvements": [
+    "Copied brands count as manual edits and survive Smart Complete changes.",
+    "Changing or clearing Brand applies to all current copies in the editor."
+  ],
+  "fixes": [
+    "Preserve unrelated per-copy properties during shared Brand edits."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.94",
   "date": "2026-10-01",
   "title": "Unknown Location First in Object Tables",

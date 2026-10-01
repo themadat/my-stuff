@@ -362,9 +362,10 @@
     else total.valueCents += Math.round(item.value * 100);
   }
   function stats(items) {
-    const totals = { all: emptyTotal(), house: emptyTotal(), me: emptyTotal(), rooms: [] }, rooms = new Map();
+    const totals = { all: emptyTotal(), house: emptyTotal(), me: emptyTotal(), houseConveyed: emptyTotal(), houseNew: emptyTotal(), rooms: [] }, rooms = new Map();
     items.filter(function (item) { return !item.archive; }).forEach(function (item) {
       add(totals.all, item); add(totals[item.owner], item);
+      if (item.owner === 'house') add(totals[item.obtainedHow === 'Conveyed' ? 'houseConveyed' : 'houseNew'], item);
       const room = item.room || "Unassigned", key = room.toLowerCase();
       if (!rooms.has(key)) rooms.set(key, { name: room, all: emptyTotal(), house: emptyTotal(), me: emptyTotal() });
       add(rooms.get(key).all, item); add(rooms.get(key)[item.owner], item);

@@ -2198,3 +2198,76 @@ for (const width of [1440,390]) test('Unknown Location leads object tables in Ha
   await page.locator('#inventorySearch').fill('');
  }
 });
+
+for (const width of [1440,390,320]) test('Seller arrow marks Brand manual and Brand edits reach all copies at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ assert.equal(await page.locator('#copySellerToBrand').isDisabled(),true);
+ await page.locator('#itemSmartEntry').fill('Amazon - Apple Trip Bag');
+ assert.equal(await page.locator('#copySellerToBrand').isDisabled(),false);
+ await page.locator('#itemSource').fill('Direct Maker');await page.locator('#copySellerToBrand').click();
+ assert.equal(await page.locator('#itemBrand').inputValue(),'Direct Maker');
+ assert.equal(await page.locator('#itemSource').inputValue(),'Direct Maker');
+ await page.locator('#itemSmartEntry').fill('Amazon - Apple Updated Trip Bag');
+ assert.equal(await page.locator('#itemBrand').inputValue(),'Direct Maker');
+ await page.locator('#itemCopies').fill('2');await page.locator('#saveItemButton').click();
+ await page.evaluate(()=>{
+  const a=window.LocalApp;
+  a.storage.mutate(state=>{state.inventory.items.forEach((item,i)=>item.properties.push({name:'Dimensions',value:i?'Large':'Small',unit:''}));},{reason:'inventory-save'});
+ });
+ await page.locator('[data-edit-item]').first().click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ await page.locator('#itemBrand').fill('Updated Maker');await page.locator('#saveItemButton').click();
+ let copies=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(copies.length,2);
+ assert.deepEqual(copies.map(item=>item.properties.find(p=>p.name==='Brand')?.value),['Updated Maker','Updated Maker']);
+ assert.deepEqual(copies.map(item=>item.properties.find(p=>p.name==='Dimensions')?.value),['Small','Large']);
+ await page.reload();await page.locator('[data-edit-item]').first().click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ await page.locator('#itemBrand').fill('');await page.locator('#saveItemButton').click();
+ copies=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.ok(copies.every(item=>!item.properties.some(p=>p.name==='Brand'&&p.value)));
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+});
+
+for (const width of [1440,390]) test('shared identity edits and House Conveyed New totals at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const a=window.LocalApp,m=a.inventoryModel;
+  a.storage.mutate(state=>{state.inventory.items=[
+   ...m.createCopies({id:'bag',name:'Bag',owner:'me',source:'Old store',value:30,price:30},2),
+   m.normalizeItem({id:'conveyed',name:'Conveyed desk',owner:'house',obtainedHow:'Conveyed',value:100}),
+   m.normalizeItem({id:'house-gone',name:'Gone house',owner:'house',obtainedHow:'Conveyed',value:70,archive:{date:'2026-09-01',reason:'Sold'}})
+  ];},{reason:'inventory-save'});
+ });
+ await page.locator('[data-edit-item]').first().click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ await page.locator('#itemName').fill('Shared Bag');await page.locator('#itemSource').fill('New store');
+ await page.locator('[name="itemOwnerChoice"][value="house"]').check();await page.locator('#saveItemButton').click();
+ const copies=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.filter(item=>item.copyGroup));
+ assert.equal(copies.length,2);assert.ok(copies.every(item=>item.name==='Shared Bag'&&item.source==='New store'&&item.owner==='house'));
+ if(width<700) await page.locator('[data-ownership-toggle="house"]').click();
+ const labels=await page.locator('[data-inventory-total="house"] .stat-row > span:first-child').allTextContents();
+ assert.deepEqual(labels,['Everything','Conveyed','New','Filtered']);
+ const tops=await page.locator('[data-inventory-total="house"] .stat-row > span:first-child').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().top));
+ assert.ok(tops.every((top,i)=>i===0||top>tops[i-1]),'House rows must stay in order without overlap');
+ assert.match(await page.locator('[data-house-total="conveyed"]').innerText(),/1.*\$100/s);
+ assert.match(await page.locator('[data-house-total="new"]').innerText(),/2.*\$60/s);
+ await page.locator('#inventorySearch').fill('Shared Bag');
+ assert.match(await page.locator('[data-house-total="conveyed"]').innerText(),/1.*\$100/s);
+ assert.match(await page.locator('[data-filtered-total="house"]').innerText(),/2.*\$60/s);
+ await page.locator('[data-inventory-view="previous"]').click();
+ assert.match(await page.locator('[data-house-total="conveyed"]').innerText(),/1.*\$70/s);
+ assert.match(await page.locator('[data-house-total="new"]').innerText(),/0.*\$0/s);
+});
+
+for (const width of [390,320]) test('checklist menu opens and selects with touch at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000},hasTouch:true,isMobile:true});page.setDefaultTimeout(5000);
+ await page.locator('[data-close-dialog="supportDialog"]').tap();
+ await page.locator('#checklistButton').tap();assert.equal(await page.locator('#checklistMenu').isVisible(),true);
+ await page.locator('#checklistButton').tap();assert.equal(await page.locator('#checklistMenu').isVisible(),false);
+ await page.locator('#checklistButton').tap();await page.locator('[data-checklist-view="travel"]').tap();
+ assert.equal(await page.locator('#checklistButton').getAttribute('aria-pressed'),'true');
+ assert.equal(await page.locator('#checklistMenu').isVisible(),false);
+ await page.locator('#checklistButton').tap();await page.locator('#inventorySearch').tap();
+ assert.equal(await page.locator('#checklistMenu').isVisible(),false);
+});

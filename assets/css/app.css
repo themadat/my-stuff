@@ -1528,3 +1528,15 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
  .pack-table tr { margin-bottom:1rem; border:1px solid var(--line); border-radius:8px; }
  .pack-table td::before { content:attr(data-label); display:block; font-size:.8rem; margin-bottom:.25rem; }
 }
+
+/* Direct purchases can share Seller and Brand. */
+.item-identity-row { grid-template-columns: 1fr auto 1fr 3.8fr; }
+.seller-brand-copy { margin-top: 1.35rem; }
+@media (max-width: 620px) {
+  .item-identity-row { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+  .item-identity-row > :last-child { grid-column: 1 / -1; }
+}
+
+.inventory-heading .inventory-stat[data-inventory-total="house"] { grid-template-rows: repeat(4,auto); }
+.inventory-heading .inventory-stat[data-inventory-total="house"] .inventory-stat-label,
+.inventory-heading .inventory-stat[data-inventory-total="house"] .ownership-toggle { grid-row: 1 / 5; }

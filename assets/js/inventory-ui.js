@@ -69,6 +69,7 @@
           <div class="item-form-grid compact-item-grid">
             <div class="full item-identity-row">
               ${field("itemSource", "Seller", 'type="text" placeholder="Seller"')}
+              <button id="copySellerToBrand" class="icon-button seller-brand-copy" type="button" aria-label="Copy Seller to Brand" title="Copy Seller to Brand">${icon("sellerToBrand")}</button>
               <div>${picker("itemBrand", "Brand", "Brand")}<small id="itemBrandCompany" hidden></small></div>
               <label class="field"><span>Object <small>(required)</small> <small id="objectWordHint">Right-click → Brand · Control-click → Delete <span class="visually-hidden">Or use Alt+ArrowUp to move the word at the caret, Alt+Delete to remove it, and Control+Z or Command+Z to undo.</span></small></span><input id="itemName" required placeholder="Object" aria-describedby="objectWordHint" aria-keyshortcuts="Alt+ArrowUp Alt+Delete"><span id="objectWordStatus" class="visually-hidden" role="status" aria-live="polite"></span></label>
             </div>
@@ -302,6 +303,12 @@
     new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
     $("#clearInventoryFilters").addEventListener("click", function () { activeChecklist=''; instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
+    $('#itemSource').addEventListener('input', function () { $('#copySellerToBrand').disabled = !this.value.trim(); });
+    $('#copySellerToBrand').addEventListener('click', function () {
+      const seller = $('#itemSource').value.trim(); if (!seller) return;
+      const brand = $('#itemBrand'); brand.value = seller;
+      brand.dispatchEvent(new Event('input', {bubbles:true})); brand.focus();
+    });
     $("#itemForm").addEventListener("keydown", function (event) {
       if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey) || event.altKey || event.repeat || event.isComposing || $$('dialog[open]').some(function (dialog) { return dialog.id !== 'itemDialog'; })) return;
       event.preventDefault(); event.stopPropagation();
@@ -430,6 +437,7 @@
       if (result.fields.volume && smartField('volume')?.hasAttribute('data-smart-field')) { const unit = $('[data-property-unit]', smartField('volume').closest('.item-property')); unit.value = result.fields.volumeUnit || 'oz'; unit.setAttribute('data-smart-field','volume'); }
       suggestProperties();
     }
+    $('#copySellerToBrand').disabled = !$('#itemSource').value.trim();
     if (!previewOnly) fillMissingAmount(); syncSegments(); renderTags(); if (!previewOnly) syncDateUnknown();
     let cursor = 0, html = "";
     result.spans.forEach(function (span) {
@@ -705,8 +713,8 @@
     // Body placement avoids clipping in the scrolling quick-actions toolbar.
     document.body.insertAdjacentHTML('beforeend','<div id="checklistMenu" class="checklist-menu" aria-label="Available checklists" hidden>'+Object.entries(checklistNames).map(function ([key,name]) {return '<button class="button" type="button" data-checklist-view="'+key+'">'+icon('checklist'+name)+esc(name)+'</button>';}).join('')+'</div>');
     const menu=$('#checklistMenu'), button=$('#checklistButton');
-    let closeTimer;
-    function close() { clearTimeout(closeTimer); menu.hidden=true; button.setAttribute('aria-expanded','false'); }
+    let closeTimer, pinned=false;
+    function close() { pinned=false; clearTimeout(closeTimer); menu.hidden=true; button.setAttribute('aria-expanded','false'); }
     function open() {
       clearTimeout(closeTimer); menu.hidden=false; button.setAttribute('aria-expanded','true');
       const rect=button.getBoundingClientRect();
@@ -715,11 +723,11 @@
     }
     function contains(target) { return target && (wrap.contains(target) || menu.contains(target)); }
     [wrap,menu].forEach(function (el) {
-      el.addEventListener('pointerenter',open);
-      el.addEventListener('pointerleave',function () {closeTimer=setTimeout(function () {if (!contains(document.activeElement)) close();},180);});
-      el.addEventListener('focusout',function (event) {if (!contains(event.relatedTarget)) close();});
+      el.addEventListener('pointerenter',function (event) { if (event.pointerType !== 'touch') open(); });
+      el.addEventListener('pointerleave',function (event) {if (event.pointerType === 'touch' || pinned) return; closeTimer=setTimeout(function () {if (!contains(document.activeElement)) close();},180);});
+      el.addEventListener('focusout',function (event) {if (!pinned && !contains(event.relatedTarget)) close();});
     });
-    button.addEventListener('click',open);
+    button.addEventListener('click',function (event) { if ((event.pointerType === 'touch' || window.matchMedia('(hover: none)').matches) && pinned && !menu.hidden) { close(); return; } pinned=true; open(); });
     button.addEventListener('keydown',function (event) {if (event.key==='ArrowDown') {event.preventDefault();open();menu.querySelector('button').focus({preventScroll:true});}});
     document.addEventListener('keydown',function (event) {if (event.key==='Escape' && !menu.hidden) {close();button.focus();}});
     document.addEventListener('pointerdown',function (event) {if (!contains(event.target)) close();});
@@ -805,7 +813,8 @@
     const viewStats = m.stats(data.items.filter(function (item) { return Boolean(item.archive) === (view === "previous"); }).map(function (item) { return Object.assign({},item,{archive:null}); }));
     $("#inventoryStats").innerHTML = [["all", "All", "inventoryBox"], ["house", "House", "ownerHouse"], ["me", "Me", "ownerMe"]].map(function (entry) {
       const total = viewStats[entry[0]];
-      return '<div class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label"><button type="button" class="ownership-select" aria-label="Filter ' + entry[1] + '">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></button></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span><span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span><button type="button" class="ownership-toggle" data-ownership-toggle="' + entry[0] + '" aria-label="Toggle ' + entry[1] + ' totals">⌄</button></div>';
+      const houseRows = entry[0] === 'house' ? [['Conveyed',viewStats.houseConveyed],['New',viewStats.houseNew]].map(function (row) { return '<span class="stat-row" data-house-total="'+row[0].toLowerCase()+'"><span>'+row[0]+'</span><span class="stat-count">'+row[1].count.toLocaleString()+'</span><span class="stat-money">'+esc(money(row[1].valueCents/100,true))+'</span></span>'; }).join('') : '';
+      return '<div class="button inventory-stat" data-owner-filter="' + (entry[0] === 'all' ? '' : entry[0]) + '" data-inventory-total="' + entry[0] + '"><span class="inventory-stat-label"><button type="button" class="ownership-select" aria-label="Filter ' + entry[1] + '">' + icon(entry[2]) + '<strong>' + entry[1] + '</strong></button></span><span class="stat-matrix" id="ownership-details-' + entry[0] + '"><span class="stat-row"><span>Everything</span><span class="stat-count">' + total.count.toLocaleString() + '<span class="visually-hidden">objects</span></span><span class="stat-money">' + esc(money(total.valueCents/100,true)) + '</span></span>' + houseRows + '<span class="stat-row" data-filtered-total="' + entry[0] + '"></span></span><span class="visually-hidden">' + (total.unknown ? total.unknown+' not valued' : '') + '</span><button type="button" class="ownership-toggle" data-ownership-toggle="' + entry[0] + '" aria-label="Toggle ' + entry[1] + ' totals">⌄</button></div>';
 
     }).join("");
     renderCategoryFilter();
@@ -1291,6 +1300,7 @@
     $("#itemArchiveSummary").hidden = !item?.archive || directArchive;
     if (item?.archive) $("#itemArchiveSummary").textContent = item.archive.reason + " · " + dateLabel(item.archive.date) + " · " + duration(item) + (item.archive.notes ? "\n" + item.archive.notes : "");
 
+    $('#copySellerToBrand').disabled = !$('#itemSource').value.trim();
     suggestProperties(); fillMissingAmount(); syncDateUnknown(); if ($('#itemIsSet').checked) sumPieceValues(); renderPricing();
     $$('[name="itemChecklist"]').forEach(function (input) {input.checked=checklist(input.value).objects.includes(editingId);});
     originalForm = formSignature("#itemForm");
@@ -1328,12 +1338,16 @@
         };
         verifyCopies();
         const locations = saveCopyLocations(count), group = previous.copyGroup || u.uid('copies');
+        const brands = function (entry) { return entry.properties.filter(function (p) { return p.name.toLowerCase() === 'brand'; }); };
+        const brandChanged = JSON.stringify(brands(next)) !== JSON.stringify(brands(previous));
         const locationSignature = function (entry) { return JSON.stringify([entry.room, entry.properties.filter(function (p) { return ['zone','space'].includes(p.name.toLowerCase()); })]); };
         if (locationSignature(next) !== locationSignature(previous)) locations[0] = Object.assign({},locations[0],{zone:next.properties.find(function (p) { return p.name.toLowerCase() === 'zone'; })?.value || '',room:next.room,space:next.properties.find(function (p) { return p.name.toLowerCase() === 'space'; })?.value || ''});
         copies = Array.from({length:count}, function (_, index) {
           const existing = editingCopies[index], base = index === 0 || !existing ? next : existing;
           const location = locations[index] || {}, clean = Object.assign({}, base, { copyGroup:group });
+          ['name','source','owner'].forEach(function (key) { clean[key]=next[key]; });
           clean.categories=next.categories.slice();
+          if (brandChanged) clean.properties = clean.properties.filter(function (p) { return p.name.toLowerCase() !== 'brand'; }).concat(brands(next));
           clean.obtainedHow=next.obtainedHow;
           if (clean.obtainedHow==='Conveyed') App.smartEntry.conveyedFields(clean);
           if (location.obtainedDate == null) clean.obtainedDate=next.obtainedDate;
