@@ -2013,18 +2013,18 @@ for (const viewport of [{width:1440,height:1000},{width:390,height:844}]) {
  });
 }
 
-test('checklists remain usable and save completion and reset offline', {timeout:30000}, async t=>{
+for (const key of ['swim','travel','roadtrip']) test('checklists remain usable and save completion and reset offline: '+key, {timeout:30000}, async t=>{
  const context=await browser.newContext();t.after(()=>context.close());
  const page=await context.newPage(),errors=[];page.setDefaultTimeout(5000);page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base);await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
- await page.locator('#itemName').fill('Offline swim bag');await page.locator('[name="itemChecklist"][value="swim"]').check();await page.locator('#saveItemButton').click();
+ await page.locator('#itemName').fill('Offline swim bag');await page.locator('[name="itemChecklist"][value="'+key+'"]').check();await page.locator('#saveItemButton').click();
  await page.evaluate(async()=>{window.LocalApp.storage.saveNow();await navigator.serviceWorker.ready;});await page.reload();
  assert.ok(await page.evaluate(()=>navigator.serviceWorker.controller));await context.setOffline(true);await page.reload();
- await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+ await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="'+key+'"]').click();
  assert.match(await page.locator('.checklist-row').textContent(),/Offline swim bag/);await page.locator('[data-checklist-check]').check();
- await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+ await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="'+key+'"]').click();
  assert.equal(await page.locator('[data-checklist-check]').isChecked(),true);await page.locator('#resetChecklist').click();
- await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="swim"]').click();
+ await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="'+key+'"]').click();
  assert.equal(await page.locator('[data-checklist-check]').isChecked(),false);assert.deepEqual(errors,[]);
 });
 
@@ -2129,4 +2129,32 @@ for (const width of [1440,390]) test('young item costs show current value for ye
  assert.equal(await button.innerText(),expected+'/yr');
  await button.click(); assert.equal(await button.innerText(),expected+'/mo');
  await page.reload(); assert.equal(await page.locator('[data-age-cost="young-cost"]').innerText(),expected+'/yr');
+});
+
+for (const width of [1440,390]) test('Travel and RoadTrip support objects, text, completion and reset at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ await page.locator('#itemName').fill('Trip bag');
+ for (const key of ['travel','roadtrip']) await page.locator('[name="itemChecklist"][value="'+key+'"]').check();
+ await page.locator('#saveItemButton').click();
+ await page.locator('#supportButton').click();await page.locator('#checklistsTab').click();
+ for (const key of ['travel','roadtrip']) {
+  await page.locator('#checklistText-'+key).fill(key==='travel'?'Passport <b>':'Car keys');
+  await page.locator('[data-checklist-add="'+key+'"] button').click();
+ }
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ for (const key of ['travel','roadtrip']) {
+  await page.locator('#checklistButton').click();
+  const option=page.locator('[data-checklist-view="'+key+'"]');
+  assert.equal(await option.locator('svg.sf-symbol').count(),1);
+  await option.click();
+  assert.match(await page.locator('.checklist-row').allTextContents().then(rows=>rows.join(' ')),/Trip bag/);
+  assert.equal(await page.locator('.checklist-row b').count(),0);
+  await page.locator('[data-checklist-check]').first().check();
+  await page.reload();await page.locator('#checklistButton').click();await page.locator('[data-checklist-view="'+key+'"]').click();
+  assert.equal(await page.locator('[data-checklist-check]').first().isChecked(),true);
+  await page.locator('#resetChecklist').click();assert.equal(await page.locator('[data-checklist-check]:checked').count(),0);
+ }
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 });

@@ -36,3 +36,14 @@ test('backups and cloud payloads retain checklist membership, text and checks',(
  const payload=app.stateModel.syncPayload(state);
  assert.equal(JSON.stringify(app.stateModel.prepareSync(payload).state.inventory.checklists),JSON.stringify(state.inventory.checklists));
 });
+
+test('Travel and RoadTrip retain independent objects, text and completion through backups and sync',()=>{
+ const state=app.stateModel.normalize({inventory:{...data,checklists:{...data.checklists,travel:list,roadtrip:{objects:['ball'],entries:[{id:'keys',text:'Car keys'}],checked:['text:keys']}}}});
+ for (const restored of [app.stateModel.prepare(app.stateModel.exportEnvelope(state)).state,app.stateModel.prepareSync(app.stateModel.syncPayload(state)).state]) {
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.inventory.checklists)),JSON.parse(JSON.stringify(state.inventory.checklists)));
+  assert.deepEqual(Array.from(restored.inventory.checklists.roadtrip.checked),['text:keys']);
+  assert.equal(restored.inventory.checklists.travel.entries[0].text,'Water <b>');
+ }
+ assert.equal(m.normalize(data).checklists.travel.entries.length,0);
+ assert.equal(m.normalize(data).checklists.roadtrip.entries.length,0);
+});

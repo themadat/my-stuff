@@ -8,7 +8,7 @@
   const monthlyCosts = new Set();
   const viewSorts=new Map(), viewGroupings=new Map();
   let currentSpecial='', activeChecklist='';
-  const checklistNames={volleyball:'Volleyball',golf:'Golf',swim:'Swim'};
+  const checklistNames={volleyball:'Volleyball',golf:'Golf',swim:'Swim',travel:'Travel',roadtrip:'RoadTrip'};
   function specialSort() { return viewSorts.get(currentSpecial) || {key:'',direction:'ascending'}; }
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();

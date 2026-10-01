@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.91",
-      buildId: "0.0.1.91",
+      version: "0.0.1.92",
+      buildId: "0.0.1.92",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.92",
+  "date": "2026-10-01",
+  "title": "Travel and RoadTrip Checklists",
+  "summary": "Pack for Travel and RoadTrip with saved objects and extra text items.",
+  "features": [
+    "Travel and RoadTrip checklists with supplied airplane and car icons."
+  ],
+  "improvements": [
+    "New checklists support object selection, extra text items, completion, reset, backup, sync and offline use."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.91",
   "date": "2026-10-01",
   "title": "Young Item Cost Averages",

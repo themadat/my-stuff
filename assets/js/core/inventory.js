@@ -169,7 +169,7 @@
     if (typeof input !== 'object' || Array.isArray(input)) throw new Error('Checklists must be an object.');
     const ids = new Set(items.map(function (item) { return item.id; }));
     const result = {};
-    ['volleyball', 'golf', 'swim'].forEach(function (key) {
+    ['volleyball', 'golf', 'swim', 'travel', 'roadtrip'].forEach(function (key) {
       const list = input[key] || {objects:[], entries:[], checked:[]};
       if (!Array.isArray(list.objects) || !Array.isArray(list.entries) || !Array.isArray(list.checked) || list.entries.length > 1000) throw new Error('Invalid checklist contents.');
       const objects = Array.from(new Set(list.objects.filter(function (id) { return typeof id === 'string' && ids.has(id); })));
