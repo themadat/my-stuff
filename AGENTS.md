@@ -15,6 +15,7 @@ Static, local-first HTML/CSS/JavaScript. No required build step, runtime depende
 
 ## Development and releases
 
+- Always finalize a completed application batch by incrementing the build once and providing task-file-only commit and push commands at handoff. Do not execute commit or push unless explicitly requested.
 - Batch application edits into one release. Do not bump versions or write release notes after each small edit. Documentation/tooling-only changes need no app version bump.
 - Before publishing/installing a batch or when asked to `cut`, increment the four-part build once and align every version/cache surface with `scripts/release.mjs`. Keep cache invalidation intact. Reset alone may return to `0.0.1.1`.
 - During development, run targeted checks appropriate to the change. Add regression tests for behavior bugs; avoid tests that merely mirror trivial static edits. Inspect screenshots only when they resolve a visual question.

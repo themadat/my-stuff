@@ -5,9 +5,9 @@ import { test } from 'node:test';
 const ctx = vm.createContext({ window: { LocalApp: {} } });
 for (const file of ['config', 'core/utils', 'core/inventory', 'core/smart-entry']) vm.runInContext(readFileSync(new URL('../assets/js/' + file + '.js', import.meta.url), 'utf8'), ctx);
 const app = ctx.window.LocalApp, parse = text => JSON.parse(JSON.stringify(app.smartEntry.parse(text)));
-test('purchase sample maps exact fields and retains account amount and unknown marker', () => {
+test('purchase sample maps exact fields and retains account amount and strips the O marker', () => {
   const result = parse(app.smartEntry.example.replace(/^08\/03\/26\t/, ""));
-  assert.deepEqual(result.fields, { price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand', description: 'Chase Prime: 125.54 · [O]' });
+  assert.deepEqual(result.fields, { price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand', description: 'Chase Prime: 125.54' });
   for (let i = 1; i < result.spans.length; i++) assert.ok(result.spans[i].start >= result.spans[i - 1].end);
 });
 test('plain names and unfamiliar brands remain intact; explicit annotations override defaults', () => {
@@ -31,7 +31,7 @@ test('dated purchase lines remove date and price before matching brand and objec
   for (const date of ['08/03/26', '8/3/2026', '2026-08-03']) {
     const text = app.smartEntry.example.replace('08/03/26', date);
     const result = parse(text);
-    assert.deepEqual(result.fields, { obtainedDate: '2026-08-03', price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand', description: 'Chase Prime: 125.54 · [O]' });
+    assert.deepEqual(result.fields, { obtainedDate: '2026-08-03', price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand', description: 'Chase Prime: 125.54' });
     assert.equal(text.slice(result.spans[0].start, result.spans[0].end), date);
     for (let i = 1; i < result.spans.length; i++) assert.ok(result.spans[i].start >= result.spans[i - 1].end);
   }

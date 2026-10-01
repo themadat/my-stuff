@@ -2086,3 +2086,32 @@ test('Backpacking view edits labels and weights, persists, and fits mobile', {ti
  assert.equal(await page.locator('[data-pack-item="pack3"][data-pack-property="Backpacking Category"]').inputValue(),'Luxury');
  for(const width of [390,320]) {await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
 });
+
+
+for (const width of [1440,390]) test('Add save shortcuts bypass autocomplete and Save and add new resets only after validation at '+width, {timeout:30000}, async t => {
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();
+ await page.locator('#itemSmartEntry').fill('Amazon - Shortcut Bottle [O]');
+ assert.equal(await page.locator('#itemDescription').inputValue(),'');
+ await page.locator('#itemBrand').fill('Custom Maker');
+ await page.locator('#itemBrand').press('ArrowDown');
+ await page.locator('#itemBrand').press('Meta+Enter');
+ assert.equal(await page.locator('#itemDialog').isVisible(),false);
+ assert.match(await page.locator('#inventoryList').innerText(),/Custom Maker/);
+ await page.locator('#addItemButton').click();
+ await page.locator('#itemSmartEntry').press('Meta+Shift+Enter');
+ assert.equal(await page.locator('#itemDialog').isVisible(),true);
+ await page.locator('#itemName').fill('Next Bottle');
+ await page.locator('#itemTagSearch').fill('Custom Tag');
+ await page.locator('#itemTagSearch').press('Meta+Shift+Enter');
+ await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ assert.equal(await page.locator('#itemName').inputValue(),'');
+ assert.match(await page.locator('#inventoryList').innerText(),/Next Bottle/);
+ await page.locator('#itemName').fill('Button Bottle');
+ await page.locator('#saveAndNewItemButton').click();
+ await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
+ assert.equal(await page.locator('#itemName').inputValue(),'');
+ await page.reload();
+ assert.match(await page.locator('#inventoryList').innerText(),/Button Bottle/);
+});

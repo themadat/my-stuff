@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.89",
-      buildId: "0.0.1.89",
+      version: "0.0.1.90",
+      buildId: "0.0.1.90",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,21 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.90",
+  "date": "2026-10-01",
+  "title": "Add Item Save Shortcuts",
+  "summary": "Reliable Add Item save shortcuts and a Save and add new action.",
+  "features": [
+    "Save and add new opens a fresh entry with Command-Shift-Enter or its button."
+  ],
+  "improvements": [
+    "Smart Complete omits [O] from generated descriptions."
+  ],
+  "fixes": [
+    "Command-Enter saves before autocomplete can consume Enter or replace a field."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.89",
   "date": "2026-10-01",
   "title": "Backpacking View",

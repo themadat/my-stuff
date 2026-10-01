@@ -101,7 +101,7 @@
           </div></fieldset>
           <div id="itemArchiveSummary" class="item-archive-summary" hidden></div>
         </div>
-        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Copies or pieces in this entry</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveItemButton" aria-keyshortcuts="Meta+Enter Control+Enter" title="Save Item (Command+Enter)" class="button primary" type="submit">Save Item</button></footer>
+        <footer class="dialog-footer inventory-editor-footer"><label id="itemCopiesField" class="copies-control">Total Copies <input id="itemCopies" type="number" min="1" max="100" step="1" value="1" required aria-describedby="itemCopiesHint"><small id="itemCopiesHint">Copies or pieces in this entry</small></label><button id="deleteItemButton" class="button danger" type="button" hidden>Delete Item…</button><button id="archiveItemButton" class="button" type="button">${icon("inventoryArchive")} Archive…</button><button id="restoreItemButton" class="button" type="button" hidden>Return to Stuff I Have</button><span class="inventory-footer-spacer"></span><button class="button" type="button" data-inv-close="itemDialog">Cancel</button><button id="saveAndNewItemButton" aria-keyshortcuts="Meta+Shift+Enter Control+Shift+Enter" title="Save and add new (Command+Shift+Enter)" class="button" type="submit">Save and add new</button><button id="saveItemButton" aria-keyshortcuts="Meta+Enter Control+Enter" title="Save Item (Command+Enter)" class="button primary" type="submit">Save Item</button></footer>
       </form></dialog>
       <dialog id="archiveDialog" class="app-dialog small-dialog" aria-labelledby="archiveTitle" data-backdrop-close="false"><form id="archiveForm" class="dialog-shell"><header class="dialog-header"><h2 id="archiveTitle">Move to Stuff I Had</h2><button class="icon-button" type="button" data-inv-close="archiveDialog" aria-label="Close archive">${icon("close")}</button></header><div class="dialog-body"><p id="archiveItemName"></p><p id="archiveError" class="inventory-error" role="alert" tabindex="-1" hidden></p><div class="item-form-grid">
         <div class="field"><div class="date-heading"><label for="itemGoneDate">Gone Date</label><label class="unknown-date-choice">Unknown <input id="itemGoneDateUnknown" type="checkbox"></label></div><input id="itemGoneDate" type="text" placeholder="MM/DD/YY or YYYY-MM-DD"></div>
@@ -302,6 +302,12 @@
     new ResizeObserver(updateSearchWidth).observe($('#roomOverview')); updateSearchWidth();
     $("#clearInventoryFilters").addEventListener("click", function () { activeChecklist=''; instantFilters.clear(); hoveredCategory = ""; ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).value = ""; }); renderList(); $("#inventorySearch").focus(); });
     $("#itemForm").addEventListener("submit", saveItem);
+    $("#itemForm").addEventListener("keydown", function (event) {
+      if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey) || event.altKey || event.repeat || event.isComposing || $$('dialog[open]').some(function (dialog) { return dialog.id !== 'itemDialog'; })) return;
+      event.preventDefault(); event.stopPropagation();
+      const button = event.shiftKey && !$('#saveAndNewItemButton').hidden ? $('#saveAndNewItemButton') : $('#saveItemButton');
+      $('#itemForm').requestSubmit(button);
+    }, true);
     $$('input[name="itemOwnerChoice"]').forEach(function (el) { const text=el.parentElement.querySelector('span'); if (text) text.innerHTML=el.value==='me'?'<u>M</u>e':'<u>H</u>ouse'; });
     document.addEventListener('keydown',function (event) { if (!$('#itemDialog').open || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.target.isContentEditable || event.target.closest('textarea,select,input:not([type=radio]):not([type=checkbox]):not([type=button]):not([type=submit]):not([type=hidden])') || $$('dialog[open]').some(function (dialog) { return dialog.id!=='itemDialog'; })) return; const owner={m:'me',h:'house'}[event.key.toLowerCase()]; if (owner) { event.preventDefault(); const radio=$('input[name="itemOwnerChoice"][value="'+owner+'"]'); radio.checked=true; radio.dispatchEvent(new Event('change',{bubbles:true})); } });
     $('#itemValue').addEventListener('input',distributePieceValues);
@@ -495,9 +501,6 @@
     });
     [input, brand].forEach(function (el) { el.addEventListener("input", function () { objectWordHistory = []; }); });
     $("#itemForm").addEventListener("keydown", function (event) {
-      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && !event.repeat && !event.isComposing) {
-        event.preventDefault(); $('#itemForm').requestSubmit($('#saveItemButton')); return;
-      }
       if (event.target !== input && event.target !== brand) return;
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
         const last = objectWordHistory[objectWordHistory.length - 1];
@@ -1242,6 +1245,7 @@
     if ($("#bulkReviewInfo")) $("#bulkReviewInfo").hidden = !draft;
     if ($("#bulkSmartTools")) { $("#bulkSmartTools").open = true; $("#bulkSmartTools summary").hidden = true; }
     if ($("#skipBulkRow")) $("#skipBulkRow").hidden = !draft;
+    $("#saveAndNewItemButton").hidden = !!draft;
     $("#saveItemButton").textContent = draft ? "Save All Copies & Next" : "Save Item";
     $$('[data-inv-close="itemDialog"]').filter(function (el) { return !el.classList.contains("icon-button"); }).forEach(function (el) { el.textContent = draft ? "Pause" : "Cancel"; });
     $("#deleteItemButton").hidden = !id;
@@ -1289,6 +1293,7 @@
   function currentItemUnchanged(id, snapshot) { const item = inventory().items.find(function (entry) { return entry.id === id; }); if (!item || JSON.stringify(item) !== snapshot) throw new Error("This item changed while you were editing. Close and reopen it to use the latest copy."); return item; }
   async function saveItem(event) {
     event.preventDefault();
+    const addNew = event.submitter?.id === 'saveAndNewItemButton';
     try {
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
       const count = previous?.archive ? 1 : Number($("#itemCopies").value);
@@ -1354,7 +1359,8 @@
         }); }, { reason: "inventory-save" });
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
       App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + (directArchive ? " is in Stuff I Had." : " is in your inventory.")) : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
-      $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
+      if (addNew) openItem(null, $("#addItemButton"));
+      else $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
     } catch (error) { formError("#itemFormError", error.message); }
   }
   function openArchive(id, trigger) {

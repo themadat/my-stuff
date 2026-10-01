@@ -209,7 +209,7 @@
       });
       fields.name = name;
     }
-    const notes = spans.filter(function (span) { return !span.field; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(Boolean).join(" · ");
+    const notes = spans.filter(function (span) { return !span.field; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(function (note) { return note && !/^\[O\]$/i.test(note); }).join(" · ");
     if (fields.categories) fields.categories = App.inventoryModel.tags(fields.categories).join(", ");
     if (notes) fields.description = notes;
     conveyedFields(fields,text);

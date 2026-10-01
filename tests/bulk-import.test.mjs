@@ -18,7 +18,7 @@ test('unheaded purchase rows parse the supplied format and suggest editable tags
  assert.equal(d.price, '62.77'); assert.equal(d.value, '65'); assert.equal(d.obtainedDate, '2026-08-03');
  assert.ok(d.categories.includes('Barware')); assert.ok(d.categories.includes('Glassware'));
  assert.equal(d.room, 'Den'); assert.ok(rows[0].suggestions.some(s => s.includes('Other')));
- assert.match(d.description, /Chase Prime: 125.54.*\[O\]/);
+ assert.equal(d.description, 'Chase Prime: 125.54');
 });
 test('explicit spreadsheet fields beat guesses and quantities produce independent review drafts', () => {
  const rows = [['Object','Price','Value','Date','Room','Tags','Color','Qty','Memo'], ['Black whiskey glass','($12.50)','20','08/03/26','Office','Gift Collection','Blue','2','Keep me']];

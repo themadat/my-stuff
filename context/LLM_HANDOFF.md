@@ -2,21 +2,20 @@
 
 ## State
 
-Backpacking release **0.0.1.89** prepared and verified, uncommitted/unpushed. Version/cache surfaces aligned once with `scripts/release.mjs`. Working tree was clean at task start; current changes belong to this task.
+Release 0.0.1.90 is prepared and verified, uncommitted/unpushed. Version/cache surfaces aligned once with scripts/release.mjs. Working tree was clean at task start.
 
-Select the Backpacking tag/filter to open its specialized view. Each physical inventory copy has its own row with editable weight in ounces, both oz/lb displayed together, category selector and colored weight-level selector. Click the item name to open its existing editor. Data uses existing Weight, Backpacking Category and Weight Level properties, preserving normal storage/backup/sync paths.
-
-Categories, in order: Consumable, Wear, Equipment (6 lb target), Emergency (1), Food/Water (1), Clothing (2), Other (1), Luxury; unassigned items appear under Uncategorized. Category totals and targets are displayed. Total Pack Weight reflects shown/filtered items. User explicitly confirmed excluding Wear while including Consumable and Food/Water. Missing/invalid weights are flagged as partial totals. Units oz/lb/g/kg and supported fractions convert without changing stored source weights until edited. Weight levels: Ultralight yellow, Middleweight yellow-orange, Heavy orange, Cold blue.
+- Cmd/Ctrl-Enter saves before autocomplete can consume Enter or change the selected suggestion. Capture handler preserves validation, composition/repeat guards and nested-dialog handling.
+- Save and add new button and Cmd/Ctrl-Shift-Enter save then open a fresh form focused on Smart Complete. Errors retain the current form. Bulk review keeps its existing Save All Copies & Next workflow and hides the new button.
+- Smart Complete omits [O] from generated Notes while preserving other unrecognized annotations and account amounts. Existing saved descriptions are unchanged.
 
 ## Verification
 
-157 non-browser checks and 4 release browser flows passed: Backpacking edits/persistence at desktop and 390/320px, Footwear sorting, Network/Smart views and service-worker offline reload. Preview server stopped. Diff whitespace check passed. User requested commit/push commands; commands provided for task files only.
+All 157 non-browser checks and the service-worker offline smoke check passed. New browser regression passed at 1440px and 390px: autocomplete bypass, both shortcuts, validation, button, fresh-form focus and persistence. An older copy-controls browser test fails at its tag/Notes alignment assertion (line 1222), before its shortcut checks; that layout is outside this change. Diff whitespace check passed. Preview server stopped after checks.
 
-## Constraints and pointers
+## Remaining and pointers
 
-- Static local-first, no runtime dependencies. Preserve unrelated edits, inventory, Notes, Settings, storage/recovery, sync and PWA.
-- Do not commit or push without explicit instruction. Batch one build increment via `scripts/release.mjs` when cutting/publishing.
-- Core helpers: `assets/js/core/inventory.js` (`packCategories`, `packLevels`, `packCategory`, `weightOunces`, `packTotal`). UI: `assets/js/inventory-ui.js` (`renderBackpacking` and `data-pack-property` handler). Styles at end of `assets/css/app.css`.
-- Tests: `tests/inventory-details.test.mjs` and Backpacking browser test at end of `tests/browser.test.mjs`.
-- Runtime: `/Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`.
-- Playwright module: sibling `../node_modules/playwright/index.mjs`; bundled Chromium works with sandbox escalation. `docs/DEVELOPMENT.md` has verification/release commands.
+- User preference saved in AGENTS.md: always increment the build once per completed app batch and provide task-file-only commit/push commands. Do not execute commit/push without explicit request. Release 0.0.1.90 is ready; do not increment it again.
+- Changed app files: assets/js/inventory-ui.js and assets/js/core/smart-entry.js. Regression tests: tests/browser.test.mjs (last tests) tests/smart-entry.test.mjs and tests/bulk-import.test.mjs.
+- Preserve static local-first behavior, existing storage/recovery/backup/sync/PWA paths. Do not commit or push without explicit instruction.
+- Node: /Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node
+- Playwright: /Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs. Chromium/local preview require sandbox escalation.
