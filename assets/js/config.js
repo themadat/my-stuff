@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.90",
-      buildId: "0.0.1.90",
+      version: "0.0.1.91",
+      buildId: "0.0.1.91",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,20 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.91",
+  "date": "2026-10-01",
+  "title": "Young Item Cost Averages",
+  "summary": "Use current value for costs below one full ownership period.",
+  "features": [],
+  "improvements": [
+    "Items younger than a year show current value per year; items younger than a month show current value per month.",
+    "Combined copy costs apply the same ownership thresholds."
+  ],
+  "fixes": [
+    "Same-day purchases display known costs instead of unavailable averages."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.90",
   "date": "2026-10-01",
   "title": "Add Item Save Shortcuts",

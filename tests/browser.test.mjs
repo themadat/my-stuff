@@ -2115,3 +2115,18 @@ for (const width of [1440,390]) test('Add save shortcuts bypass autocomplete and
  await page.reload();
  assert.match(await page.locator('#inventoryList').innerText(),/Button Bottle/);
 });
+
+for (const width of [1440,390]) test('young item costs show current value for yearly and monthly periods at '+width, {timeout:30000}, async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{
+  const a=window.LocalApp;
+  a.storage.mutate(state=>{state.inventory.items=[a.inventoryModel.normalizeItem({id:'young-cost',name:'Young cost item',owner:'me',obtainedDate:a.inventoryModel.today(),price:120,value:60})];},{reason:'inventory-save'});
+  a.storage.saveNow();
+ });
+ const button=page.locator('[data-age-cost="young-cost"]');
+ const expected=await page.evaluate(()=>new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(60));
+ assert.equal(await button.innerText(),expected+'/yr');
+ await button.click(); assert.equal(await button.innerText(),expected+'/mo');
+ await page.reload(); assert.equal(await page.locator('[data-age-cost="young-cost"]').innerText(),expected+'/yr');
+});

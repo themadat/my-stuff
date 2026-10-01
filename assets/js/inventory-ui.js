@@ -924,8 +924,9 @@
   }
   function ageCell(members) {
     const item=members[0], id=item.copyGroup || item.id, age=m.ownershipSummary(members), annual=!monthlyCosts.has(id);
-    const explanation=members.length>1 ? 'Combined cost of '+members.length+' copies / pieces since the earliest obtained date' : 'Obtaining price averaged over ownership';
-    return '<div class="item-age-entry">'+(age ? age.years+'y '+age.months+'m' : 'Unknown')+'<small><button type="button" class="instant-filter" data-age-cost="'+esc(id)+'" aria-label="Switch cost average to per '+(annual?'month':'year')+'" title="'+esc(explanation)+'">'+(age?.annualValue == null ? '—' : esc(money(age.annualValue/(annual?1:12))))+'/'+(annual?'yr':'mo')+'</button></small></div>';
+    const explanation='Current value until one '+(annual?'year':'month')+' of ownership; then obtaining price averaged over ownership'+(members.length>1 ? ' across '+members.length+' copies / pieces' : '');
+    const cost=annual ? age?.annualValue : age?.monthlyValue;
+    return '<div class="item-age-entry">'+(age ? age.years+'y '+age.months+'m' : 'Unknown')+'<small><button type="button" class="instant-filter" data-age-cost="'+esc(id)+'" aria-label="Switch cost average to per '+(annual?'month':'year')+'" title="'+esc(explanation)+'">'+(cost == null ? '—' : esc(money(cost)))+'/'+(annual?'yr':'mo')+'</button></small></div>';
   }
   function mileageTag(value) {
     try { const log=m.mileage(value); return '<span class="mileage-tag mileage-'+log.tone+'">'+esc(log.total.toLocaleString(undefined,{maximumFractionDigits:2}))+' mi</span>'; } catch (_) { return '<span>Review mileage</span>'; }
@@ -1376,7 +1377,7 @@
   function renderArchiveDuration() {
     const item = inventory().items.find(function (entry) { return entry.id === archiveId; }); if (!item) return;
     let age=null; try { if (!$('#itemGoneDateUnknown').checked && $('#itemGoneDate').value) age=m.ownershipAge(item,inputDate($('#itemGoneDate').value)); } catch (_) {}
-    $('#archiveDuration').textContent = age ? age.years + (age.years === 1 ? ' year ' : ' years ') + age.months + (age.months === 1 ? ' month ' : ' months ') + age.days + (age.days === 1 ? ' day · ' : ' days · ') + age.totalDays.toLocaleString() + ' days owned · Yearly average value: ' + (age.annualValue === null ? 'Unavailable until at least one day has passed and a value is known' : money(age.annualValue) + ' per year (obtaining price)') : 'Add a valid obtained and departure date to calculate age and yearly average value.';
+    $('#archiveDuration').textContent = age ? age.years + (age.years === 1 ? ' year ' : ' years ') + age.months + (age.months === 1 ? ' month ' : ' months ') + age.days + (age.days === 1 ? ' day · ' : ' days · ') + age.totalDays.toLocaleString() + ' days owned · Yearly average value: ' + (age.annualValue === null ? 'Unavailable without a known value' : money(age.annualValue) + (age.years < 1 ? ' per year (current value)' : ' per year (obtaining price)')) : 'Add a valid obtained and departure date to calculate age and yearly average value.';
   }
   function saveArchive(event) {
     event.preventDefault();

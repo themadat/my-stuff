@@ -78,7 +78,7 @@ test('copies and pieces share one age and combined cost without inventing missin
  assert.equal(m.ownershipSummary([rows[0],{...rows[1],obtainedDate:''}],'2025-01-01'),null);
  assert.equal(m.ownershipSummary([rows[0],{...rows[1],price:null,value:null}],'2025-01-01').annualValue,null);
  assert.equal(m.ownershipSummary([{...rows[0],price:0,value:0}],'2025-01-01').annualValue,0);
- assert.equal(m.ownershipSummary(rows,'2024-01-01').annualValue,null);
+ assert.equal(m.ownershipSummary(rows,'2024-01-01').annualValue,100);
  const gone=rows.map(row=>({...row,archive:{date:'2025-01-01',reason:'Sold'}}));
  assert.equal(m.ownershipSummary(gone).annualValue,100);
  assert.equal(m.ownershipSummary([{...gone[0],archive:{date:'',reason:'Sold'}},gone[1]]),null);

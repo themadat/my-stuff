@@ -63,7 +63,7 @@ test('ownership age uses calendar anniversaries and annual cost handles unknown 
  assert.deepEqual([leap.years,leap.months,leap.days],[1,0,0]);
  const month = app.inventoryModel.ownershipAge({...base,obtainedDate:'2024-01-31'},'2024-03-01');
  assert.deepEqual([month.years,month.months,month.days],[0,1,1]);
- assert.equal(app.inventoryModel.ownershipAge(base,'2023-09-10').annualValue,null);
+ assert.equal(app.inventoryModel.ownershipAge(base,'2023-09-10').annualValue,base.value);
  assert.equal(app.inventoryModel.ownershipAge({...base,obtainedDate:''},'2026-09-10'),null);
  assert.equal(app.inventoryModel.ownershipAge({...base,price:null,value:null},'2026-09-10').annualValue,null);
 });
@@ -306,4 +306,20 @@ test('location rename preserves stored Sling assignments and review dates',()=>{
  assert.ok(app.config.inventory.locations.find(l=>l.room==='Nook').spaces.includes('Wash Pouch'));
  assert.ok(app.config.inventory.locations.find(l=>l.room==='Office').spaces.includes('Cabinent'));
  assert.equal(app.inventoryCatalog.companyFor('Govee'),'Govee');
+});
+
+
+test('cost averages use current value below each period and purchase cost afterward', () => {
+ const m=app.inventoryModel, base={obtainedDate:'2024-01-31',price:120,value:60};
+ for (const end of ['2024-01-31','2024-02-28']) {
+   const age=m.ownershipAge(base,end); assert.equal(age.annualValue,60); assert.equal(age.monthlyValue,60);
+ }
+ const month=m.ownershipAge(base,'2024-02-29'); assert.equal(month.annualValue,60); assert.ok(month.monthlyValue>60);
+ const year=m.ownershipAge(base,'2025-01-31'); assert.equal(year.annualValue,120); assert.equal(year.monthlyValue,10);
+ const older=m.ownershipAge(base,'2026-01-31'); assert.equal(older.annualValue,60); assert.equal(older.monthlyValue,5);
+ assert.equal(m.ownershipAge({...base,value:0},'2024-02-01').monthlyValue,0);
+ assert.equal(m.ownershipAge({...base,value:null},'2024-02-01').annualValue,null);
+ const copies=m.ownershipSummary([base,{...base,value:30,price:80}],'2024-02-01');
+ assert.equal(copies.annualValue,90); assert.equal(copies.monthlyValue,90);
+ assert.equal(m.ownershipAge(base,'2024-01-30'),null);
 });

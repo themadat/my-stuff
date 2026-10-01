@@ -335,7 +335,9 @@
     const finish=end || (items.every(function (item) { return item.archive; }) ? items.map(function (item) { return item.archive.date; }).sort().at(-1) : today());
     const costs=items.map(function (item) { return item.price ?? item.value; });
     const total=costs.some(function (cost) { return cost==null; }) ? null : costs.reduce(function (sum,cost) { return sum+Math.round(cost*100); },0)/100;
-    return ownershipAge({obtainedDate:obtainedDate,price:total,value:total},finish);
+    const values=items.map(function (item) { return item.value; });
+    const currentValue=values.some(function (value) { return value==null; }) ? null : values.reduce(function (sum,value) { return sum+Math.round(value*100); },0)/100;
+    return ownershipAge({obtainedDate:obtainedDate,price:total,value:currentValue},finish);
   }
   function ownershipAge(item, end) {
     const finish = dateOnly(end || (item.archive ? item.archive.date : today()));
@@ -351,7 +353,7 @@
     const years = Math.floor(months/12), days = Math.round((stop-anniversary(months))/86400000);
     const elapsedYears = years + (stop-anniversary(years*12))/(anniversary((years+1)*12)-anniversary(years*12));
     const basis = item.price ?? item.value;
-    return {years:years,months:months%12,days:days,totalDays:Math.round((stop-start)/86400000),annualValue:elapsedYears > 0 && basis !== null ? basis/elapsedYears : null};
+    return {years:years,months:months%12,days:days,totalDays:Math.round((stop-start)/86400000),annualValue:years < 1 ? item.value ?? null : basis != null ? basis/elapsedYears : null,monthlyValue:months < 1 ? item.value ?? null : basis != null ? basis/(elapsedYears*12) : null};
   }
   function emptyTotal() { return { count: 0, valueCents: 0, unknown: 0 }; }
   function add(total, item) {
