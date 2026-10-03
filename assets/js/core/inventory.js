@@ -211,6 +211,7 @@
     const brand = function (item) { return item.properties.find(function (p) { return p.name.toLowerCase()==='brand'; })?.value || '\uffff'; };
     return brand(a).localeCompare(brand(b),undefined,{sensitivity:'base',numeric:true}) || a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true});
   }
+  function compareOwnership(a,b) { return Number(b.owner === 'house') - Number(a.owner === 'house'); }
   function locationSections(items, ordered) {
     const sections = new Map();
     items.forEach(function (item) {
@@ -415,5 +416,5 @@
     if (unit[2]) result.imperial='≈ '+Number((value*unit[2]+(unit[4] || 0)).toPrecision(4)).toLocaleString('en-US',{maximumSignificantDigits:4})+' '+unit[3];
     return result;
   }
-  App.inventoryModel = { packCategories:packCategories, packLevels:packLevels, packCategory:packCategory, weightOunces:weightOunces, packTotal:packTotal, connectionTypes:connectionTypes, connectionLabel:connectionLabel, specialView:specialView, specialSections:specialSections, ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
+  App.inventoryModel = { packCategories:packCategories, packLevels:packLevels, packCategory:packCategory, weightOunces:weightOunces, packTotal:packTotal, connectionTypes:connectionTypes, connectionLabel:connectionLabel, specialView:specialView, specialSections:specialSections, ownershipSummary:ownershipSummary, propertyLabel:propertyLabel, compareRows:compareRows, mileage:mileage, measurement:measurement, orderTags:orderTags, favoriteTag:favoriteTag, compareBrand:compareBrand, compareOwnership:compareOwnership, itemLocation:itemLocation, locationSections:locationSections, cableEnd: cableEnd, sameObject: sameObject, groupRows: groupRows, ownershipAge: ownershipAge, createCopies: createCopies, normalize: normalize, normalizeItem: normalizeItem, tags: tags, amount: amount, dateOnly: dateOnly, today: today, daysOwned: daysOwned, stats: stats, merge: merge, reasons: reasons, methods: methods };
 })();

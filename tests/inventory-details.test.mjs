@@ -156,3 +156,14 @@ test('House Conveyed and New stats partition counts and current values',()=>{
  assert.equal(stats.houseConveyed.count,1);assert.equal(stats.houseConveyed.valueCents,2500);
  assert.equal(stats.houseNew.count,2);assert.equal(stats.houseNew.valueCents,6000);assert.equal(stats.houseNew.unknown,1);
 });
+
+test('room ownership priority keeps house objects above personal brand order',()=>{
+ const items=[
+  m.normalizeItem({id:'personal',name:'A personal',owner:'me',room:'Kitchen',properties:[{name:'Brand',value:'A'}]}),
+  m.normalizeItem({id:'house-z',name:'Z house',owner:'house',room:'Kitchen',properties:[{name:'Brand',value:'Z'}]}),
+  m.normalizeItem({id:'house-b',name:'B house',owner:'house',room:'Kitchen',properties:[{name:'Brand',value:'B'}]})
+ ];
+ const rows=m.groupRows(items.sort(m.compareBrand)).sort((a,b)=>m.compareOwnership(a[0],b[0]));
+ assert.deepEqual(Array.from(rows,r=>r[0].id),['house-b','house-z','personal']);
+ assert.equal(m.compareOwnership(items.find(i=>i.id==='house-b'),items.find(i=>i.id==='house-z')),0);
+});

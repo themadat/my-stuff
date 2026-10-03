@@ -2271,3 +2271,14 @@ for (const width of [390,320]) test('checklist menu opens and selects with touch
  await page.locator('#checklistButton').tap();await page.locator('#inventorySearch').tap();
  assert.equal(await page.locator('#checklistMenu').isVisible(),false);
 });
+
+for (const width of [1440,390]) test('house objects lead each room on Have and Had at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{const a=window.LocalApp,m=a.inventoryModel;a.storage.mutate(state=>{state.inventory.items=['Kitchen','Office'].flatMap((room,r)=>[false,true].flatMap(archived=>['me','house'].map(owner=>m.normalizeItem({id:room+owner+archived,name:room+' '+owner,room,owner,properties:[{name:'Brand',value:owner==='house'?'Z':'A'}],...(archived?{archive:{date:'2026-09-01',reason:'Sold'}}:{})}))));},{reason:'inventory-save'});});
+ for(const view of ['have','previous']){
+  await page.locator('[data-inventory-view="'+view+'"]').click();
+  const ids=await page.locator('#inventoryList [data-edit-item]').evaluateAll(els=>els.map(el=>el.dataset.editItem));
+  assert.deepEqual(ids,['Kitchenhouse'+(view==='previous'),'Kitchenme'+(view==='previous'),'Officehouse'+(view==='previous'),'Officeme'+(view==='previous')]);
+ }
+});
