@@ -62,7 +62,7 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .48; }
 a { color: var(--accent-strong); }
 [hidden] { display: none !important; }
-::selection { background: var(--accent-soft); color: var(--text); }
+::selection { background: #ffcf40; color: #171717; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 .skip-link { position: fixed; z-index: 300; top: .5rem; left: .5rem; padding: .65rem .9rem; border-radius: var(--radius-small); background: var(--text); color: var(--surface); transform: translateY(-150%); }
@@ -1544,3 +1544,40 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .inventory-heading .inventory-stat[data-inventory-total="house"] { grid-template-rows: repeat(4,auto); }
 .inventory-heading .inventory-stat[data-inventory-total="house"] .inventory-stat-label,
 .inventory-heading .inventory-stat[data-inventory-total="house"] .ownership-toggle { grid-row: 1 / 5; }
+
+/* Backpacking bag controls and entries. */
+.pack-summary > label { display:inline-flex; align-items:center; gap:.5rem; }
+.pack-summary select { width:auto; }
+.pack-difference { font-weight:700; white-space:nowrap; }
+.pack-difference.under { color:#18703a; }
+.pack-difference.over { color:#bb2929; }
+[data-theme="dark"] .pack-difference.under { color:#83e6a3; }
+[data-theme="dark"] .pack-difference.over { color:#ff9696; }
+@media(prefers-color-scheme:dark) {
+ :root:not([data-theme="light"]) .pack-difference.under { color:#83e6a3; }
+ :root:not([data-theme="light"]) .pack-difference.over { color:#ff9696; }
+}
+.pack-object-content { display:flex; align-items:flex-start; gap:.5rem; }
+.pack-object-content > input[type="checkbox"] { width:1.2rem; height:1.2rem; flex:none; margin:.1rem 0; accent-color:var(--accent); }
+.pack-object-content > div { min-width:0; flex:1; }
+.pack-subcategory-field { display:block; margin-top:.35rem; }
+.pack-subcategory-field > span,.pack-entry-field > span { display:block; font-size:.65rem; color:var(--muted); }
+.pack-add { margin:.5rem 0; }
+.pack-add summary { cursor:pointer; font-size:.8rem; }
+.pack-add form { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; padding:.6rem; border:1px solid var(--line); border-radius:8px; }
+.pack-add label { min-width:0; font-size:.75rem; }
+.pack-add input,.pack-add textarea { width:100%; box-sizing:border-box; }
+.pack-add-notes { grid-column:span 2; }
+.pack-add button { align-self:end; }
+.pack-entry-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem; }
+.pack-entry-field { min-width:0; }
+.pack-entry-field:first-child,.pack-entry-field:last-child { grid-column:1 / -1; }
+.pack-entry-field textarea { width:100%; box-sizing:border-box; font-size:inherit; }
+.pack-table tr.pack-subcategory th { width:auto; font-size:.75rem; }
+@media(max-width:700px) {
+ .pack-add form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .pack-add-notes { grid-column:1 / -1; }
+ .pack-table tr.pack-subcategory { display:block; padding:.45rem .85rem; }
+ .pack-table tr.pack-subcategory th { display:block; padding:0; }
+ .pack-table td.inventory-row-actions { white-space:normal; }
+}

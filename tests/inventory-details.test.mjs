@@ -167,3 +167,15 @@ test('room ownership priority keeps house objects above personal brand order',()
  assert.deepEqual(Array.from(rows,r=>r[0].id),['house-b','house-z','personal']);
  assert.equal(m.compareOwnership(items.find(i=>i.id==='house-b'),items.find(i=>i.id==='house-z')),0);
 });
+
+test('backpacking entries and bag selections survive normalization and merge without becoming inventory',()=>{
+ const item=m.normalizeItem({...base,id:'tent',categories:['Backpacking']});
+ const source={currency:'USD',items:[item],backpacking:{entries:[{id:'food',name:'Trail food',date:'2026-10-04',price:12.5,weight:16,notes:'Day one',category:'Food/Water',subcategory:'Breakfast',level:'Ultralight'}],checked:['object:tent','entry:food','object:missing','entry:food']}};
+ const normalized=m.normalize(source);
+ assert.equal(normalized.items.length,1);assert.equal(normalized.backpacking.entries[0].weight,16);
+ assert.deepEqual(Array.from(normalized.backpacking.checked),['object:tent','entry:food']);
+ assert.deepEqual(JSON.parse(JSON.stringify(m.merge(normalized,normalized).backpacking)),JSON.parse(JSON.stringify(normalized.backpacking)));
+ const changed=JSON.parse(JSON.stringify(normalized));changed.backpacking.checked=[];assert.throws(()=>m.merge(normalized,changed),/Backpacking bags differ/);
+ for(const update of [{weight:-1},{price:'oops'},{date:'2026-02-30'},{name:''}]) {const bad=JSON.parse(JSON.stringify(source));Object.assign(bad.backpacking.entries[0],update);assert.throws(()=>m.normalize(bad));}
+ const removed=JSON.parse(JSON.stringify(source));removed.items=[];removed.backpacking.entries=[];assert.equal(m.normalize(removed).backpacking.checked.length,0);
+});

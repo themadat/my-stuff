@@ -770,3 +770,15 @@ test('auto sync stops before writing if the app becomes hidden or offline during
   const syncing=h.sync.autoSync();interrupt(h);reading.resolve(h.file());assert.equal(await syncing,false);assert.equal(h.requests.some(request=>request.options.method==='PUT'),false);
  }
 });
+
+test('backpacking bag entries checkmarks and subcategories round trip backup and cloud with a protected format',()=>{
+ const h=harness(),model=h.App.stateModel;
+ h.state.inventory.items=[inventoryItem(h)];
+ h.state.inventory.backpacking={entries:[{id:'meal',name:'Dinner',date:'2026-10-04',price:5,weight:0.123456,notes:'Warm meal',category:'Food/Water',subcategory:'Meals',level:''}],checked:['object:'+h.state.inventory.items[0].id,'entry:meal']};
+ const normalized=model.normalize(h.state),expected=JSON.stringify(normalized.inventory.backpacking);
+ assert.equal(JSON.stringify(model.prepare(model.exportEnvelope(h.state)).state.inventory.backpacking),expected);
+ const payload=model.syncPayload(h.state);assert.equal(payload.schemaVersion,8);assert.equal(payload.data.inventory.backpacking.checked.length,2);
+ assert.equal(JSON.stringify(model.prepareSync(payload).state.inventory.backpacking),expected);
+ const before=model.syncHash(h.state);h.state.inventory.backpacking.entries[0].notes='Changed';assert.notEqual(model.syncHash(h.state),before);
+ assert.equal(model.prepareSync(payload).state.inventory.backpacking.entries[0].weight,0.123456);
+});

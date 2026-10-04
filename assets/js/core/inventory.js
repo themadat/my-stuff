@@ -183,6 +183,22 @@
     });
     return result;
   }
+  function packEntryWeight(value) {
+    if (value==null || value==='') return null;
+    if (!['number','string'].includes(typeof value) || !Number.isFinite(Number(value)) || Number(value)<0 || Number(value)>999999999.99) throw new Error('Enter a valid non-negative weight in ounces.');
+    return Number(value);
+  }
+  function normalizeBackpacking(input, items) {
+    if (input == null) return null;
+    if (!input || typeof input!=='object' || Array.isArray(input) || !Array.isArray(input.entries) || !Array.isArray(input.checked) || input.entries.length>1000) throw new Error('Invalid backpacking contents.');
+    const entries=input.entries.map(function (entry) {
+      if (!entry || typeof entry.id!=='string' || !entry.id || entry.id.length>100 || typeof entry.name!=='string' || !entry.name.trim()) throw new Error('Backpacking entries need an ID and name.');
+      return {id:entry.id,name:u.cleanLine(entry.name,Infinity),date:dateOnly(entry.date),price:amount(entry.price),weight:packEntryWeight(entry.weight),notes:u.cleanText(entry.notes,Infinity),category:packCategories.some(function (c) { return c[0]===entry.category; })?entry.category:'Uncategorized',subcategory:u.cleanLine(entry.subcategory,Infinity),level:packLevels.includes(entry.level)?entry.level:''};
+    });
+    if (new Set(entries.map(function (entry) { return entry.id; })).size!==entries.length) throw new Error('Duplicate backpacking entry IDs.');
+    const keys=new Set(items.map(function (item) { return 'object:'+item.id; }).concat(entries.map(function (entry) { return 'entry:'+entry.id; })));
+    return {entries:entries,checked:Array.from(new Set(input.checked.filter(function (key) { return keys.has(key); })))};
+  }
   function normalize(input, favorites) {
     if (input === undefined) return { currency: App.config.inventory.defaultCurrency, items: [] };
     if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.items) || input.items.length > 5000) throw new Error("Inventory must contain a list of up to 5,000 items.");
@@ -190,8 +206,8 @@
     const items = input.items.map(function (item) { return favoriteTag(normalizeItem(item),favorites); });
     if (new Set(items.map(function (item) { return item.id; })).size !== items.length) throw new Error("Inventory contains duplicate item IDs.");
     // Earlier copies offered other labels without converting amounts. Keep amounts intact.
-    const reviews=locationReviews(input.locationReviews), checklists=normalizeChecklists(input.checklists,items);
-    return { currency: App.config.inventory.defaultCurrency, items: items, ...(checklists ? {checklists:checklists} : {}), ...(Object.keys(reviews).length ? {locationReviews:reviews} : {}) };
+    const reviews=locationReviews(input.locationReviews), checklists=normalizeChecklists(input.checklists,items), backpacking=normalizeBackpacking(input.backpacking,items);
+    return { currency: App.config.inventory.defaultCurrency, items: items, ...(checklists ? {checklists:checklists} : {}), ...(backpacking ? {backpacking:backpacking} : {}), ...(Object.keys(reviews).length ? {locationReviews:reviews} : {}) };
   }
   function daysOwned(item, end) {
     if (!item.obtainedDate || (item.archive && !item.archive.date && !end)) return null;
@@ -384,7 +400,8 @@
     const reviews=locationReviews(local.locationReviews);
     Object.entries(locationReviews(remote.locationReviews)).forEach(function (entry) { const key=entry[0], incoming=entry[1], current=reviews[key]; if (!current || incoming.updatedAt>current.updatedAt || (incoming.updatedAt===current.updatedAt && incoming.date>current.date)) reviews[key]=incoming; });
     if (local.checklists && remote.checklists && JSON.stringify(local.checklists) !== JSON.stringify(remote.checklists)) throw new Error('Checklists differ between copies. Choose which copy to keep.');
-    return normalize({ currency: local.currency, items: Array.from(items.values()), locationReviews:reviews, checklists:local.checklists || remote.checklists });
+    if (local.backpacking && remote.backpacking && JSON.stringify(local.backpacking)!==JSON.stringify(remote.backpacking)) throw new Error('Backpacking bags differ between copies. Choose which copy to keep.');
+    return normalize({ currency: local.currency, items: Array.from(items.values()), locationReviews:reviews, checklists:local.checklists || remote.checklists, backpacking:local.backpacking || remote.backpacking });
   }
   // Recognized suffixes only: free text and unitless properties remain untouched.
   const measurementUnits = [

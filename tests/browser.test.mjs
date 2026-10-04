@@ -406,7 +406,10 @@ test('service worker caches this release and inventory and Notes remain availabl
   await page.locator('#itemRoom').fill('Nook');
   await page.locator('#itemRoomOptions [data-option]').filter({hasText:'Nook'}).first().click();
   await page.locator('#saveItemButton').click();
+  await page.evaluate(()=>{const a=window.LocalApp;a.storage.mutate(state=>{state.inventory.backpacking={entries:[{id:'offline-food',name:'Offline food',date:'2026-10-04',price:5,weight:4,notes:'Keep dry',category:'Food/Water',subcategory:'Meals',level:''}],checked:['entry:offline-food']};},{reason:'backpacking-bag'});a.storage.saveNow();});
   await page.reload();
+  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.backpacking.entries[0].name),'Offline food');
+  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.backpacking.checked[0]),'entry:offline-food');
   assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Nook');
   await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
   // Chromium can reset navigator.onLine on a worker-controlled navigation;
@@ -2069,7 +2072,7 @@ test('Backpacking view edits labels and weights, persists, and fits mobile', {ti
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>{
   const app=window.LocalApp;
-  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',description:i===0?'Room for two <campers>':'',source:i===0?'Outdoor shop':'',categories:['Backpacking'],properties:[...(i===0?[{name:'Brand',value:'Trail Co'},{name:'Volume',value:'40',unit:'L'}]:[]),{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.saveNow();
+  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',description:i===0?'Room for two <campers>':'',source:i===0?'Outdoor shop':'',categories:['Backpacking'],properties:[...(i===0?[{name:'Brand',value:'Trail Co'},{name:'Volume',value:'40',unit:'L'}]:[]),{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.getState().inventory.backpacking={entries:[],checked:['object:pack0','object:pack1','object:pack2','object:pack3']};app.storage.saveNow();
  });
  await page.reload();
  const open=async()=>page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
@@ -2287,4 +2290,35 @@ for (const width of [1440,390]) test('house objects lead each room on Have and H
   const ids=await page.locator('#inventoryList [data-edit-item]').evaluateAll(els=>els.map(el=>el.dataset.editItem));
   assert.deepEqual(ids,['Kitchenhouse'+(view==='previous'),'Kitchenme'+(view==='previous'),'Officehouse'+(view==='previous'),'Officeme'+(view==='previous')]);
  }
+});
+
+for(const width of [1440,390,320]) test('Backpacking actual bag entries targets sorting and checked filter at '+width,{timeout:30000},async t=>{
+ const {page,context}=await fixture(t,{viewport:{width,height:1000}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{const a=window.LocalApp;a.storage.mutate(state=>{state.inventory.items=[['tent','Tent','Equipment','112','Shelter'],['towel1','Towel one','Luxury','4','Towels'],['towel2','Towel two','Luxury','8','Towels']].map(([id,name,category,weight,sub])=>a.inventoryModel.normalizeItem({id,name,owner:'me',categories:['Backpacking'],properties:[{name:'Backpacking Category',value:category},{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Subcategory',value:sub}]}));},{reason:'inventory-save'});});
+ const open=async()=>page.locator('#inventoryList [data-instant-filter="categories"]').first().click();await open();
+ assert.match(await page.locator('.pack-summary').innerText(),/0 items in bag · 3 available/);
+ assert.equal(await page.locator('.pack-summary').getByText('Shown items',{exact:false}).count(),0);
+ const equipment=page.locator('.pack-section').filter({has:page.locator('h3').filter({hasText:/^Equipment/})});
+ assert.match(await equipment.locator('h3').innerText(),/Target 6 lb.*−6.00 lb/);
+ await page.locator('[data-pack-check="object:tent"]').check();assert.match(await equipment.locator('.pack-difference.over').innerText(),/\+1.00 lb/);
+ await page.locator('[data-pack-check="object:towel1"]').check();
+ const luxury=page.locator('.pack-section').filter({has:page.locator('h3').filter({hasText:/^Luxury/})});
+ await luxury.locator('summary').click();const form=luxury.locator('[data-pack-add]');
+ await form.locator('[name="name"]').fill('Snack <one>');await page.locator('[data-pack-check="object:towel2"]').check();await page.locator('[data-pack-check="object:towel2"]').uncheck();assert.equal(await form.locator('[name="name"]').inputValue(),'Snack <one>');await form.locator('[name="date"]').fill('2026-10-04');await form.locator('[name="price"]').fill('3.25');await form.locator('[name="weight"]').fill('2');await form.locator('[name="notes"]').fill('For the trail <safe>');await form.locator('[name="subcategory"]').fill('Snacks');
+ await form.locator('button[type="submit"]').click();
+ assert.match(await page.locator('.pack-summary').innerText(),/118.00 oz.*3 items in bag · 4 available/s);
+ assert.equal(await page.locator('.pack-object safe').count(),0);
+ const entry=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.backpacking.entries[0]);assert.equal(entry.price,3.25);assert.equal(entry.date,'2026-10-04');
+ assert.deepEqual(await luxury.locator('.pack-subcategory th').allTextContents(),['Snacks','Towels']);
+ await page.locator('[data-pack-show]').selectOption('checked');assert.equal(await page.locator('[data-pack-check="object:towel2"]').count(),0);
+ const notes=page.locator('[data-pack-entry-field="notes"]');await notes.fill('New notes');await notes.press('Tab');
+ const sub=page.locator('[data-pack-item="towel1"][data-pack-property="Backpacking Subcategory"]');await sub.fill('Bath');await sub.press('Tab');
+ assert.deepEqual(await luxury.locator('.pack-subcategory th').allTextContents(),['Bath','Snacks']);
+ await page.reload();await open();assert.equal(await page.locator('[data-pack-check="object:tent"]').isChecked(),true);assert.equal(await page.locator('[data-pack-entry-field="notes"]').inputValue(),'New notes');
+ const data=await page.evaluate(()=>window.LocalApp.storage.getState().inventory);assert.equal(data.items.length,3);assert.equal(data.backpacking.entries.length,1);
+ await context.setOffline(true);await page.locator('[data-pack-check="object:tent"]').uncheck();
+ assert.match(await equipment.locator('.pack-difference.under').innerText(),/−6.00 lb/);
+ assert.equal(await page.locator('[data-pack-show]').inputValue(),'all');
+ await page.locator('[data-pack-remove="'+entry.id+'"]').click();assert.equal(await page.locator('[data-pack-entry-field="name"]').count(),0);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 });

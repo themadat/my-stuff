@@ -7,7 +7,7 @@
   let directArchive=false;
   const monthlyCosts = new Set();
   const viewSorts=new Map(), viewGroupings=new Map();
-  let currentSpecial='', activeChecklist='';
+  let currentSpecial='', activeChecklist='', packShow='all';
   const checklistNames={volleyball:'Volleyball',golf:'Golf',swim:'Swim',travel:'Travel',roadtrip:'RoadTrip'};
   function specialSort() { return viewSorts.get(currentSpecial) || {key:'',direction:'ascending'}; }
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
@@ -153,6 +153,19 @@
       if (add) openItem("", add);
     });
     ["#inventorySearch", "#inventoryOwnerFilter", "#inventoryRoomFilter", "#inventoryCategoryFilter"].forEach(function (selector) { $(selector).addEventListener("input", renderList); });
+    $('#inventoryList').addEventListener('submit',function (event) {
+      const form=event.target.closest('[data-pack-add]');if (!form) return;event.preventDefault();if (!form.reportValidity()) return;
+      try {
+        const data=new FormData(form),entry={id:crypto.randomUUID(),category:form.dataset.packAdd,level:''};
+        ['name','date','price','weight','notes','subcategory'].forEach(function (key) { entry[key]=data.get(key); });
+        changePack(function (bag) { bag.entries.push(entry);bag.checked.push('entry:'+entry.id); });
+        form.reset();$$('[data-pack-add]').find(function (el) { return el.dataset.packAdd===form.dataset.packAdd; })?.reset();renderList();$$('[data-pack-check]').find(function (el) { return el.dataset.packCheck==='entry:'+entry.id; })?.focus();
+      } catch (error) { App.components.toast(error.message,{kind:'warning'}); }
+    });
+    $('#inventoryList').addEventListener('click',function (event) {
+      const remove=event.target.closest('[data-pack-remove]');if (!remove) return;
+      changePack(function (bag) { bag.entries=bag.entries.filter(function (entry) { return entry.id!==remove.dataset.packRemove; });bag.checked=bag.checked.filter(function (key) { return key!=='entry:'+remove.dataset.packRemove; }); });renderList();$('[data-pack-show]')?.focus();
+    });
     $('#inventoryList').addEventListener('click',function (event) {
       const sort=event.target.closest('[data-special-sort]'); if (sort) { const key=sort.dataset.specialSort, previous=specialSort(); viewSorts.set(currentSpecial,{key:key,direction:previous.key===key && previous.direction==='ascending'?'descending':'ascending'}); renderList(); $$('[data-special-sort]').find(function (el) { return el.dataset.specialSort===key; })?.focus(); return; }
       const cost=event.target.closest('[data-age-cost]'); if (cost) { const id=cost.dataset.ageCost; if (monthlyCosts.has(id)) monthlyCosts.delete(id); else monthlyCosts.add(id); renderList(); $$('[data-age-cost]').find(function (el) { return el.dataset.ageCost===id; })?.focus(); return; }
@@ -162,18 +175,34 @@
       renderList(); $$('#inventoryList [data-table-location-toggle]').find(function (entry) { return entry.dataset.tableLocationToggle===key; })?.focus({preventScroll:true});
     });
     document.addEventListener('change',function (event) {
+      const check=event.target.closest('[data-pack-check]');
+      if (check) { changePack(function (bag) { bag.checked=bag.checked.filter(function (key) { return key!==check.dataset.packCheck; });if (check.checked) bag.checked.push(check.dataset.packCheck); });renderList();$$('[data-pack-check]').find(function (el) { return el.dataset.packCheck===check.dataset.packCheck; })?.focus();return; }
+      const show=event.target.closest('[data-pack-show]');
+      if (show) { packShow=show.value;renderList();$('[data-pack-show]')?.focus();return; }
+      const entryField=event.target.closest('[data-pack-entry-field]');
+      if (entryField) {
+        if (!entryField.reportValidity()) return;
+        try { changePack(function (bag) { const entry=bag.entries.find(function (e) { return e.id===entryField.dataset.packEntry; });if (entry) entry[entryField.dataset.packEntryField]=entryField.value; });renderList();$$('[data-pack-entry-field]').find(function (el) { return el.dataset.packEntry===entryField.dataset.packEntry && el.dataset.packEntryField===entryField.dataset.packEntryField; })?.focus(); }
+        catch (error) { App.components.toast(error.message,{kind:'warning'}); }
+        return;
+      }
       const pack=event.target.closest('[data-pack-property]');
       if (pack) {
         if (!pack.reportValidity()) return;
         const id=pack.dataset.packItem,name=pack.dataset.packProperty,value=pack.value;
-        App.storage.mutate(function (state) {
-          const item=state.inventory.items.find(function (entry) { return entry.id===id; }); if (!item) return;
-          const properties=item.properties.filter(function (p) { return p.name.toLowerCase()!==name.toLowerCase(); });
-          if (value) properties.push({name:name,value:value,unit:name==='Weight'?'oz':''});
-          if (properties.length>40) { App.components.toast('Use up to 40 properties per item.',{kind:'warning'}); return; }
-          item.properties=properties;
-        },{reason:'backpacking-property'});
-        if (!App.storage.saveNow()) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
+        if (pack.dataset.packEntry) {
+          const key={'Weight':'weight','Backpacking Category':'category','Backpacking Subcategory':'subcategory','Weight Level':'level'}[name];
+          try { changePack(function (bag) { const entry=bag.entries.find(function (e) { return e.id===id; });if (entry) entry[key]=value; }); } catch (error) { App.components.toast(error.message,{kind:'warning'});return; }
+        } else {
+          App.storage.mutate(function (state) {
+            const item=state.inventory.items.find(function (entry) { return entry.id===id; }); if (!item) return;
+            const properties=item.properties.filter(function (p) { return p.name.toLowerCase()!==name.toLowerCase(); });
+            if (value) properties.push({name:name,value:value,unit:name==='Weight'?'oz':''});
+            if (properties.length>40) { App.components.toast('Use up to 40 properties per item.',{kind:'warning'}); return; }
+            item.properties=properties;
+          },{reason:'backpacking-property'});
+          if (!App.storage.saveNow()) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
+        }
         renderList(); $$('[data-pack-property]').find(function (el) { return el.dataset.packItem===id && el.dataset.packProperty===name; })?.focus();
       }
 
@@ -995,22 +1024,53 @@
   function packObjectCell(item) {
     const brands=item.properties.filter(function (p) { return p.name.toLowerCase()==='brand'; });
     const piece=item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; });
-    const details=item.properties.filter(function (p) { return !['brand','zone','space','set piece','weight','backpacking category','weight level'].includes(p.name.toLowerCase()); });
+    const details=item.properties.filter(function (p) { return !['brand','zone','space','set piece','weight','backpacking category','weight level','backpacking subcategory'].includes(p.name.toLowerCase()); });
     return '<div class="object-title">'+brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ')+filterButton('name',item.name,item.name)+(piece?'<span class="piece-title">['+esc(piece.value)+']</span>':'')+'<span class="visually-hidden">'+(item.owner==='house'?'House-owned':'Personally owned')+'</span></div><div class="object-details">'+(item.description?filterButton('description',item.description,item.description):'')+details.map(function (p) { return '<span class="object-property">'+filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+m.propertyLabel(p))+(m.measurement(p).imperial?'<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>':'')+'</span>'; }).join(' ')+(item.source?filterButton('source',item.source,'Seller: '+item.source):'')+'<span class="item-tags">'+m.orderTags(item.categories,brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('')+'</span></div>';
   }
+  function packBag() { return inventory().backpacking || {entries:[],checked:[]}; }
+  function changePack(change) {
+    const next=JSON.parse(JSON.stringify(packBag()));change(next);
+    const normalized=m.normalize(Object.assign({},inventory(),{backpacking:next})).backpacking;
+    App.storage.mutate(function (state) { state.inventory.backpacking=normalized; },{reason:'backpacking-bag'});
+    if (!App.storage.saveNow()) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
+  }
+  function packEntryItem(entry) {
+    return {id:entry.id,name:entry.name,owner:'me',description:entry.notes,source:'',categories:[],packEntry:true,properties:[{name:'Weight',value:entry.weight==null?'':String(entry.weight),unit:'oz'},{name:'Backpacking Category',value:entry.category},{name:'Backpacking Subcategory',value:entry.subcategory},{name:'Weight Level',value:entry.level}],obtainedDate:entry.date,price:entry.price};
+  }
+  function packSubcategory(item) { return item.properties.find(function (p) { return p.name.toLowerCase()==='backpacking subcategory'; })?.value || ''; }
+  function packAddForm(category) {
+    return '<details class="pack-add"><summary>Add non-object item</summary><form data-pack-add="'+esc(category)+'"><label>Name<input name="name" required></label><label>Date<input name="date" type="date"></label><label>Price<input name="price" type="number" min="0" step="any"></label><label>Weight · oz<input name="weight" type="number" min="0" step="any"></label><label>Subcategory<input name="subcategory"></label><label class="pack-add-notes">Notes<textarea name="notes" rows="2"></textarea></label><button class="button" type="submit">Add to Bag</button></form></details>';
+  }
   function renderBackpacking(items) {
-    const packed=items.filter(function (item) { return m.packCategory(item)!=='Wear'; });
+    const drafts=$$('[data-pack-add]').map(function (form) { return {category:form.dataset.packAdd,open:form.closest('details').open,values:Array.from(new FormData(form))}; });
+    const bag=packBag(),key=function (item) { return (item.packEntry?'entry:':'object:')+item.id; },checked=function (item) { return bag.checked.includes(key(item)); };
+    const entries=view==='have'?bag.entries.map(packEntryItem):[];
+    const all=inventory().items.filter(function (item) { return Boolean(item.archive)===(view==='previous') && item.categories.includes('Backpacking'); }).concat(entries);
+    const selected=all.filter(checked),packed=selected.filter(function (item) { return m.packCategory(item)!=='Wear'; });
+    const search=$('#inventorySearch').value.trim().toLowerCase();
+    const shown=items.concat(entries.filter(function (item) { return !search || [item.name,item.description,packSubcategory(item)].join(' ').toLowerCase().includes(search); })).filter(function (item) { return packShow==='all' || checked(item); });
+    function attrs(item) { return ' data-pack-item="'+esc(item.id)+'"'+(item.packEntry?' data-pack-entry="'+esc(item.id)+'"':''); }
     function select(item,name,choices) {
       const value=item.properties.find(function (p) { return p.name.toLowerCase()===name.toLowerCase(); })?.value || '';
-      return '<select data-pack-property="'+name+'" data-pack-item="'+esc(item.id)+'" aria-label="'+esc(name+' for '+item.name)+'"><option value="">Unassigned</option>'+choices.map(function (choice) { return '<option'+(choice===value?' selected':'')+'>'+esc(choice)+'</option>'; }).join('')+'</select>';
+      return '<select data-pack-property="'+name+'"'+attrs(item)+' aria-label="'+esc(name+' for '+item.name)+'"><option value="">Unassigned</option>'+choices.map(function (choice) { return '<option'+(choice===value?' selected':'')+'>'+esc(choice)+'</option>'; }).join('')+'</select>';
     }
-    $('#inventoryList').innerHTML='<div class="backpacking-view"><div class="pack-summary" role="status"><h2>Backpacking · Total Pack Weight</h2><strong>'+packWeightLabel(m.packTotal(packed))+'</strong><p>Shown items · Wear excluded; Consumable and Food/Water included. Each inventory copy counts once. Category targets are shown in pounds.</p></div>'+m.packCategories.concat([['Uncategorized',null]]).map(function ([category,target]) {
-      const rows=items.filter(function (item) { return m.packCategory(item)===category; });
-      return '<section class="pack-section"><h3>'+esc(category)+' <span>'+packWeightLabel(m.packTotal(rows))+(target===null?'':' · Target '+target+' lb')+'</span></h3>'+(rows.length?'<div class="inventory-table-wrap"><table class="inventory-table pack-table"><caption class="visually-hidden">'+esc(category)+' backpacking objects with editable weights and labels.</caption><thead><tr><th scope="col">Object and Properties / Notes</th><th scope="col">Weight · oz / lb</th><th scope="col">Category</th><th scope="col">Weight Level</th><th scope="col">Actions</th></tr></thead><tbody>'+rows.map(function (item) {
-        const ounces=m.weightOunces(item),level=item.properties.find(function (p) { return p.name.toLowerCase()==='weight level'; })?.value || '';
-        return '<tr data-item-owner="'+esc(item.owner)+'" data-conveyed="'+(item.obtainedHow==='Conveyed')+'"><td class="pack-object">'+packObjectCell(item)+'</td><td data-label="Weight · oz / lb"><input type="number" min="0" step="any" data-pack-property="Weight" data-pack-item="'+esc(item.id)+'" aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Missing weight':ounces.toFixed(2)+' oz / '+(ounces/16).toFixed(2)+' lb')+'</small></td><td data-label="Category">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'</td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td><td class="inventory-row-actions"><button type="button" class="button small" data-edit-item="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">'+icon('inventoryEdit')+'</button></td></tr>';
-      }).join('')+'</tbody></table></div>':'<p class="pack-empty">No items in this category.</p>')+'</section>';
+    function entryField(item,name,label,type,value) {
+      const attributes=' data-pack-entry-field="'+name+'" data-pack-entry="'+esc(item.id)+'" aria-label="'+esc(label+' for '+item.name)+'"';
+      return '<label class="pack-entry-field"><span>'+label+'</span>'+(type==='textarea'?'<textarea rows="2"'+attributes+'>'+esc(value || '')+'</textarea>':'<input type="'+type+'"'+attributes+(name==='name'?' required':name==='price'?' min="0" step="any"':'')+' value="'+esc(value==null?'':String(value))+'">')+'</label>';
+    }
+    $('#inventoryList').innerHTML='<div class="backpacking-view"><div class="pack-summary" role="status"><h2>Backpacking · Total Bag</h2><strong>'+packWeightLabel(m.packTotal(packed))+'</strong><p>'+selected.length+' items in bag · '+all.length+' available'+(selected.some(function (item) { return m.packCategory(item)==='Wear'; })?' · Wear excluded from bag weight':'')+'</p><label>Show <select data-pack-show aria-label="Show backpacking items"><option value="all"'+(packShow==='all'?' selected':'')+'>All items</option><option value="checked"'+(packShow==='checked'?' selected':'')+'>Checked items</option></select></label></div>'+m.packCategories.concat([['Uncategorized',null]]).map(function ([category,target]) {
+      const categoryBag=selected.filter(function (item) { return m.packCategory(item)===category; }),total=m.packTotal(categoryBag),difference=target===null?null:total.ounces/16-target;
+      const rows=shown.filter(function (item) { return m.packCategory(item)===category; }).sort(function (a,b) { return packSubcategory(a).localeCompare(packSubcategory(b),undefined,{sensitivity:'base',numeric:true}) || m.compareBrand(a,b); });
+      const comparison=target===null?' · No target':' · Target '+target+' lb <span class="pack-difference '+(difference>0?'over':'under')+'">'+(difference>0?'+':difference<0?'−':'±')+Math.abs(difference).toFixed(2)+' lb'+(total.unknown?' (partial)':'')+'</span>';
+      let previousSub=null;
+      return '<section class="pack-section"><h3>'+esc(category)+' <span>'+categoryBag.length+' in bag / '+all.filter(function (item) { return m.packCategory(item)===category; }).length+' available · '+packWeightLabel(total)+comparison+'</span></h3>'+(view==='have'?packAddForm(category):'')+(rows.length?'<div class="inventory-table-wrap"><table class="inventory-table pack-table"><caption class="visually-hidden">'+esc(category)+' backpacking objects with editable weights and labels.</caption><thead><tr><th scope="col">Object and Properties / Notes</th><th scope="col">Weight · oz / lb</th><th scope="col">Category / Subcategory</th><th scope="col">Weight Level</th><th scope="col">Actions</th></tr></thead><tbody>'+rows.map(function (item) {
+        const ounces=m.weightOunces(item),level=item.properties.find(function (p) { return p.name.toLowerCase()==='weight level'; })?.value || '',sub=packSubcategory(item);
+        const heading=previousSub===sub?'':'<tr class="pack-subcategory"><th colspan="5" scope="rowgroup">'+esc(sub || 'No subcategory')+'</th></tr>';previousSub=sub;
+        const object=item.packEntry?'<div class="pack-entry-fields">'+entryField(item,'name','Name','text',item.name)+entryField(item,'date','Date','date',item.obtainedDate)+entryField(item,'price','Price','number',item.price)+entryField(item,'notes','Notes','textarea',item.description)+'</div>':packObjectCell(item);
+        return heading+'<tr data-item-owner="'+esc(item.owner)+'" data-conveyed="'+(item.obtainedHow==='Conveyed')+'"><td class="pack-object"><div class="pack-object-content"><input type="checkbox" data-pack-check="'+esc(key(item))+'" aria-label="'+esc('In bag: '+checklistObjectName(item))+'"'+(checked(item)?' checked':'')+'><div>'+object+'</div></div></td><td data-label="Weight · oz / lb"><input type="number" min="0" step="any" data-pack-property="Weight"'+attrs(item)+' aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Missing weight':ounces.toFixed(2)+' oz / '+(ounces/16).toFixed(2)+' lb')+'</small></td><td data-label="Category / Subcategory">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'<label class="pack-subcategory-field"><span>Subcategory</span><input data-pack-property="Backpacking Subcategory"'+attrs(item)+' aria-label="Subcategory for '+esc(item.name)+'" value="'+esc(sub)+'"></label></td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td><td class="inventory-row-actions">'+(item.packEntry?'<button type="button" class="button small" data-pack-remove="'+esc(item.id)+'" aria-label="Remove '+esc(item.name)+'">Remove</button>':'<button type="button" class="button small" data-edit-item="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">'+icon('inventoryEdit')+'</button>')+'</td></tr>';
+      }).join('')+'</tbody></table></div>':'<p class="pack-empty">'+(packShow==='checked'?'No checked items in this category.':'No items in this category.')+'</p>')+'</section>';
     }).join('')+'</div>';
+    drafts.forEach(function (draft) { const form=$$('[data-pack-add]').find(function (el) { return el.dataset.packAdd===draft.category; });if (form) { form.closest('details').open=draft.open;draft.values.forEach(function ([name,value]) { form.elements.namedItem(name).value=value; }); } });
   }
   function renderList() {
     renderChecklistSettings();

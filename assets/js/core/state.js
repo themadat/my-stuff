@@ -209,8 +209,8 @@
     const normalized = normalize(state), data = { inventory: normalized.inventory, favoriteBrands: normalized.preferences.favoriteBrands.slice().sort(function (a,b) { return a.localeCompare(b); }) };
     data.inventory.items.sort(function (a, b) { return a.id.localeCompare(b.id); });
     if (normalized.notes.text) data.notes = normalized.notes.text;
-    // Schema 7 prevents older clients from discarding synced brand favorites.
-    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 7, data: data };
+    // Schema 8 protects backpacking bags from older clients that do not retain them.
+    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: normalized.inventory.backpacking ? 8 : 7, data: data };
   }
 
   function syncHash(state) { return "data-v3:" + u.fingerprint(syncPayload(state)); }
@@ -227,13 +227,13 @@
       prepared.state.syncFavoritesMissing = true;
       return Object.assign({}, prepared, { legacy: true });
     }
-    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6, 7].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
+    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6, 7, 8].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
     const data = input.data;
     const keys = input.schemaVersion === 5 ? ["notes"] : input.schemaVersion === 6 ? ["notes", "inventory"] : ["notes", "inventory", "favoriteBrands"];
     if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).some(function (key) { return !keys.includes(key); })) throw new Error("The cloud data contains unsupported content.");
     if ("notes" in data && (typeof data.notes !== "string" || data.notes.length > config.controls.maxTextLength)) throw new Error("Cloud Notes are invalid or too large.");
     if (input.schemaVersion >= 6 && !data.inventory) throw new Error("Cloud inventory is missing.");
-    if (input.schemaVersion === 7 && (!Array.isArray(data.favoriteBrands) || data.favoriteBrands.length > 200 || data.favoriteBrands.some(function (name) { return typeof name !== 'string' || !name.trim() || name.length > 300; }))) throw new Error("Cloud brand favorites are invalid.");
+    if (input.schemaVersion >= 7 && (!Array.isArray(data.favoriteBrands) || data.favoriteBrands.length > 200 || data.favoriteBrands.some(function (name) { return typeof name !== 'string' || !name.trim() || name.length > 300; }))) throw new Error("Cloud brand favorites are invalid.");
     const state = normalize({ notes: { text: data.notes || "" }, inventory: data.inventory, preferences: {favoriteBrands: data.favoriteBrands || []} });
     if (input.schemaVersion < 7) state.syncFavoritesMissing = true;
     if (input.schemaVersion === 5) state.syncNotesOnly = true;

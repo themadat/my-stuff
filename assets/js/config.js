@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.98",
-      buildId: "0.0.1.98",
+      version: "0.0.1.99",
+      buildId: "0.0.1.99",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,26 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.99",
+  "date": "2026-10-04",
+  "title": "Backpacking Bag Planning",
+  "summary": "Plan your actual backpacking bag with checkmarks, inline non-object entries, subcategories, counts and target comparisons.",
+  "features": [
+    "Add non-object backpacking entries within each category with name, date, price, weight and notes.",
+    "Mark objects and entries as in the bag; switch between All and Checked items.",
+    "Set free-text subcategories and sort available options within each backpacking category."
+  ],
+  "improvements": [
+    "Checked items drive total bag and category counts and weights, with signed green/red differences against existing category targets.",
+    "Keep Consumable, Wear, Luxury and Uncategorized without weight targets.",
+    "Use a strong yellow text-selection highlight throughout the app.",
+    "Remove the old Backpacking explanatory paragraph."
+  ],
+  "fixes": [
+    "Preserve backpacking bag entries and checkmarks in backup, recovery and protected cloud sync."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.98",
   "date": "2026-10-03",
   "title": "Backpacking Object Table",
