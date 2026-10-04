@@ -2069,11 +2069,17 @@ test('Backpacking view edits labels and weights, persists, and fits mobile', {ti
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>{
   const app=window.LocalApp;
-  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',categories:['Backpacking'],properties:[{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.saveNow();
+  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',description:i===0?'Room for two <campers>':'',source:i===0?'Outdoor shop':'',categories:['Backpacking'],properties:[...(i===0?[{name:'Brand',value:'Trail Co'},{name:'Volume',value:'40',unit:'L'}]:[]),{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.saveNow();
  });
  await page.reload();
  const open=async()=>page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
  await open();
+ const tent=page.locator('.pack-table tr').filter({has:page.locator('[data-edit-item="pack0"]')});
+ assert.match(await tent.locator('.object-title').innerText(),/Trail Co\s+Tent\s+Personally owned/);
+ assert.match(await tent.locator('.object-details').innerText(),/Room for two <campers>.*Volume: 40 L.*Seller: Outdoor shop.*#Backpacking/s);
+ assert.equal(await tent.locator('.object-details campers').count(),0);
+ await tent.locator('[data-edit-item="pack0"]').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ assert.equal(await page.locator('#itemName').inputValue(),'Tent');await page.locator('#saveItemButton').click();
  assert.match(await page.locator('.pack-summary').textContent(),/48.00 oz \/ 3.00 lb.*1 missing/);
  await page.locator('[data-pack-item="pack0"][data-pack-property="Weight Level"]').selectOption('Ultralight');
  assert.equal(await page.locator('.pack-level[data-level="Ultralight"]').count(),1);
@@ -2084,7 +2090,7 @@ test('Backpacking view edits labels and weights, persists, and fits mobile', {ti
  await page.reload();await open();
  assert.equal(await page.locator('[data-pack-item="pack0"][data-pack-property="Weight Level"]').inputValue(),'Ultralight');
  assert.equal(await page.locator('[data-pack-item="pack3"][data-pack-property="Backpacking Category"]').inputValue(),'Luxury');
- for(const width of [390,320]) {await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+ for(const width of [390,320]) {await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.waitForFunction(()=>document.querySelector('[data-pack-item="pack0"][data-pack-property="Backpacking Category"]')?.getBoundingClientRect().width>=100);}
 });
 
 

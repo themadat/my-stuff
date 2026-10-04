@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.97",
-      buildId: "0.0.1.97",
+      version: "0.0.1.98",
+      buildId: "0.0.1.98",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,18 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.98",
+  "date": "2026-10-03",
+  "title": "Backpacking Object Table",
+  "summary": "Backpacking items use the main object table styling while retaining inline weight and label edits.",
+  "features": [],
+  "improvements": [
+    "Show Backpacking brand, object, notes, properties and tags in compact table rows with a separate Edit action.",
+    "Retain inline weight inputs and Category/Weight Level dropdowns with usable mobile columns."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.97",
   "date": "2026-10-03",
   "title": "House Items First in Rooms",
