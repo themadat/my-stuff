@@ -1512,11 +1512,9 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .pack-summary p,.pack-empty { font-size:.85rem; }
 .pack-section h3 { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:baseline; }
 .pack-section h3 span { font-size:.85rem; font-weight:normal; }
-.pack-table th:first-child { width:36%; }
-.pack-table th:nth-child(2) { width:14%; }
-.pack-table th:nth-child(3) { width:30%; }
-.pack-table th:nth-child(4) { width:14%; }
-.pack-table th:last-child { width:6%; }
+.pack-table { table-layout:auto; }
+.pack-table th:first-child { width:100%; }
+.pack-table th:not(:first-child) { width:1%; white-space:nowrap; }
 .pack-table input,.pack-table select { width:100%; min-width:0; box-sizing:border-box; font-size:inherit; padding:.35rem; }
 .pack-table td:not(.pack-object) small { display:block; margin-top:.2rem; }
 .pack-level[data-level=""] select { color:var(--text); background:var(--surface); }
@@ -1564,15 +1562,11 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .pack-subcategory-field > span,.pack-entry-field > span { display:block; font-size:.65rem; color:var(--muted); }
 .pack-add { margin:.5rem 0; }
 .pack-add summary { cursor:pointer; font-size:.8rem; }
-.pack-add form { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; padding:.6rem; border:1px solid var(--line); border-radius:8px; }
+.pack-add form { display:grid; grid-template-columns:minmax(8rem,1.3fr) 8.5rem 4.5rem 4.5rem minmax(6rem,1fr) minmax(8rem,1.5fr) auto; gap:.5rem; padding:.6rem; border:1px solid var(--line); border-radius:8px; }
 .pack-add label { min-width:0; font-size:.75rem; }
 .pack-add input,.pack-add textarea { width:100%; box-sizing:border-box; }
-.pack-add-notes { grid-column:span 2; }
+.pack-add-notes { grid-column:auto; }
 .pack-add button { align-self:end; }
-.pack-entry-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem; }
-.pack-entry-field { min-width:0; }
-.pack-entry-field:first-child,.pack-entry-field:last-child { grid-column:1 / -1; }
-.pack-entry-field textarea { width:100%; box-sizing:border-box; font-size:inherit; }
 .pack-table tr.pack-subcategory th { width:auto; font-size:.75rem; }
 @media(max-width:700px) {
  .pack-add form { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -1590,3 +1584,33 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 @media(max-width:700px) {
  .pack-table td:nth-child(3) { grid-column:1 / -1; }
 }
+
+.pack-table input:not([type="checkbox"]),.pack-table select { height:var(--control-height); }
+.pack-weight { display:flex; align-items:center; gap:.35rem; white-space:nowrap; }
+.pack-weight input { flex:none; width:calc(5ch + 1.25rem); }
+.pack-table .pack-weight small { margin:0; font-size:inherit; }
+.pack-level select { width:calc(12ch + 2.1rem); }
+.pack-classification { min-width:calc(23ch + 3rem); }
+.pack-entry-inline { display:flex; align-items:center; gap:.4rem; }
+.pack-entry-inline .pack-entry-field { min-width:0; flex:1; }
+.pack-entry-inline .pack-entry-field:first-child { flex:.9; }
+.pack-entry-field > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.pack-date input { width:9.5em; }
+.pack-date { white-space:nowrap; }
+.pack-cost input { width:6ch; }
+.pack-add input { height:var(--control-height); min-width:0; font-size:.75rem; }
+@media(max-width:1100px) and (min-width:701px) {
+ .pack-add form { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+@media(max-width:700px) {
+ .pack-table td:nth-child(4) { grid-column:2; grid-row:2; }
+ .pack-table td:nth-child(3) { grid-column:1 / -1; }
+ .pack-table td:nth-child(5),.pack-table td:nth-child(6) { grid-column:auto; }
+ .pack-table td:last-child { grid-column:2; }
+ .pack-classification { min-width:0; }
+ .pack-level select { width:100%; }
+ .pack-add form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .pack-add-notes { grid-column:auto; }
+}
+
+.pack-entry-inline textarea,.pack-add textarea { height:var(--control-height); min-height:var(--control-height); width:100%; box-sizing:border-box; font-size:inherit; padding:.35rem; }

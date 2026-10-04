@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.100",
-      buildId: "0.0.1.100",
+      version: "0.0.1.101",
+      buildId: "0.0.1.101",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,23 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.101",
+  "date": "2026-10-04",
+  "title": "Compact Backpacking Rows",
+  "summary": "Use compact Backpacking rows with date and cost, and regroup items immediately while keeping your place.",
+  "features": [
+    "Show date and obtaining cost for Backpacking objects and editable date/cost for non-object entries."
+  ],
+  "improvements": [
+    "Display pound conversion alongside the ounce input, with consistent control heights.",
+    "Fit Weight and Weight Level columns to their controls to leave space for object names and notes.",
+    "Use compact non-object rows and a horizontal desktop add form, retaining multiline notes."
+  ],
+  "fixes": [
+    "Move category/subcategory assignments immediately while preserving the next clicked field, caret and screen position."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.100",
   "date": "2026-10-04",
   "title": "Fluid Backpacking Classification",

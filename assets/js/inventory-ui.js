@@ -8,7 +8,7 @@
   const monthlyCosts = new Set();
   const viewSorts=new Map(), viewGroupings=new Map();
   let currentSpecial='', activeChecklist='', packShow='all';
-  let packClassificationEdit=false;
+  let packClassificationEdit=false, packPointerDown=false, packRegroupPending=false, packChangedControl=null, packRendering=false;
   const checklistNames={volleyball:'Volleyball',golf:'Golf',swim:'Swim',travel:'Travel',roadtrip:'RoadTrip'};
   function specialSort() { return viewSorts.get(currentSpecial) || {key:'',direction:'ascending'}; }
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
@@ -175,7 +175,18 @@
       if (collapsedTableLocations.has(key)) collapsedTableLocations.delete(key); else collapsedTableLocations.add(key);
       renderList(); $$('#inventoryList [data-table-location-toggle]').find(function (entry) { return entry.dataset.tableLocationToggle===key; })?.focus({preventScroll:true});
     });
-    document.addEventListener('change',function (event) {
+    document.addEventListener('pointerdown',function () { packPointerDown=true; },true);
+    document.addEventListener('pointerup',function () { packPointerDown=false;if (packRegroupPending) requestAnimationFrame(regroupBackpacking); },true);
+    document.addEventListener('pointercancel',function () { packPointerDown=false;if (packRegroupPending) requestAnimationFrame(regroupBackpacking); },true);
+    document.addEventListener('change',function handleInventoryChange(event) {
+      if (packRendering) {
+        const field=event.target,entry=packBag().entries.find(function (item) { return item.id===field.dataset.packEntry; });
+        const key=field.dataset.packEntryField || {'Weight':'weight','Backpacking Category':'category','Backpacking Subcategory':'subcategory','Weight Level':'level'}[field.dataset.packProperty];
+        const item=inventory().items.find(function (item) { return item.id===field.dataset.packItem; });
+        const saved=entry?entry[key]:item?.properties.find(function (p) { return p.name===field.dataset.packProperty; })?.value;
+        if ((field.dataset.packEntryField || field.dataset.packProperty) && String(saved ?? '')!==field.value) queueMicrotask(function () { handleInventoryChange({target:field}); });
+        return;
+      }
       const check=event.target.closest('[data-pack-check]');
       if (check) { changePack(function (bag) { bag.checked=bag.checked.filter(function (key) { return key!==check.dataset.packCheck; });if (check.checked) bag.checked.push(check.dataset.packCheck); });renderList();$$('[data-pack-check]').find(function (el) { return el.dataset.packCheck===check.dataset.packCheck; })?.focus();return; }
       const show=event.target.closest('[data-pack-show]');
@@ -192,7 +203,7 @@
         if (!pack.reportValidity()) return;
         const id=pack.dataset.packItem,name=pack.dataset.packProperty,value=pack.value;
         const classification=['Backpacking Category','Backpacking Subcategory'].includes(name);
-        packClassificationEdit=classification;
+        packClassificationEdit=true;
         try {
           if (pack.dataset.packEntry) {
             const key={'Weight':'weight','Backpacking Category':'category','Backpacking Subcategory':'subcategory','Weight Level':'level'}[name];
@@ -208,7 +219,7 @@
             if (!App.storage.saveNow()) App.components.toast('Browser storage is unavailable. Export a backup before closing this tab.',{kind:'warning'});
           }
         } finally { packClassificationEdit=false; }
-        if (classification) { renderBackpacking([],true);return; }
+        if (classification) { packChangedControl=pack;packRegroupPending=true;if (!packPointerDown) requestAnimationFrame(regroupBackpacking);return; }
         renderList(); $$('[data-pack-property]').find(function (el) { return el.dataset.packItem===id && el.dataset.packProperty===name; })?.focus();
       }
 
@@ -1046,9 +1057,24 @@
   }
   function packSubcategory(item) { return item.properties.find(function (p) { return p.name.toLowerCase()==='backpacking subcategory'; })?.value || ''; }
   function packAddForm(category) {
-    return '<details class="pack-add"><summary>Add non-object item</summary><form data-pack-add="'+esc(category)+'"><label>Name<input name="name" required></label><label>Date<input name="date" type="date"></label><label>Price<input name="price" type="number" min="0" step="any"></label><label>Weight · oz<input name="weight" type="number" min="0" step="any"></label><label>Subcategory<input name="subcategory"></label><label class="pack-add-notes">Notes<textarea name="notes" rows="2"></textarea></label><button class="button" type="submit">Add to Bag</button></form></details>';
+    return '<details class="pack-add"><summary>Add non-object item</summary><form data-pack-add="'+esc(category)+'"><label>Name<input name="name" required></label><label>Date<input name="date" type="date"></label><label>Price<input name="price" type="number" min="0" step="any"></label><label>Weight · oz<input name="weight" type="number" min="0" step="any"></label><label>Subcategory<input name="subcategory"></label><label class="pack-add-notes">Notes<textarea name="notes" rows="1"></textarea></label><button class="button" type="submit">Add to Bag</button></form></details>';
   }
-  function renderBackpacking(items,summaryOnly) {
+  // Wait for the next click/keyboard focus, then keep that field at the same screen position.
+  function regroupBackpacking() {
+    if (!packRegroupPending || packPointerDown) return;packRegroupPending=false;
+    if (currentSpecial!=='backpacking' || !$('.backpacking-view')) return;
+    const active=document.activeElement,changed=packChangedControl,addForm=active?.closest('[data-pack-add]');
+    const descriptor=addForm?{add:addForm.dataset.packAdd,name:active.name}:active?.matches('[data-pack-property],[data-pack-entry-field],[data-pack-check]') ? {item:active.dataset.packItem,property:active.dataset.packProperty,entry:active.dataset.packEntry,field:active.dataset.packEntryField,check:active.dataset.packCheck} : null;
+    const top=active?.getBoundingClientRect().top,scroll=window.scrollY,start=active?.selectionStart,end=active?.selectionEnd;
+    renderList();
+    const target=descriptor?.add?$$('[data-pack-add]').find(function (form) { return form.dataset.packAdd===descriptor.add; })?.elements.namedItem(descriptor.name):descriptor?$$('[data-pack-property],[data-pack-entry-field],[data-pack-check]').find(function (el) { return el.dataset.packItem===descriptor.item && el.dataset.packProperty===descriptor.property && el.dataset.packEntry===descriptor.entry && el.dataset.packEntryField===descriptor.field && el.dataset.packCheck===descriptor.check; }):active?.isConnected?active:null;
+    if (target) {
+      target.focus({preventScroll:true});if (typeof start==='number' && target.setSelectionRange) target.setSelectionRange(start,end);
+      window.scrollTo({top:active!==changed?scroll+target.getBoundingClientRect().top-top:scroll,behavior:'instant'});
+    } else window.scrollTo({top:scroll,behavior:'instant'});
+    packChangedControl=null;
+  }
+  function renderBackpacking(items) {
     const drafts=$$('[data-pack-add]').map(function (form) { return {category:form.dataset.packAdd,open:form.closest('details').open,values:Array.from(new FormData(form))}; });
     const bag=packBag(),key=function (item) { return (item.packEntry?'entry:':'object:')+item.id; },checked=function (item) { return bag.checked.includes(key(item)); };
     const entries=view==='have'?bag.entries.map(packEntryItem):[];
@@ -1063,28 +1089,22 @@
     }
     function entryField(item,name,label,type,value) {
       const attributes=' data-pack-entry-field="'+name+'" data-pack-entry="'+esc(item.id)+'" aria-label="'+esc(label+' for '+item.name)+'"';
-      return '<label class="pack-entry-field"><span>'+label+'</span>'+(type==='textarea'?'<textarea rows="2"'+attributes+'>'+esc(value || '')+'</textarea>':'<input type="'+type+'"'+attributes+(name==='name'?' required':name==='price'?' min="0" step="any"':'')+' value="'+esc(value==null?'':String(value))+'">')+'</label>';
+      return '<label class="pack-entry-field"><span>'+label+'</span>'+(type==='textarea'?'<textarea rows="1" placeholder="'+label+'"'+attributes+'>'+esc(value || '')+'</textarea>':'<input type="'+type+'"'+attributes+(name==='name'?' required':name==='price'?' min="0" step="any"':'')+' placeholder="'+label+'" value="'+esc(value==null?'':String(value))+'">')+'</label>';
     }
-    const targetRoot=summaryOnly?document.createElement('div'):$('#inventoryList');
-    targetRoot.innerHTML='<div class="backpacking-view"><div class="pack-summary" role="status"><h2>Backpacking · Total Bag</h2><strong>'+packWeightLabel(m.packTotal(packed))+'</strong><p>'+selected.length+' items in bag · '+all.length+' available'+(selected.some(function (item) { return m.packCategory(item)==='Wear'; })?' · Wear excluded from bag weight':'')+'</p><label>Show <select data-pack-show aria-label="Show backpacking items"><option value="all"'+(packShow==='all'?' selected':'')+'>All items</option><option value="checked"'+(packShow==='checked'?' selected':'')+'>Checked items</option></select></label></div>'+m.packCategories.concat([['Uncategorized',null]]).map(function ([category,target]) {
+    const targetRoot=$('#inventoryList');
+    packRendering=true;
+    try { targetRoot.innerHTML='<div class="backpacking-view"><div class="pack-summary" role="status"><h2>Backpacking · Total Bag</h2><strong>'+packWeightLabel(m.packTotal(packed))+'</strong><p>'+selected.length+' items in bag · '+all.length+' available'+(selected.some(function (item) { return m.packCategory(item)==='Wear'; })?' · Wear excluded from bag weight':'')+'</p><label>Show <select data-pack-show aria-label="Show backpacking items"><option value="all"'+(packShow==='all'?' selected':'')+'>All items</option><option value="checked"'+(packShow==='checked'?' selected':'')+'>Checked items</option></select></label></div>'+m.packCategories.concat([['Uncategorized',null]]).map(function ([category,target]) {
       const categoryBag=selected.filter(function (item) { return m.packCategory(item)===category; }),total=m.packTotal(categoryBag),difference=target===null?null:total.ounces/16-target;
       const rows=shown.filter(function (item) { return m.packCategory(item)===category; }).sort(function (a,b) { return packSubcategory(a).localeCompare(packSubcategory(b),undefined,{sensitivity:'base',numeric:true}) || m.compareBrand(a,b); });
       const comparison=target===null?' · No target':' · Target '+target+' lb <span class="pack-difference '+(difference>0?'over':'under')+'">'+(difference>0?'+':difference<0?'−':'±')+Math.abs(difference).toFixed(2)+' lb'+(total.unknown?' (partial)':'')+'</span>';
       let previousSub=null;
-      return '<section class="pack-section"><h3>'+esc(category)+' <span>'+categoryBag.length+' in bag / '+all.filter(function (item) { return m.packCategory(item)===category; }).length+' available · '+packWeightLabel(total)+comparison+'</span></h3>'+(view==='have'?packAddForm(category):'')+(rows.length?'<div class="inventory-table-wrap"><table class="inventory-table pack-table"><caption class="visually-hidden">'+esc(category)+' backpacking objects with editable weights and labels.</caption><thead><tr><th scope="col">Object and Properties / Notes</th><th scope="col">Weight · oz / lb</th><th scope="col">Category / Subcategory</th><th scope="col">Weight Level</th><th scope="col">Actions</th></tr></thead><tbody>'+rows.map(function (item) {
+      return '<section class="pack-section"><h3>'+esc(category)+' <span>'+categoryBag.length+' in bag / '+all.filter(function (item) { return m.packCategory(item)===category; }).length+' available · '+packWeightLabel(total)+comparison+'</span></h3>'+(view==='have'?packAddForm(category):'')+(rows.length?'<div class="inventory-table-wrap"><table class="inventory-table pack-table"><caption class="visually-hidden">'+esc(category)+' backpacking objects with editable weights and labels.</caption><thead><tr><th scope="col">Object and Properties / Notes</th><th scope="col">Weight · oz</th><th scope="col">Category / Subcategory</th><th scope="col">Weight Level</th><th scope="col">Date</th><th scope="col">Cost</th><th scope="col">Actions</th></tr></thead><tbody>'+rows.map(function (item) {
         const ounces=m.weightOunces(item),level=item.properties.find(function (p) { return p.name.toLowerCase()==='weight level'; })?.value || '',sub=packSubcategory(item);
-        const heading=previousSub===sub?'':'<tr class="pack-subcategory"><th colspan="5" scope="rowgroup">'+esc(sub || 'No subcategory')+'</th></tr>';previousSub=sub;
-        const object=item.packEntry?'<div class="pack-entry-fields">'+entryField(item,'name','Name','text',item.name)+entryField(item,'date','Date','date',item.obtainedDate)+entryField(item,'price','Price','number',item.price)+entryField(item,'notes','Notes','textarea',item.description)+'</div>':packObjectCell(item);
-        return heading+'<tr data-item-owner="'+esc(item.owner)+'" data-conveyed="'+(item.obtainedHow==='Conveyed')+'"><td class="pack-object"><div class="pack-object-content"><input type="checkbox" data-pack-check="'+esc(key(item))+'" aria-label="'+esc('In bag: '+checklistObjectName(item))+'"'+(checked(item)?' checked':'')+'><div>'+object+'</div></div></td><td data-label="Weight · oz / lb"><input type="number" min="0" step="any" data-pack-property="Weight"'+attrs(item)+' aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Missing weight':ounces.toFixed(2)+' oz / '+(ounces/16).toFixed(2)+' lb')+'</small></td><td data-label="Category / Subcategory"><div class="pack-classification">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'<label class="pack-subcategory-field"><span>Subcategory</span><input data-pack-property="Backpacking Subcategory"'+attrs(item)+' aria-label="Subcategory for '+esc(item.name)+'" placeholder="Subcategory" value="'+esc(sub)+'"></label></div></td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td><td class="inventory-row-actions">'+(item.packEntry?'<button type="button" class="button small" data-pack-remove="'+esc(item.id)+'" aria-label="Remove '+esc(item.name)+'">Remove</button>':'<button type="button" class="button small" data-edit-item="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">'+icon('inventoryEdit')+'</button>')+'</td></tr>';
+        const heading=previousSub===sub?'':'<tr class="pack-subcategory"><th colspan="7" scope="rowgroup">'+esc(sub || 'No subcategory')+'</th></tr>';previousSub=sub;
+        const object=item.packEntry?'<div class="pack-entry-inline">'+entryField(item,'name','Name','text',item.name)+entryField(item,'notes','Notes','textarea',item.description)+'</div>':packObjectCell(item);
+        return heading+'<tr data-item-owner="'+esc(item.owner)+'" data-conveyed="'+(item.obtainedHow==='Conveyed')+'"><td class="pack-object"><div class="pack-object-content"><input type="checkbox" data-pack-check="'+esc(key(item))+'" aria-label="'+esc('In bag: '+checklistObjectName(item))+'"'+(checked(item)?' checked':'')+'><div>'+object+'</div></div></td><td data-label="Weight · oz"><div class="pack-weight"><input type="number" min="0" step="any" data-pack-property="Weight"'+attrs(item)+' aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Unknown lb':(ounces/16).toFixed(2)+' lb')+'</small></div></td><td data-label="Category / Subcategory"><div class="pack-classification">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'<label class="pack-subcategory-field"><span>Subcategory</span><input data-pack-property="Backpacking Subcategory"'+attrs(item)+' aria-label="Subcategory for '+esc(item.name)+'" placeholder="Subcategory" value="'+esc(sub)+'"></label></div></td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td><td class="pack-date" data-label="Date">'+(item.packEntry?entryField(item,'date','Date','date',item.obtainedDate):esc(dateLabel(item.obtainedDate)))+'</td><td class="pack-cost" data-label="Cost">'+(item.packEntry?entryField(item,'price','Cost','number',item.price):esc(money(item.price,true)))+'</td><td class="inventory-row-actions">'+(item.packEntry?'<button type="button" class="button small" data-pack-remove="'+esc(item.id)+'" aria-label="Remove '+esc(item.name)+'">Remove</button>':'<button type="button" class="button small" data-edit-item="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">'+icon('inventoryEdit')+'</button>')+'</td></tr>';
       }).join('')+'</tbody></table></div>':'<p class="pack-empty">'+(packShow==='checked'?'No checked items in this category.':'No items in this category.')+'</p>')+'</section>';
-    }).join('')+'</div>';
-    if (summaryOnly) {
-      const position={left:window.scrollX,top:window.scrollY,behavior:"instant"};
-      ['strong','p'].forEach(function (tag) { $('.pack-summary > '+tag).innerHTML=$('.pack-summary > '+tag,targetRoot).innerHTML; });
-      const headings=$$('.pack-section > h3',targetRoot);$$('.pack-section > h3').forEach(function (heading,index) { heading.innerHTML=headings[index].innerHTML; });
-      window.scrollTo(position);
-      return;
-    }
+    }).join('')+'</div>'; } finally { packRendering=false; }
     drafts.forEach(function (draft) { const form=$$('[data-pack-add]').find(function (el) { return el.dataset.packAdd===draft.category; });if (form) { form.closest('details').open=draft.open;draft.values.forEach(function ([name,value]) { form.elements.namedItem(name).value=value; }); } });
   }
   function renderList() {

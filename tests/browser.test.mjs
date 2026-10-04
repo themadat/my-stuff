@@ -2072,7 +2072,7 @@ test('Backpacking view edits labels and weights, persists, and fits mobile', {ti
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>{
   const app=window.LocalApp;
-  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',description:i===0?'Room for two <campers>':'',source:i===0?'Outdoor shop':'',categories:['Backpacking'],properties:[...(i===0?[{name:'Brand',value:'Trail Co'},{name:'Volume',value:'40',unit:'L'}]:[]),{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.getState().inventory.backpacking={entries:[],checked:['object:pack0','object:pack1','object:pack2','object:pack3']};app.storage.saveNow();
+  app.storage.getState().inventory.items=[['Tent','Equipment','32'],['Shirt','Wear','8'],['Water','Food/Water','16'],['Mystery','','']].map(([name,category,weight],i)=>app.inventoryModel.normalizeItem({id:'pack'+i,name,owner:'me',...(i===0?{obtainedDate:'2026-01-01',price:79}:{}),description:i===0?'Room for two <campers>':'',source:i===0?'Outdoor shop':'',categories:['Backpacking'],properties:[...(i===0?[{name:'Brand',value:'Trail Co'},{name:'Volume',value:'40',unit:'L'}]:[]),{name:'Weight',value:weight,unit:'oz'},{name:'Backpacking Category',value:category}]}));app.storage.getState().inventory.backpacking={entries:[],checked:['object:pack0','object:pack1','object:pack2','object:pack3']};app.storage.saveNow();
  });
  await page.reload();
  const open=async()=>page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
@@ -2083,6 +2083,9 @@ test('Backpacking view edits labels and weights, persists, and fits mobile', {ti
  assert.equal(await tent.locator('.object-details campers').count(),0);
  await tent.locator('[data-edit-item="pack0"]').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
  assert.equal(await page.locator('#itemName').inputValue(),'Tent');await page.locator('#saveItemButton').click();
+ const weightLayout=await tent.locator('.pack-weight').evaluate(el=>{const input=el.querySelector('input'),conversion=el.querySelector('small'),level=el.closest('tr').querySelector('.pack-level select');return {inputHeight:input.getBoundingClientRect().height,levelHeight:level.getBoundingClientRect().height,inputY:input.getBoundingClientRect().top+input.getBoundingClientRect().height/2,conversionY:conversion.getBoundingClientRect().top+conversion.getBoundingClientRect().height/2,text:conversion.textContent};});
+ assert.equal(weightLayout.inputHeight,weightLayout.levelHeight);assert.ok(Math.abs(weightLayout.inputY-weightLayout.conversionY)<2);assert.equal(weightLayout.text,'2.00 lb');
+ assert.match(await tent.locator('.pack-date').innerText(),/2026/);assert.match(await tent.locator('.pack-cost').innerText(),/79/);
  assert.match(await page.locator('.pack-summary').textContent(),/48.00 oz \/ 3.00 lb.*1 missing/);
  await page.locator('[data-pack-item="pack0"][data-pack-property="Weight Level"]').selectOption('Ultralight');
  assert.equal(await page.locator('.pack-level[data-level="Ultralight"]').count(),1);
@@ -2308,6 +2311,7 @@ for(const width of [1440,390,320]) test('Backpacking actual bag entries targets 
  await form.locator('button[type="submit"]').click();
  assert.match(await page.locator('.pack-summary').innerText(),/118.00 oz.*3 items in bag · 4 available/s);
  assert.equal(await page.locator('.pack-object safe').count(),0);
+ if(width===1440) {const height=await page.locator('[data-pack-entry-field="name"]').evaluate(el=>el.closest('tr').getBoundingClientRect().height);assert.ok(height<90,'Non-object entries stay as compact as object rows');}
  const entry=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.backpacking.entries[0]);assert.equal(entry.price,3.25);assert.equal(entry.date,'2026-10-04');
  assert.deepEqual(await luxury.locator('.pack-subcategory th').allTextContents(),['Snacks','Towels']);
  await page.locator('[data-pack-show]').selectOption('checked');assert.equal(await page.locator('[data-pack-check="object:towel2"]').count(),0);
@@ -2330,19 +2334,27 @@ for(const width of [1440,390,320]) test('Backpacking classification edits keep t
  await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
  const first=page.locator('[data-pack-item="focus5"][data-pack-property="Backpacking Subcategory"]'),next=page.locator('[data-pack-item="focus6"][data-pack-property="Backpacking Subcategory"]');
  await first.fill('ZZZ');await next.scrollIntoViewIfNeeded();
- const before=await page.evaluate(()=>{window.nextPackField=document.querySelector('[data-pack-item="focus6"][data-pack-property="Backpacking Subcategory"]');return window.scrollY;});
+ const before=await page.evaluate(()=>{window.nextPackField=document.querySelector('[data-pack-item="focus6"][data-pack-property="Backpacking Subcategory"]');return window.nextPackField.getBoundingClientRect().top;});
  await next.click();
- assert.equal(await page.evaluate(()=>document.activeElement===window.nextPackField),true);
- assert.ok(Math.abs(await page.evaluate(()=>window.scrollY)-before)<3);
+ await page.waitForFunction(()=>document.activeElement.dataset.packItem==='focus6' && document.querySelector('.pack-subcategory th')?.textContent);
+ await page.waitForFunction(()=>Array.from(document.querySelectorAll('.pack-subcategory th')).some(el=>el.textContent==='ZZZ'));
+ assert.equal(await page.evaluate(()=>document.activeElement.dataset.packItem),'focus6');
+ assert.ok(Math.abs(await next.evaluate(el=>el.getBoundingClientRect().top)-before)<3);
  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(i=>i.id==='focus5').properties.find(p=>p.name==='Backpacking Subcategory').value),'ZZZ');
  const category=page.locator('[data-pack-item="focus6"][data-pack-property="Backpacking Category"]');
- await category.scrollIntoViewIfNeeded();const categoryBefore=await page.evaluate(()=>window.scrollY);
- await category.selectOption('Equipment');assert.ok(Math.abs(await page.evaluate(()=>window.scrollY)-categoryBefore)<3);
+ await category.scrollIntoViewIfNeeded();await category.focus();const categoryBefore=await page.evaluate(()=>window.scrollY);
+ await category.selectOption('Equipment');await page.waitForFunction(()=>Array.from(document.querySelectorAll('.pack-section')).find(el=>el.querySelector('h3')?.textContent.startsWith('Equipment'))?.querySelector('[data-pack-item="focus6"]'));assert.ok(Math.abs(await page.evaluate(()=>window.scrollY)-categoryBefore)<3);
  await page.locator('[data-pack-item="focus7"][data-pack-property="Backpacking Subcategory"]').click();
  assert.equal(await page.evaluate(()=>document.activeElement.dataset.packItem),'focus7');
  const alignment=await category.evaluate(el=>({category:el.getBoundingClientRect().top,sub:el.parentElement.querySelector('input').getBoundingClientRect().top,width:el.getBoundingClientRect().width}));
  assert.ok(Math.abs(alignment.category-alignment.sub)<3,JSON.stringify(alignment));assert.ok(alignment.width<180);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- await page.locator('[data-pack-show]').selectOption('checked');await page.locator('[data-pack-show]').selectOption('all');
  const moved=page.locator('.pack-section').filter({has:page.locator('h3').filter({hasText:/^Equipment/})});assert.equal(await moved.locator('[data-pack-item="focus6"][data-pack-property="Backpacking Category"]').count(),1);
+ const luxury=page.locator('.pack-section').filter({has:page.locator('h3').filter({hasText:/^Luxury/})});await luxury.locator('summary').click();
+ const edited=page.locator('[data-pack-item="focus7"][data-pack-property="Backpacking Subcategory"]');await edited.fill('AAA');
+ const name=luxury.locator('[data-pack-add] [name="name"]');await name.scrollIntoViewIfNeeded();const nameTop=await name.evaluate(el=>el.getBoundingClientRect().top);await name.click();
+ await page.waitForFunction(()=>Array.from(document.querySelectorAll('.pack-subcategory th')).some(el=>el.textContent==='AAA'));
+ assert.equal(await name.evaluate(el=>document.activeElement===el),true);assert.ok(Math.abs(await name.evaluate(el=>el.getBoundingClientRect().top)-nameTop)<3);
+ await name.fill('Draft after moving');assert.equal(await name.inputValue(),'Draft after moving');
+
 });
