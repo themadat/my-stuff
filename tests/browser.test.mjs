@@ -2313,7 +2313,8 @@ for(const width of [1440,390,320]) test('Backpacking actual bag entries targets 
  await page.locator('[data-pack-show]').selectOption('checked');assert.equal(await page.locator('[data-pack-check="object:towel2"]').count(),0);
  const notes=page.locator('[data-pack-entry-field="notes"]');await notes.fill('New notes');await notes.press('Tab');
  const sub=page.locator('[data-pack-item="towel1"][data-pack-property="Backpacking Subcategory"]');await sub.fill('Bath');await sub.press('Tab');
- assert.deepEqual(await luxury.locator('.pack-subcategory th').allTextContents(),['Bath','Snacks']);
+ await page.locator('[data-pack-show]').selectOption('all');
+ assert.deepEqual(await luxury.locator('.pack-subcategory th').allTextContents(),['Bath','Snacks','Towels']);
  await page.reload();await open();assert.equal(await page.locator('[data-pack-check="object:tent"]').isChecked(),true);assert.equal(await page.locator('[data-pack-entry-field="notes"]').inputValue(),'New notes');
  const data=await page.evaluate(()=>window.LocalApp.storage.getState().inventory);assert.equal(data.items.length,3);assert.equal(data.backpacking.entries.length,1);
  await context.setOffline(true);await page.locator('[data-pack-check="object:tent"]').uncheck();
@@ -2321,4 +2322,27 @@ for(const width of [1440,390,320]) test('Backpacking actual bag entries targets 
  assert.equal(await page.locator('[data-pack-show]').inputValue(),'all');
  await page.locator('[data-pack-remove="'+entry.id+'"]').click();assert.equal(await page.locator('[data-pack-entry-field="name"]').count(),0);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+});
+
+for(const width of [1440,390,320]) test('Backpacking classification edits keep the clicked field and current position at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:900}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{const a=window.LocalApp;a.storage.mutate(state=>{state.inventory.items=Array.from({length:12},(_,i)=>a.inventoryModel.normalizeItem({id:'focus'+i,name:'Option '+String(i).padStart(2,'0'),owner:'me',categories:['Backpacking'],properties:[{name:'Backpacking Category',value:'Luxury'},{name:'Backpacking Subcategory',value:'Towels'}]}));},{reason:'inventory-save'});});
+ await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ const first=page.locator('[data-pack-item="focus5"][data-pack-property="Backpacking Subcategory"]'),next=page.locator('[data-pack-item="focus6"][data-pack-property="Backpacking Subcategory"]');
+ await first.fill('ZZZ');await next.scrollIntoViewIfNeeded();
+ const before=await page.evaluate(()=>{window.nextPackField=document.querySelector('[data-pack-item="focus6"][data-pack-property="Backpacking Subcategory"]');return window.scrollY;});
+ await next.click();
+ assert.equal(await page.evaluate(()=>document.activeElement===window.nextPackField),true);
+ assert.ok(Math.abs(await page.evaluate(()=>window.scrollY)-before)<3);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(i=>i.id==='focus5').properties.find(p=>p.name==='Backpacking Subcategory').value),'ZZZ');
+ const category=page.locator('[data-pack-item="focus6"][data-pack-property="Backpacking Category"]');
+ await category.scrollIntoViewIfNeeded();const categoryBefore=await page.evaluate(()=>window.scrollY);
+ await category.selectOption('Equipment');assert.ok(Math.abs(await page.evaluate(()=>window.scrollY)-categoryBefore)<3);
+ await page.locator('[data-pack-item="focus7"][data-pack-property="Backpacking Subcategory"]').click();
+ assert.equal(await page.evaluate(()=>document.activeElement.dataset.packItem),'focus7');
+ const alignment=await category.evaluate(el=>({category:el.getBoundingClientRect().top,sub:el.parentElement.querySelector('input').getBoundingClientRect().top,width:el.getBoundingClientRect().width}));
+ assert.ok(Math.abs(alignment.category-alignment.sub)<3,JSON.stringify(alignment));assert.ok(alignment.width<180);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.locator('[data-pack-show]').selectOption('checked');await page.locator('[data-pack-show]').selectOption('all');
+ const moved=page.locator('.pack-section').filter({has:page.locator('h3').filter({hasText:/^Equipment/})});assert.equal(await moved.locator('[data-pack-item="focus6"][data-pack-property="Backpacking Category"]').count(),1);
 });

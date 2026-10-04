@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.99",
-      buildId: "0.0.1.99",
+      version: "0.0.1.100",
+      buildId: "0.0.1.100",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.100",
+  "date": "2026-10-04",
+  "title": "Fluid Backpacking Classification",
+  "summary": "Edit Backpacking categories and subcategories side by side without losing your place.",
+  "features": [],
+  "improvements": [
+    "Keep Category and Subcategory on one line with a category control sized for its longest option."
+  ],
+  "fixes": [
+    "Save classification changes without replacing rows, stealing focus or scrolling to the edited item. Update counts and totals immediately; regroup rows when the view refreshes."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.99",
   "date": "2026-10-04",
   "title": "Backpacking Bag Planning",

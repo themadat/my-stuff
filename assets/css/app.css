@@ -1512,10 +1512,10 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .pack-summary p,.pack-empty { font-size:.85rem; }
 .pack-section h3 { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:baseline; }
 .pack-section h3 span { font-size:.85rem; font-weight:normal; }
-.pack-table th:first-child { width:44%; }
-.pack-table th:nth-child(2) { width:18%; }
-.pack-table th:nth-child(3) { width:17%; }
-.pack-table th:nth-child(4) { width:15%; }
+.pack-table th:first-child { width:36%; }
+.pack-table th:nth-child(2) { width:14%; }
+.pack-table th:nth-child(3) { width:30%; }
+.pack-table th:nth-child(4) { width:14%; }
 .pack-table th:last-child { width:6%; }
 .pack-table input,.pack-table select { width:100%; min-width:0; box-sizing:border-box; font-size:inherit; padding:.35rem; }
 .pack-table td:not(.pack-object) small { display:block; margin-top:.2rem; }
@@ -1580,4 +1580,13 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
  .pack-table tr.pack-subcategory { display:block; padding:.45rem .85rem; }
  .pack-table tr.pack-subcategory th { display:block; padding:0; }
  .pack-table td.inventory-row-actions { white-space:normal; }
+}
+
+.pack-classification { display:flex; align-items:center; gap:.4rem; }
+.pack-classification select,.pack-classification input { height:var(--control-height); margin:0; }
+.pack-classification > select { flex:none; width:calc(13ch + 2.5rem); }
+.pack-classification .pack-subcategory-field { flex:1; min-width:0; margin:0; }
+.pack-classification .pack-subcategory-field > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+@media(max-width:700px) {
+ .pack-table td:nth-child(3) { grid-column:1 / -1; }
 }
