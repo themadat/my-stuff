@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.102",
-      buildId: "0.0.1.102",
+      version: "0.0.1.103",
+      buildId: "0.0.1.103",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,20 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.103",
+  "date": "2026-10-05",
+  "title": "Compact Room Navigation",
+  "summary": "Make the active room filter visible and focus room search with a semicolon.",
+  "features": [
+    "Press ; outside text fields to focus room search."
+  ],
+  "improvements": [
+    "Outline the filtered location in white.",
+    "Keep Around the House and its percentage on one bottom-aligned line with less space before search."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.102",
   "date": "2026-10-05",
   "title": "Find Rooms Quickly",
@@ -892,6 +906,7 @@
       { id: "shortcuts", title: "Keyboard Shortcuts", section: "Accessibility", keywords: "keyboard shortcuts focus", html: "<p>Shift-Control-Option-R activates Update and force refresh. Control-Shift-Option-A opens Add, B opens Bulk, and C clears applicable filters. Press <kbd>H</kbd> for Have, <kbd>W</kbd> for Want, <kbd>R</kbd> for Research, <kbd>D</kbd> for Had, and <kbd>/</kbd> for search, <kbd>N</kbd> for Notes, <kbd>,</kbd> for Settings, <kbd>V</kbd> for What’s New, and <kbd>T</kbd> to change theme.</p>" }
     ],
     shortcuts: [
+      { group: "Inventory", key: ";", label: "Focus Room Search" },
       { group: "Application", key: "Control+Shift+Option+R", label: "Update and Force Refresh" },
       { key: "H / W / R / D", label: "Stuff I Have / Want / Research / Had", group: "Inventory" },
       { group: "Application", key: "/", label: "Focus Search" },

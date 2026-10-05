@@ -1615,5 +1615,10 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 
 .pack-entry-inline textarea,.pack-add textarea { height:var(--control-height); min-height:var(--control-height); width:100%; box-sizing:border-box; font-size:inherit; padding:.35rem; }
 
-.room-search { width:100%; box-sizing:border-box; min-width:0; height:2rem; margin:.3rem 0 .5rem; padding:.3rem .45rem; border:1px solid var(--line); border-radius:6px; background:var(--surface); font-size:.75rem; }
+.room-search { width:100%; box-sizing:border-box; min-width:0; height:2rem; margin:.1rem 0 .35rem; padding:.3rem .45rem; border:1px solid var(--line); border-radius:6px; background:var(--surface); font-size:.75rem; }
 .pack-object-location { display:block; margin-top:.15rem; color:var(--muted); font-size:.7rem; }
+
+.location-overview-heading { display:flex; align-items:flex-end; gap:.35rem; }
+#roomOverview .location-overview-heading h2 { position:static; flex:1; margin:0; padding:.05rem 0; font-size:.75rem; }
+#locationReviewTotal { flex:none; text-align:right; white-space:nowrap; line-height:1.2; padding-bottom:.05rem; }
+.location-jump[data-selected="true"] { outline:1px solid #fff; outline-offset:-1px; border-radius:4px; }
