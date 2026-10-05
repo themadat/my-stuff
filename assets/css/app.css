@@ -1614,3 +1614,6 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 }
 
 .pack-entry-inline textarea,.pack-add textarea { height:var(--control-height); min-height:var(--control-height); width:100%; box-sizing:border-box; font-size:inherit; padding:.35rem; }
+
+.room-search { width:100%; box-sizing:border-box; min-width:0; height:2rem; margin:.3rem 0 .5rem; padding:.3rem .45rem; border:1px solid var(--line); border-radius:6px; background:var(--surface); font-size:.75rem; }
+.pack-object-location { display:block; margin-top:.15rem; color:var(--muted); font-size:.7rem; }

@@ -2358,3 +2358,22 @@ for(const width of [1440,390,320]) test('Backpacking classification edits keep t
  await name.fill('Draft after moving');assert.equal(await name.inputValue(),'Draft after moving');
 
 });
+
+for(const width of [1440,390,320]) test('Around the House room search and Backpacking object locations at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{const a=window.LocalApp;a.storage.mutate(state=>{state.inventory.items=[a.inventoryModel.normalizeItem({id:'room-bag',name:'Bag',owner:'me',room:'Office',categories:['Backpacking'],properties:[{name:'Space',value:'Desk'}]}),a.inventoryModel.normalizeItem({id:'room-loose',name:'Loose item',owner:'me',categories:['Backpacking']})];},{reason:'inventory-save'});});
+ const toggle=page.locator('#roomStats [data-location-toggle="[\\"Upstairs\\"]"]');await toggle.click();
+ const search=page.locator('#roomSearch');await search.fill('ofFiCe');
+ assert.equal(await page.locator('#roomStats .location-jump').filter({hasText:/^Office$/}).isVisible(),true);
+ assert.equal(await page.locator('#roomStats .location-jump').filter({hasText:/^Kitchen$/}).count(),0);
+ assert.equal(await page.locator('#inventoryList [data-edit-item]').count(),2);
+ await search.press('Escape');assert.equal(await toggle.getAttribute('aria-expanded'),'false');
+ await search.fill('no such room');assert.match(await page.locator('#roomStats').innerText(),/No matching rooms/);
+ await search.fill('Office');await search.press('Enter');
+ assert.match(await page.evaluate(()=>document.activeElement.id),/inventory-location-/);
+ await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ const bag=page.locator('.pack-table tr').filter({has:page.locator('[data-edit-item="room-bag"]')});
+ assert.equal(await bag.locator('.pack-object-location').innerText(),'Location: Upstairs › Office › Desk');
+ const loose=page.locator('.pack-table tr').filter({has:page.locator('[data-edit-item="room-loose"]')});assert.equal(await loose.locator('.pack-object-location').innerText(),'Location: Unknown Location');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+});

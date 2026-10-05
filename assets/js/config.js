@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.101",
-      buildId: "0.0.1.101",
+      version: "0.0.1.102",
+      buildId: "0.0.1.102",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.102",
+  "date": "2026-10-05",
+  "title": "Find Rooms Quickly",
+  "summary": "Search Around the House locations and see where Backpacking objects are stored.",
+  "features": [
+    "Add a compact room search with matching branches revealed, Enter navigation and Escape clearing."
+  ],
+  "improvements": [
+    "Show each Backpacking object’s zone, room and space in its object-and-notes cell."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.101",
   "date": "2026-10-04",
   "title": "Compact Backpacking Rows",

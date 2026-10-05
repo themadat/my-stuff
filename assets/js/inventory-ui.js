@@ -12,6 +12,7 @@
   const checklistNames={volleyball:'Volleyball',golf:'Golf',swim:'Swim',travel:'Travel',roadtrip:'RoadTrip'};
   function specialSort() { return viewSorts.get(currentSpecial) || {key:'',direction:'ascending'}; }
   let view = "have", editingId = "", originalItem = "", originalForm = "", archiveId = "", archiveOriginal = "", archiveForm = "", lastInventory = "", lastFavoriteBrands = "", closing = false;
+  let lastLocationSections=[];
   const collapsedTableLocations = new Set(), collapsedLocations = new Set(), ownershipExpanded = new Map();
   const mobileInventory = matchMedia("(max-width: 700px)");
   let categoryMatchMode = 'any', hoveredCategory = '', editingCopies = [], instantFilters = new Map(), categoryGroups = new Map();
@@ -49,7 +50,7 @@
             <input type="hidden" id="inventoryCategoryFilter" value="">
           </div><div class="category-quick-controls"><div id="categoryCards" class="category-cards" aria-label="Quick category filters"></div><div id="categoryTags" class="category-tags" aria-label="Category tags" hidden></div></div><div id="inventoryStats" class="inventory-stats" aria-label="Ownership filters and totals"></div><button id="clearInventoryFilters" data-shortcut="C" aria-keyshortcuts="Control+Shift+Alt+C" title="Clear (Control-Shift-Option-C)" class="button" type="button" disabled>${icon("inventoryClear")}<span>Clear</span></button><button id="addItemButton" data-shortcut="A" aria-keyshortcuts="Control+Shift+Alt+A" title="Add (Control-Shift-Option-A)" class="button primary" type="button">${icon("inventoryAdd")}<span>Add</span></button></header><div id="selectedCategories" class="selected-categories" aria-label="Selected categories" hidden></div></div>
       <div id="inventoryComingSoon" class="inventory-empty" hidden></div>
-      <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><div class="location-overview-heading"><h2 id="roomOverviewTitle">Around the House</h2><span id="locationReviewTotal" role="status"></span></div><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
+      <div id="inventoryBody" class="inventory-body"><aside id="roomOverview" class="room-overview" aria-labelledby="roomOverviewTitle"><div class="location-overview-heading"><h2 id="roomOverviewTitle">Around the House</h2><span id="locationReviewTotal" role="status"></span></div><input id="roomSearch" class="room-search" type="search" aria-label="Search rooms" placeholder="Find a room…" autocomplete="off"><div id="roomStats"></div></aside><div id="locationDivider" role="separator" tabindex="0" aria-label="Resize location sidebar" aria-orientation="vertical" aria-valuemin="160" aria-valuemax="420" aria-valuenow="230"></div>
         <section class="inventory-collection" aria-label="Your items">
 
           <div class="inventory-list-heading"><strong id="inventoryViewLabel" class="inventory-view-label"></strong><span id="inventoryResultCount" role="status" aria-live="polite"></span></div>
@@ -279,6 +280,11 @@
       $('#inventoryRoomFilter').value=$('#inventoryRoomFilter').value===value?'':value;
       renderList(); $$('#roomStats [data-location-filter]').find(function (entry) { return entry.dataset.locationFilter===link.dataset.locationFilter; })?.focus({preventScroll:true});
     }
+    $('#roomSearch').addEventListener('input',function () { renderLocationNavigation(lastLocationSections); });
+    $('#roomSearch').addEventListener('keydown',function (event) {
+      if (event.key==='Escape') { event.preventDefault();this.value='';renderLocationNavigation(lastLocationSections); }
+      if (event.key==='Enter') { event.preventDefault();const room=$$('#roomStats [data-location-filter]').find(function (button) { return JSON.parse(button.dataset.locationFilter).length===2; });(room || $('#roomStats [data-location-jump]'))?.click(); }
+    });
     $('#roomStats').addEventListener('contextmenu',filterSidebarLocation);
     $('#roomStats').addEventListener('keydown',function (event) { if (event.key==='ContextMenu' || (event.shiftKey && event.key==='F10')) filterSidebarLocation(event); });
     $('#inventoryResultCount').addEventListener('click',function (event) { if (event.target.closest('[data-clear-location-filter]')) { $('#inventoryRoomFilter').value=''; renderList(); $('#inventorySearch').focus(); } });
@@ -922,6 +928,8 @@
   }
   function locationAnchor(path) { return 'inventory-location-'+encodeURIComponent(JSON.stringify(path)); }
   function renderLocationNavigation(sections) {
+    lastLocationSections=sections;
+    const search=$('#roomSearch').value.trim().toLowerCase();
     const nodes = new Map();
     function addPath(path) {
       path.forEach(function (name,index) { const prefix=path.slice(0,index+1), key=JSON.stringify(prefix); if (name && !nodes.has(key)) nodes.set(key,{path:prefix,name:name,count:0,valueCents:0,unknown:0}); });
@@ -940,8 +948,11 @@
     const values=Array.from(nodes.values()).sort(function (a,b) { const rank=function (zone) { if (zone==='Unknown Location') return -1; const index=zoneOrder.indexOf(zone); return index<0?zoneOrder.length:index; }; return rank(a.path[0])-rank(b.path[0]) || a.path.join('/').localeCompare(b.path.join('/')); });
     $('#roomStats').style.setProperty('--location-count-width',Math.max(2,...values.map(function (node) { return String(node.count).length; }))+'ch');
     $('#roomStats').style.setProperty('--location-value-width',Math.max(4,...values.map(function (node) { return money(node.valueCents/100,true).length+1; }))+'ch');
+    function visible(node) {
+      return !search || values.some(function (candidate) { return JSON.stringify(candidate.path.slice(0,node.path.length))===JSON.stringify(node.path) && candidate.path.join(' ').toLowerCase().includes(search); });
+    }
     function branch(node) {
-      const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key; }), closed=collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
+      const key=JSON.stringify(node.path), children=values.filter(function (entry) { return entry.path.length===node.path.length+1 && JSON.stringify(entry.path.slice(0,-1))===key && visible(entry); }), closed=!search && collapsedLocations.has(key), id=locationAnchor(node.path)+'-children';
       const review=inventory().locationReviews?.[key]?.date || '';
       return '<div class="location-branch"><div class="location-nav-row" data-reviewed="'+Boolean(review)+'" style="--location-depth:'+(node.path.length-1)+'">'+(children.length ? '<button type="button" class="location-toggle" data-location-toggle="'+esc(key)+'" aria-expanded="'+!closed+'" aria-controls="'+esc(id)+'" aria-label="'+(closed?'Expand ':'Collapse ')+esc(node.name)+'">'+(closed?'▸':'▾')+'</button>' : '<span class="location-toggle-space" aria-hidden="true"></span>')+'<button type="button" class="location-jump" data-location-filter="'+esc(key)+'" title="'+esc(node.name)+' — Right-click to Filter This Location" aria-keyshortcuts="Shift+F10" data-location-jump="'+esc(locationAnchor(node.path))+'"><span>'+esc(node.name)+'</span></button><button type="button" class="location-review-date" data-location-date="'+esc(key)+'" aria-label="Last Updated Date for '+esc(node.name)+': '+esc(review || 'UNKNOWN')+'" title="Set Last Updated Date">'+esc(review || 'UNKNOWN')+'</button><small class="location-object-count">'+node.count+'</small><small class="location-object-value" title="'+node.unknown+' Not Valued">'+esc(money(node.valueCents/100,true))+'</small></div>'+(children.length?'<div id="'+esc(id)+'"'+(closed?' hidden':'')+'>'+children.map(branch).join('')+'</div>':'')+'</div>';
     }
@@ -952,7 +963,8 @@
     $('#locationReviewTotal').title=reviewed+' of '+reviewNodes.size+' locations have a Last Updated date';
     $('#roomOverview').style.setProperty('--location-count-width',$('#roomStats').style.getPropertyValue('--location-count-width'));
     $('#roomOverview').style.setProperty('--location-value-width',$('#roomStats').style.getPropertyValue('--location-value-width'));
-    $('#roomStats').innerHTML=nodes.size?'<nav aria-label="Inventory locations">'+values.filter(function (node) { return node.path.length===1; }).map(branch).join('')+'</nav>':'<p>No locations in these results.</p>';
+    const roots=values.filter(function (node) { return node.path.length===1 && visible(node); });
+    $('#roomStats').innerHTML=roots.length?'<nav aria-label="Inventory locations">'+roots.map(branch).join('')+'</nav>':'<p role="status">'+(search?'No matching rooms.':'No locations in these results.')+'</p>';
     return nodes;
   }
   function tableLocationClosed(path) {
@@ -1043,7 +1055,7 @@
     const brands=item.properties.filter(function (p) { return p.name.toLowerCase()==='brand'; });
     const piece=item.properties.find(function (p) { return p.name.toLowerCase()==='set piece'; });
     const details=item.properties.filter(function (p) { return !['brand','zone','space','set piece','weight','backpacking category','weight level','backpacking subcategory'].includes(p.name.toLowerCase()); });
-    return '<div class="object-title">'+brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ')+filterButton('name',item.name,item.name)+(piece?'<span class="piece-title">['+esc(piece.value)+']</span>':'')+'<span class="visually-hidden">'+(item.owner==='house'?'House-owned':'Personally owned')+'</span></div><div class="object-details">'+(item.description?filterButton('description',item.description,item.description):'')+details.map(function (p) { return '<span class="object-property">'+filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+m.propertyLabel(p))+(m.measurement(p).imperial?'<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>':'')+'</span>'; }).join(' ')+(item.source?filterButton('source',item.source,'Seller: '+item.source):'')+'<span class="item-tags">'+m.orderTags(item.categories,brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('')+'</span></div>';
+    return '<div class="object-title">'+brands.map(function (p) { return filterButton('property:brand',[p.value,p.unit],p.value); }).join(' ')+filterButton('name',item.name,item.name)+(piece?'<span class="piece-title">['+esc(piece.value)+']</span>':'')+'<span class="visually-hidden">'+(item.owner==='house'?'House-owned':'Personally owned')+'</span></div><div class="object-details">'+(item.description?filterButton('description',item.description,item.description):'')+details.map(function (p) { return '<span class="object-property">'+filterButton('property:'+p.name.toLowerCase(),[p.value,p.unit],p.name+': '+m.propertyLabel(p))+(m.measurement(p).imperial?'<small class="property-equivalent">'+esc(m.measurement(p).imperial)+'</small>':'')+'</span>'; }).join(' ')+(item.source?filterButton('source',item.source,'Seller: '+item.source):'')+'<span class="item-tags">'+m.orderTags(item.categories,brands.map(function (p) { return p.value; })).map(function (tag) { return filterButton('categories',tag,'#'+tag); }).join('')+'</span><span class="pack-object-location">Location: '+esc(m.itemLocation(item).filter(Boolean).join(' › ') || 'Unknown Location')+'</span></div>';
   }
   function packBag() { return inventory().backpacking || {entries:[],checked:[]}; }
   function changePack(change) {
