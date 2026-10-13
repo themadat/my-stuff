@@ -143,11 +143,12 @@ async function fixture(t, options = {}) {
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   t.after(() => assert.deepEqual(errors, []));
-  let remote = null, status = 200, delay = null;
+  let remote = null, status = 200, delay = null, large = false;
   const writes = [];
   await context.route('https://api.github.com/**', async route => {
     if (delay) await delay;
     if (status !== 200) return route.fulfill({ status, json: { message: 'Test response' } });
+    if (route.request().url().includes('/git/blobs/')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(remote) });
     if (!route.request().url().includes('/contents/')) return route.fulfill({ json: {} });
     if (route.request().method() === 'PUT') {
       const body = route.request().postDataJSON();
@@ -155,11 +156,12 @@ async function fixture(t, options = {}) {
       writes.push(remote);
       return route.fulfill({ json: { content: { sha: 'written-sha' } } });
     }
+    if (large && remote) return route.fulfill({ json: { type: 'file', sha: 'remote-sha', encoding: 'none', content: '', size: 1048660 } });
     return remote ? route.fulfill({ json: { type: 'file', sha: 'remote-sha', content: Buffer.from(JSON.stringify(remote)).toString('base64') } }) : route.fulfill({ status: 404, json: {} });
   });
   await page.goto(base);
   await page.locator('#supportButton').click();
-  return { page, context, writes, set remote(value) { remote = value; }, set status(value) { status = value; }, set delay(value) { delay = value; } };
+  return { page, context, writes, set large(value) { large = value; }, set remote(value) { remote = value; }, set status(value) { status = value; }, set delay(value) { delay = value; } };
 }
 
 test('desktop Settings, safe links, appearance controls, and all retained SVGs', { timeout: 30000 }, async t => {
@@ -313,7 +315,7 @@ test('first-sync options are left-aligned with leading symbols at desktop and mo
       const icon = button.querySelector('.choice-icon'), copy = button.querySelector('.choice-copy');
       return { value: button.dataset.choiceValue, alignment: getComputedStyle(button).justifyContent, text: getComputedStyle(button).textAlign, icon: !!icon?.querySelector('svg'), iconRight: icon?.getBoundingClientRect().right, copyLeft: copy.getBoundingClientRect().left, overflow: button.scrollWidth > button.clientWidth };
     }));
-    assert.deepEqual(choices.map(c => c.value), ['merge', 'upload', 'download']);
+    assert.deepEqual(choices.map(c => c.value), ['merge', 'upload', 'overwrite', 'download']);
     for (const choice of choices) {
       assert.equal(choice.alignment, 'flex-start'); assert.equal(choice.text, 'left');
       assert.ok(choice.icon); assert.ok(choice.iconRight <= choice.copyLeft); assert.equal(choice.overflow, false);
@@ -2379,4 +2381,58 @@ for(const width of [1440,390,320]) test('Around the House room search and Backpa
  assert.equal(await bag.locator('.pack-object-location').innerText(),'Location: Upstairs › Office › Desk');
  const loose=page.locator('.pack-table tr').filter({has:page.locator('[data-edit-item="room-loose"]')});assert.equal(await loose.locator('.pack-object-location').innerText(),'Location: Unknown Location');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+});
+
+
+test('sync failures explain recovery limits and overwrite saves latest raw GitHub data at desktop and mobile widths', { timeout: 60000 }, async t => {
+  for (const width of [1440, 390, 320]) {
+    const h = await fixture(t, { viewport: { width, height: 900 } }), { page } = h;
+    await page.locator('#dataSyncTab').click();
+    h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 7, data: { inventory: { currency: 'USD', items: [] }, favoriteBrands: [], notes: 'Initial source' } };
+    h.large = true;
+    await page.locator('#syncToken').fill('fake-overwrite-token'); await page.locator('#saveSyncButton').click();
+    await page.waitForFunction(() => !window.LocalApp.sync.getInfo().busy);
+    await page.evaluate(() => {
+      const app = window.LocalApp;
+      app.storage.mutate(s => { s.notes.text = 'Discard local'; s.preferences.appearance.mode = 'dark'; });
+      app.storage.saveNow();
+      localStorage.setItem(app.config.storage.recoveryKey, 'old recovery');
+      window.originalSyncSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === app.config.storage.recoveryKey || (key === app.config.storage.stateKey && localStorage.getItem(app.config.storage.recoveryKey))) throw new DOMException('Full', 'QuotaExceededError');
+        return window.originalSyncSetItem.call(this, key, value);
+      };
+    });
+    await page.locator('#restoreCloudButton').click(); await page.locator('[data-confirm-action]').click();
+    await page.locator('#choiceDialog').waitFor({ state: 'visible' });
+    assert.match(await page.locator('[data-choice-message]').textContent(), /recovery copy/);
+    assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().notes.text), 'Discard local');
+    for (const button of await page.locator('#choiceDialog [data-choice-value]').all()) {
+      assert.equal(await button.evaluate(el => el.scrollWidth > el.clientWidth), false);
+    }
+    h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 7, data: { inventory: { currency: 'USD', items: [] }, favoriteBrands: [], notes: 'Latest GitHub ☁️ <literal>' } };
+    await page.locator('[data-choice-value="overwrite"]').click();
+    await page.locator('[data-confirm-title]').filter({ hasText: 'Overwrite from GitHub?' }).waitFor();
+    await page.locator('[data-confirm-action]').click();
+    await page.waitForFunction(() => window.LocalApp.storage.getState().notes.text === 'Latest GitHub ☁️ <literal>');
+    assert.equal(await page.evaluate(() => localStorage.getItem(window.LocalApp.config.storage.recoveryKey)), null);
+    assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().preferences.appearance.mode), 'dark');
+    assert.equal(h.writes.length, 0);
+    await page.reload();
+    assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().notes.text), 'Latest GitHub ☁️ <literal>');
+    await page.locator('#supportButton').click(); await page.locator('#dataSyncTab').click();
+    h.status = 500;
+    await page.locator('#syncNowButton').click();
+    await page.locator('#choiceDialog').waitFor({ state: 'visible' });
+    assert.match(await page.locator('[data-choice-message]').textContent(), /Test response/);
+    assert.equal(await page.locator('[data-choice-value="retry"]').count(), 1);
+    await page.locator('[data-choice-cancel]').click();
+    await page.locator('#testSyncButton').click();
+    await page.locator('#choiceDialog').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#messageDialog').evaluate(el => el.open), false);
+    await page.locator('[data-choice-cancel]').click();
+    h.status = 200;
+    await page.locator('#overwriteCloudButton').click(); await page.locator('[data-confirm-cancel]').click();
+    assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().notes.text), 'Latest GitHub ☁️ <literal>');
+  }
 });

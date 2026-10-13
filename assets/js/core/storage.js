@@ -140,6 +140,30 @@
   function replace(nextState, options) {
     const settings = Object.assign({ recoveryReason: "Before data replacement", saveRecovery: true, reason: "replace", touch: true }, options || {});
     const prepared = model.prepare(nextState);
+    if (settings.requirePersistent) {
+      const next = prepared.state;
+      if (settings.touch) model.touch(next);
+      const json = JSON.stringify(next);
+      try {
+        localStorage.setItem(config.storage.stateKey, json);
+      } catch (error) {
+        // An explicit cloud overwrite may reclaim recovery storage, never credentials or drafts.
+        if (settings.discardRecovery && error && error.name === "QuotaExceededError") {
+          removeLocal(config.storage.recoveryKey);
+          if (!writeLocal(config.storage.stateKey, json)) throw new Error("The GitHub copy was downloaded, but browser storage could not save it even after removing the recovery backup. Free browser storage and retry Overwrite from GitHub. The current local content has not been replaced.");
+        } else {
+          persistentStorageAvailable = false;
+          throw new Error("The GitHub copy was downloaded, but browser storage could not save it. " + (error && error.name === "QuotaExceededError" ? "Storage is full. Choose Overwrite from GitHub to reclaim recovery backup space, or free browser storage and retry." : "Browser storage is unavailable. Allow site storage and retry.") + " The current local content has not been replaced.");
+        }
+      }
+      scheduleSave.cancel();
+      currentState = next;
+      lastSavedJson = json;
+      persistentStorageAvailable = true;
+      emit("app:statesaved", { bytes: new Blob([json]).size, updatedAt: next.meta.updatedAt });
+      emit("app:statechange", { reason: settings.reason, state: currentState });
+      return currentState;
+    }
     if (settings.saveRecovery && currentState) saveRecovery(settings.recoveryReason, currentState);
     currentState = prepared.state;
     if (settings.touch) model.touch(currentState);

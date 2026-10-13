@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.103",
-      buildId: "0.0.1.103",
+      version: "0.0.1.104",
+      buildId: "0.0.1.104",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,25 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.104",
+  "date": "2026-10-12",
+  "title": "Reliable GitHub downloads and actionable sync failures",
+  "summary": "Read large GitHub data files and recover from sync failures with clear reasons and an explicit overwrite option.",
+  "features": [
+    "Sync failure dialogs offer Retry Sync, Overwrite from GitHub, and Sync Settings.",
+    "Overwrite from GitHub downloads the latest source without requiring a local recovery backup."
+  ],
+  "improvements": [
+    "Explicit overwrite can reclaim recovery backup storage while retaining device settings, credentials, and bulk drafts.",
+    "Repeated identical background failures do not continually reopen the dialog."
+  ],
+  "fixes": [
+    "Read files above 1 MiB as raw GitHub blobs using the metadata SHA instead of parsing an empty content field.",
+    "Only report completed downloads after the replacement and sync baseline have been saved persistently.",
+    "Explain automatic sync failures caused by unavailable local storage."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.103",
   "date": "2026-10-05",
   "title": "Compact Room Navigation",

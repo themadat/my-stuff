@@ -182,7 +182,7 @@
     settingsStatus.querySelector("[data-sync-label]").textContent = info.title;
     settingsStatus.title = info.help;
     $("#syncSettingsMessage").textContent = info.message;
-    [["#syncNowButton", "syncNow", info.canSync], ["#restoreCloudButton", "restore", info.canRestore]].forEach(function (entry) {
+    [["#syncNowButton", "syncNow", info.canSync], ["#restoreCloudButton", "restore", info.canRestore], ["#overwriteCloudButton", "overwrite", info.canRestore]].forEach(function (entry) {
       const button = $(entry[0]);
       const action = App.sync.actions[entry[1]];
       App.icons.set(button.querySelector("[data-sync-action-icon]"), action.symbol);
@@ -387,7 +387,7 @@
         markSyncCredentialFieldsClean();
         App.components.message(result.title, result.message, { trigger: $("#testSyncButton") });
       }
-    } catch (error) { App.components.message("Connection failed", error.message, { trigger: $("#testSyncButton") }); }
+    } catch (error) { if (!error.syncFailurePresented) App.components.message("Connection failed", error.message, { trigger: $("#testSyncButton") }); }
     finally { App.components.setLoading(false); renderSync(); }
   }
 
@@ -465,6 +465,7 @@
     $("#importButton").addEventListener("click", function () { $("#importFileInput").click(); });
     $('#autoSyncEnabled').addEventListener('change',function () { App.sync.setAutoSync(this.checked); });
     $("#syncNowButton").addEventListener("click", function () { App.sync.syncNow(this); });
+    $("#overwriteCloudButton").addEventListener("click", function () { App.sync.restoreFromCloud(this, true); });
     $("#restoreCloudButton").addEventListener("click", function () { App.sync.restoreFromCloud(this); });
     $("#syncToken").addEventListener("input", function () { this.dataset.dirty = "true"; });
     $("#syncRememberToken").addEventListener("change", function () { this.dataset.dirty = "true"; });

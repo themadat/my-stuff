@@ -31,6 +31,7 @@
   const ACTIONS = Object.freeze({
     syncNow: Object.freeze({ symbol: "arrow.trianglehead.clockwise.icloud", title: "Sync Now", help: "Compare copies and sync changes with GitHub." }),
     restore: Object.freeze({ symbol: "arrow.trianglehead.counterclockwise.icloud", title: "Restore from Cloud", help: "Replace this device with the GitHub copy after confirmation and a recovery backup." }),
+    overwrite: Object.freeze({ symbol: "icloud.and.arrow.down", title: "Overwrite from GitHub", help: "Download the latest GitHub copy without a local recovery backup." }),
     settings: Object.freeze({ symbol: "support", title: "Sync Settings", help: "Open storage and GitHub Sync settings." })
   });
 
@@ -59,7 +60,9 @@
     deciding: false,
     offline: navigator.onLine === false,
     requestSequence: 0,
-    controller: null
+    controller: null,
+    failureDialog: false,
+    lastFailureDialog: ""
   };
 
   function emit() {
@@ -139,6 +142,7 @@
       error: "",
       errorState: "",
       deciding: false,
+      lastFailureDialog: "",
       offline: navigator.onLine === false,
       requestSequence: runtime.requestSequence + 1,
       controller: null
@@ -220,13 +224,24 @@
     if (response.status === 404 && allowMissing) return null;
     if (!response.ok) throw await responseError(response);
     const file = await response.json();
-    if (!file || file.type !== "file" || typeof file.content !== "string" || typeof file.sha !== "string") throw new Error("The configured GitHub path is not a readable file.");
+    if (!file || file.type !== "file" || typeof file.sha !== "string") throw new Error("The configured GitHub path is not a readable file.");
     let decoded;
-    try {
-      const binary = atob(file.content.replace(/\s/g, ""));
-      decoded = new TextDecoder().decode(Uint8Array.from(binary, function (character) { return character.charCodeAt(0); }));
-    } catch (error) {
-      throw new Error("The GitHub file could not be decoded.");
+    if (file.encoding === "none" || file.size > 1048576) {
+      // Read the exact blob described by the metadata, even if the branch moves.
+      const raw = await fetch(apiRepositoryUrl(cloud) + "/git/blobs/" + encodeURIComponent(file.sha), {
+        headers: Object.assign({}, headers(token), { Accept: "application/vnd.github.raw+json" }),
+        signal: context.signal, cache: "no-store"
+      });
+      if (!raw.ok) throw await responseError(raw);
+      decoded = await raw.text();
+    } else {
+      if (typeof file.content !== "string") throw new Error("GitHub did not return the file contents. Retry the download.");
+      try {
+        const binary = atob(file.content.replace(/\s/g, ""));
+        decoded = new TextDecoder().decode(Uint8Array.from(binary, function (character) { return character.charCodeAt(0); }));
+      } catch (error) {
+        throw new Error("The GitHub file could not be decoded.");
+      }
     }
     let parsed;
     try { parsed = JSON.parse(decoded); } catch (error) { throw new Error("The GitHub data file is not valid JSON."); }
@@ -263,8 +278,8 @@
     return model.syncHash(storage.getState());
   }
 
-  function rememberBaseline(sha, hash) {
-    const now = u.isoNow();
+  function rememberBaseline(sha, hash, syncedAt) {
+    const now = syncedAt || u.isoNow();
     storage.mutate(function (state) {
       const cloud = state.modules.cloudSync;
       cloud.baselineTarget = target(cloud);
@@ -328,13 +343,13 @@
       state: state, change: change, checkedAt: runtime.checkedAt || settings().lastCheckedAt,
       busy: busy, newer: copyComparisonText(), action: ACTIONS[info.primaryAction].title,
       canSync: !busy && info.primaryAction === "syncNow" && configured(),
-      canRestore: !busy && info.primaryAction === "syncNow" && configured() && !runtime.remoteMissing
+      canRestore: !busy && configured() && !runtime.remoteMissing
     });
   }
 
   async function check(force) {
     if (!configured() || runtime.busy || runtime.checking || runtime.deciding) { emit(); return getInfo(); }
-    if (navigator.onLine === false) { runtime.offline = true; emit(); return getInfo(); }
+    if (navigator.onLine === false) { recordError(new Error("This device is offline. Reconnect to download or sync with GitHub.")); emit(); void showFailure(); return getInfo(); }
     const last = Date.parse(runtime.checkedAt || "");
     if (!force && Number.isFinite(last) && Date.now() - last < config.controls.syncCheckIntervalMs) return getInfo();
     runtime.checking = true;
@@ -377,6 +392,7 @@
         runtime.checking = false;
         runtime.operation = "";
         emit();
+        if (runtime.error) void showFailure();
       }
     }
     return getInfo();
@@ -384,6 +400,7 @@
 
   async function testConnection(input) {
     if (getInfo().busy) return null;
+    runtime.lastFailureDialog = "";
     const tokenInput = u.cleanLine(input.token, 500);
     const cloud = validateConfiguration(input, tokenInput);
     const token = tokenInput || storage.getSecret();
@@ -415,9 +432,10 @@
     } catch (error) {
       if (!currentRequest(context) || error && error.name === "AbortError") return null;
       recordError(error, "Connection test failed.");
+      error.syncFailurePresented = true;
       throw error;
     } finally {
-      if (currentRequest(context)) { runtime.checking = false; runtime.operation = ""; emit(); }
+      if (currentRequest(context)) { runtime.checking = false; runtime.operation = ""; emit(); if (runtime.error) void showFailure(); }
     }
   }
 
@@ -444,11 +462,11 @@
       if (!quiet) App.components.toast(runtime.error, { title: info.title, kind: info.kind, duration: 6000 });
       return false;
     } finally {
-      if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); }
+      if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); if (runtime.error) void showFailure(); }
     }
   }
 
-  async function performDownload(quiet) {
+  async function performDownload(quiet, overwrite) {
     if (!runtime.remoteState) throw new Error("No remote data is available to download.");
     const context = requestContext("downloading");
     runtime.busy = true;
@@ -457,17 +475,19 @@
     emit();
     try {
       const next = model.applySync(storage.getState(), runtime.remoteState);
-      if (!storage.saveRecovery("Before downloading GitHub data")) throw new Error("The local recovery copy could not be saved. Export a backup before restoring from cloud.");
-      storage.replace(next, { saveRecovery: false, reason: "sync-download", touch: false });
-      rememberBaseline(runtime.remoteSha, runtime.remoteHash);
-      if (!quiet) App.components.toast("This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync Complete", kind: "success", duration: 5000 });
+      if (!overwrite && !storage.saveRecovery("Before downloading GitHub data")) throw new Error("The browser could not save a local recovery copy. Choose Overwrite from GitHub to download without keeping the local copy.");
+      const syncedAt = u.isoNow();
+      Object.assign(next.modules.cloudSync, { baselineTarget: target(), baselineSha: runtime.remoteSha, baselineHash: runtime.remoteHash, lastSyncedAt: syncedAt, lastCheckedAt: syncedAt });
+      storage.replace(next, { saveRecovery: false, reason: "sync-download", touch: false, requirePersistent: true, discardRecovery: Boolean(overwrite) });
+      rememberBaseline(runtime.remoteSha, runtime.remoteHash, syncedAt);
+      if (!quiet) App.components.toast(overwrite ? "The GitHub copy has been downloaded and saved on this device." : "This device now uses the GitHub copy. The previous local copy is recoverable in Developer Tools.", { title: "Sync Complete", kind: "success", duration: 5000 });
       return true;
     } catch (error) {
       recordError(error, "Download failed.");
       if (!quiet) App.components.toast(runtime.error, { title: "Sync Failed", kind: "danger", duration: 6000 });
       return false;
     } finally {
-      if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); }
+      if (currentRequest(context)) { runtime.busy = false; runtime.operation = ""; emit(); if (runtime.error) void showFailure(); }
     }
   }
 
@@ -481,6 +501,7 @@
       recordError(error, "Merge failed.");
       App.components.toast(runtime.error, { title: "Sync Failed", kind: "danger", duration: 6000 });
       emit();
+      void showFailure();
       return false;
     }
     return performUpload();
@@ -489,6 +510,7 @@
   async function syncNow(trigger) {
     const info = getInfo();
     if (info.busy) return;
+    runtime.lastFailureDialog = "";
     if (!configured() || info.primaryAction === "settings") {
       window.dispatchEvent(new CustomEvent("app:opensyncsettings", { detail: { trigger: trigger } }));
       return;
@@ -509,6 +531,7 @@
         : [
             ...(model.canMerge(storage.getState(), runtime.remoteState) ? [{ value: "merge", symbol: "arrow.trianglehead.2.clockwise.rotate.90.icloud", label: "Merge Both Copies", description: "Combine matching or separate items, keeping content present in either copy.", kind: "primary" }] : []),
             { value: "upload", symbol: "icloud.and.arrow.up", label: "Upload This Device", description: "Replace the GitHub copy with this device.", kind: "secondary" },
+            { value: "overwrite", symbol: ACTIONS.overwrite.symbol, label: ACTIONS.overwrite.title, description: "Replace local content without a recovery backup. Discard the local copy.", kind: "danger" },
             { value: "download", symbol: "icloud.and.arrow.down", label: "Download GitHub", description: "Replace saved content after making a recovery copy; keep this device’s settings.", kind: "secondary" }
           ];
       const sequence = runtime.requestSequence;
@@ -528,11 +551,13 @@
       if (choice === "upload") return performUpload();
       if (choice === "download") return performDownload();
       if (choice === "merge") return performMerge();
+      if (choice === "overwrite") return restoreFromCloud(trigger, true);
     }
   }
 
-  async function restoreFromCloud(trigger) {
+  async function restoreFromCloud(trigger, overwrite) {
     if (!getInfo().canRestore) return;
+    runtime.lastFailureDialog = "";
     await check(true);
     if (runtime.error || runtime.offline || !configured() || getInfo().busy) return;
     if (!runtime.remoteState) {
@@ -545,12 +570,39 @@
     let accepted;
     try {
       accepted = await App.components.confirm({
-        title: "Restore from Cloud?",
-        message: "Replace this device’s saved content with the GitHub copy? Device settings stay as they are. Your current local copy will be saved for recovery in Developer Tools.",
-        confirmLabel: ACTIONS.restore.title, cancelLabel: "Keep This Device", danger: true, trigger: trigger
+        title: overwrite ? "Overwrite from GitHub?" : "Restore from Cloud?",
+        message: overwrite ? "Download the latest GitHub copy and discard this device’s saved content? No local recovery backup will be made. An older recovery backup may be removed to free storage. Device settings and your GitHub token stay on this device." : "Replace this device’s saved content with the GitHub copy? Device settings stay as they are. Your current local copy will be saved for recovery in Developer Tools.",
+        confirmLabel: overwrite ? ACTIONS.overwrite.title : ACTIONS.restore.title, cancelLabel: "Keep This Device", danger: true, trigger: trigger
       });
     } finally { runtime.deciding = false; emit(); }
-    if (accepted && sequence === runtime.requestSequence && navigator.onLine !== false && configured()) return performDownload();
+    if (accepted && sequence === runtime.requestSequence && navigator.onLine !== false && configured()) return performDownload(false, overwrite);
+  }
+
+  async function showFailure() {
+    if (!runtime.error || runtime.failureDialog || runtime.deciding || runtime.error === runtime.lastFailureDialog) return;
+    const message = runtime.error;
+    const sequence = runtime.requestSequence;
+    runtime.lastFailureDialog = message;
+    runtime.failureDialog = true;
+    runtime.deciding = true;
+    emit();
+    let choice;
+    try {
+      choice = await App.components.choose({
+        title: "Sync Failed",
+        message: message,
+        choices: [
+          { value: "retry", symbol: ACTIONS.syncNow.symbol, label: "Retry Sync", description: "Check GitHub again and retry syncing.", kind: "primary" },
+          { value: "overwrite", symbol: ACTIONS.overwrite.symbol, label: ACTIONS.overwrite.title, description: "Fetch the latest GitHub copy and replace local content without a recovery backup.", kind: "danger" },
+          { value: "settings", symbol: ACTIONS.settings.symbol, label: "Sync Settings", description: "Review the connection and access token.", kind: "secondary" }
+        ],
+        cancelLabel: "Close"
+      });
+    } finally { runtime.failureDialog = false; runtime.deciding = false; emit(); }
+    if (sequence !== runtime.requestSequence) return;
+    if (choice === "retry") void syncNow();
+    if (choice === "overwrite") void restoreFromCloud(undefined, true);
+    if (choice === "settings") window.dispatchEvent(new CustomEvent("app:opensyncsettings"));
   }
 
   async function forget() {
@@ -569,7 +621,12 @@
   }
   async function autoSync() {
     if (!autoEligible() || document.visibilityState==='hidden' || navigator.onLine===false || getInfo().busy) return false;
-    if (storage.saveNow && !storage.saveNow()) return false;
+    if (storage.saveNow && !storage.saveNow()) {
+      recordError(new Error("Browser storage could not save this device’s changes before automatic sync. Free storage, or choose Overwrite from GitHub to discard local changes and download without a recovery backup."));
+      emit();
+      void showFailure();
+      return false;
+    }
     const sequence=runtime.requestSequence+1;
     await check(true);
     if (sequence!==runtime.requestSequence || !autoEligible() || document.visibilityState==='hidden' || navigator.onLine===false || runtime.error || runtime.offline || getInfo().busy) {

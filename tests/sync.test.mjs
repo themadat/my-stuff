@@ -47,7 +47,7 @@ function harness({ token = 'test-token', online = true } = {}) {
   });
   return h;
 }
-function response(status, body = {}) { return { status, ok: status >= 200 && status < 300, json: async () => body }; }
+function response(status, body = {}) { return { status, ok: status >= 200 && status < 300, json: async () => body, text: async () => typeof body === 'string' ? body : JSON.stringify(body) }; }
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 function changeNotes(state, text) { state.notes.text = text; state.notes.updatedAt = state.meta.updatedAt; }
 
@@ -305,6 +305,7 @@ test('network unavailability is neutral and reconnect can recover', async () => 
   assert.equal(h.sync.getInfo().state, 'offline');
   assert.equal(h.sync.getInfo().kind, 'neutral');
   h.respond = h.file;
+  await new Promise(resolve => setImmediate(resolve));
   await h.sync.check(true);
   assert.equal(h.sync.getInfo().state, 'upToDate', h.sync.getInfo().message);
 });
@@ -568,7 +569,7 @@ test('branch-rule rejections are not misreported as stale content conflicts', as
 test('every first-sync choice supplies a shared SVG symbol', async () => {
   const h = harness(); changeNotes(h.remote, 'Cloud-only note');
   await h.sync.syncNow();
-  assert.deepEqual(Array.from(h.choices[0].choices, c => c.value), ['merge', 'upload', 'download']);
+  assert.deepEqual(Array.from(h.choices[0].choices, c => c.value), ['merge', 'upload', 'overwrite', 'download']);
   for (const choice of h.choices[0].choices) assert.match(h.App.icons.markup(choice.symbol), /<svg/);
   const missing = harness(); missing.respond = () => response(404);
   await missing.sync.syncNow();
@@ -781,4 +782,83 @@ test('backpacking bag entries checkmarks and subcategories round trip backup and
  assert.equal(JSON.stringify(model.prepareSync(payload).state.inventory.backpacking),expected);
  const before=model.syncHash(h.state);h.state.inventory.backpacking.entries[0].notes='Changed';assert.notEqual(model.syncHash(h.state),before);
  assert.equal(model.prepareSync(payload).state.inventory.backpacking.entries[0].weight,0.123456);
+});
+
+
+test('large files fetch raw data by exact SHA with authentication and retain upload baseline', async () => {
+  const h = harness(); changeNotes(h.remote, 'Cloud ☁️');
+  h.respond = (url, options) => url.includes('/git/blobs/')
+    ? response(200, JSON.stringify(h.App.stateModel.syncPayload(h.remote)))
+    : response(200, { type: 'file', sha: 'exact-sha', content: '', encoding: 'none', size: 1048660 });
+  h.confirmation = true;
+  await h.sync.restoreFromCloud(undefined, true);
+  assert.equal(h.state.notes.text, 'Cloud ☁️');
+  assert.equal(h.state.modules.cloudSync.baselineSha, 'exact-sha');
+  const raw = h.requests.find(r => r.url.includes('/git/blobs/'));
+  assert.equal(raw.url, 'https://api.github.com/repos/themadat/app-data/git/blobs/exact-sha');
+  assert.equal(raw.options.headers.Accept, 'application/vnd.github.raw+json');
+  assert.equal(raw.options.headers.Authorization, 'Bearer test-token');
+  assert.equal(raw.options.cache, 'no-store');
+});
+
+test('raw download failures and malformed data explain failure without replacing or uploading', async () => {
+  for (const rawResponse of [response(403, { message: 'Denied' }), response(200, 'not JSON')]) {
+    const h = harness();
+    h.respond = url => url.includes('/git/blobs/') ? rawResponse : response(200, { type: 'file', sha: 'sha', encoding: 'none', content: '' });
+    await h.sync.syncNow();
+    assert.equal(h.replacements.length, 0);
+    assert.equal(h.requests.some(r => r.options.method === 'PUT'), false);
+    assert.equal(h.choices.at(-1).title, 'Sync Failed');
+    assert.match(h.choices.at(-1).message, /denied|not valid JSON/i);
+    assert.deepEqual(Array.from(h.choices.at(-1).choices, c => c.value), ['retry', 'overwrite', 'settings']);
+  }
+});
+
+test('explicit overwrite bypasses failed recovery, keeps settings, and supports cancellation', async () => {
+  const h = harness(); h.recoveryWorks = false; changeNotes(h.remote, 'Latest source');
+  h.state.preferences.appearance.mode = 'dark';
+  await h.sync.restoreFromCloud(undefined, true);
+  assert.equal(h.replacements.length, 0);
+  h.confirmation = true;
+  await h.sync.restoreFromCloud(undefined, true);
+  assert.equal(h.state.notes.text, 'Latest source');
+  assert.equal(h.state.preferences.appearance.mode, 'dark');
+  assert.equal(h.recovery, null);
+  assert.equal(h.replacements.at(-1).discardRecovery, true);
+  assert.equal(h.replacements.at(-1).requirePersistent, true);
+  assert.equal(h.token, 'test-token');
+});
+
+test('backup failure offers overwrite and the chosen action fetches GitHub again', async () => {
+  const h = harness(); h.recoveryWorks = false; h.confirmation = true;
+  changeNotes(h.remote, 'First source');
+  h.App.components.choose = async options => {
+    h.choices.push(options);
+    changeNotes(h.remote, 'Latest source');
+    return 'overwrite';
+  };
+  await h.sync.restoreFromCloud();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.state.notes.text, 'Latest source');
+  assert.equal(h.requests.length, 2);
+  assert.equal(h.recovery, null);
+});
+
+test('failed persistent replacement cannot report successful download', async () => {
+  const h = harness(); h.confirmation = true; changeNotes(h.remote, 'Source');
+  h.App.storage.replace = () => { throw new Error('Browser storage could not save the GitHub copy'); };
+  await h.sync.restoreFromCloud(undefined, true);
+  assert.equal(h.state.notes.text, '');
+  assert.equal(h.toasts.some(t => t.title === 'Sync Complete'), false);
+  assert.match(h.choices.at(-1).message, /could not save/);
+});
+
+test('automatic failures show one actionable dialog per repeated reason', async () => {
+  const h = harness(); h.setBaseline(); h.sync.setAutoSync(true);
+  h.respond = () => response(500, { message: 'GitHub temporarily unavailable' });
+  await h.sync.autoSync();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sync.autoSync();
+  assert.equal(h.choices.length, 1);
+  assert.match(h.choices[0].message, /GitHub temporarily unavailable/);
 });
