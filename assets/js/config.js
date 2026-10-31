@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.106",
-      buildId: "0.0.1.106",
+      version: "0.0.1.107",
+      buildId: "0.0.1.107",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,20 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.107",
+  "date": "2026-10-31T04:09:25.800771Z",
+  "title": "Announcement Controls and Shorter Labels",
+  "summary": "Turn What’s New on or off, identify 3D Printer in Lifetime and shorten inventory labels.",
+  "features": [
+    "Show What’s New preference hides release announcements and their unread indicator, saves locally and retains release-history access."
+  ],
+  "improvements": [
+    "3D Printer in the Lifetime dropdown uses the supplied 3D printing symbol.",
+    "Inventory totals use All, Filter and Convey; acquisition controls and object rows display Convey while retaining existing saved values."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.106",
   "date": "2026-10-31T04:00:20.161135Z",
   "title": "Lifetime Category Dropdown",

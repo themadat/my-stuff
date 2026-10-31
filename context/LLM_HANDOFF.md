@@ -2,20 +2,22 @@
 
 ## State
 
-Release **0.0.1.106** prepared and verified, uncommitted/unpushed. Working tree was clean at task start; 0.0.1.105 had been committed. No unfinished implementation work.
+Release **0.0.1.107** prepared and verified, uncommitted/unpushed. Working tree was clean at task start; 0.0.1.106 had been committed. No unfinished implementation work.
 
-Lifetime and Checklists now share toolbar button sizing, spacing, label and symbol dimensions on desktop and mobile. Lifetime uses the user's supplied infinity SVG in the shared symbols and Settings tab. Its dropdown matches Checklist hover/click/touch behavior, supports ArrowDown, Escape and outside dismissal, and opens the selected category in Lifetime Settings.
+Settings → Show What’s New toggles release announcements and their unread dot. Default is on; off persists on reload, cancels the active dismissal timer, and disables the dismissal-seconds input. Version-button release history remains accessible. This device preference survives backups and cloud replacement but is excluded from cloud content; resetting preferences enables it again.
 
-An empty installation offers only 3D Printer in the dropdown, using the same infinity icon. Selecting it creates the empty category. Removed the Bike starter suggestion; existing saved categories/purchases remain intact and appear in the dropdown. Category creation, purchase tracking, backups, sync schema 9 and offline persistence continue unchanged.
+Lifetime retains the infinity toolbar symbol; its 3D Printer dropdown option now reuses category3DPrint, which exactly matches the user's supplied SVG. Other saved categories retain the infinity icon.
+
+Inventory totals now display All, Filter and Convey. Acquisition choices and object rows display Convey too; stored acquisition values remain Conveyed, preserving import, sync, special defaults, filtering and existing data attributes.
 
 ## Verification
 
-179 non-browser checks passed. Eleven release browser flows passed: Lifetime purchase tracking at 1440/390/320px, matching button dimensions and dropdown hover/touch/keyboard/outside dismissal at those widths, Checklists touch menus at 390/320px, desktop/mobile Settings, and service-worker offline inventory/Notes/Backpacking/Lifetime reload. Diff whitespace passed. Preview stopped. Browser requests mocked; no real GitHub data changed.
+180 non-browser checks passed. Fourteen release browser flows passed (one after fixing stale test assumptions): What’s New toggle and persistence at 1440/390/320px, Lifetime sizing/dropdown/icon at those widths, desktop/mobile Settings, offline inventory/Notes/Backpacking/Lifetime reload, inventory detail filtering/totals, Convey acquisition defaults/shared-copy display, and desktop/mobile House totals. Existing tests were corrected to select the intended Bag/Lamp records explicitly and assert current table headers rather than obsolete layout/order. Diff whitespace passed. Preview stopped. Browser requests mocked; no real GitHub data changed.
 
 ## Pointers and constraints
 
-- Runtime edits: assets/js/lifetime-ui.js, assets/js/icons.js, assets/css/app.css.
-- Browser tests: tests/browser.test.mjs.
-- Release surfaces aligned once using scripts/release.mjs. Do not bump again for this batch.
+- Runtime: assets/js/app.js, assets/js/core/state.js, assets/js/inventory-ui.js, assets/js/lifetime-ui.js, assets/css/app.css, index.html.
+- Tests: tests/browser.test.mjs, tests/sync.test.mjs.
+- Release surfaces aligned once with scripts/release.mjs. Do not bump again for this batch.
 - Node: /Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node. Playwright: sibling node/node_modules/playwright/index.mjs.
 - docs/DEVELOPMENT.md describes checks. Preserve local-first inventory/Notes/settings/storage/recovery/import/sync/PWA. No commits or pushes without explicit instruction; stage only this batch's files.

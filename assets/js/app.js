@@ -46,6 +46,8 @@
     $$('[data-theme-mode]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.themeMode === appearance.mode)); });
     $$('button[data-button-style]').forEach(function (button) { button.setAttribute("aria-pressed", String(button.dataset.buttonStyle === preferences.controls.buttonStyle)); });
     $$('[data-hints-enabled]').forEach(function (button) { button.setAttribute("aria-pressed", String((button.dataset.hintsEnabled === "true") === preferences.hints.enabled)); });
+    $("#whatsNewEnabled").checked = preferences.controls.whatsNewEnabled;
+    $("#whatsNewDismissSeconds").disabled = !preferences.controls.whatsNewEnabled;
     $("#whatsNewDismissSeconds").value = preferences.controls.whatsNewDismissSeconds;
     renderHint();
     App.pwa?.applyAppearanceAssets();
@@ -57,7 +59,7 @@
 
   function renderHeader() {
     $("#betaPill").hidden = !isBetaDeploy();
-    const unread = state().ui.seenReleaseVersion !== config.identity.version;
+    const unread = state().preferences.controls.whatsNewEnabled && state().ui.seenReleaseVersion !== config.identity.version;
     $("#releaseUnreadDot").hidden = !unread;
     renderWhatsNew();
   }
@@ -65,7 +67,7 @@
   function renderWhatsNew() {
     const release = config.releases[0];
     const banner = $("#whatsNewBanner");
-    const unread = state().ui.seenReleaseVersion !== config.identity.version;
+    const unread = state().preferences.controls.whatsNewEnabled && state().ui.seenReleaseVersion !== config.identity.version;
     banner.hidden = !unread;
     window.clearTimeout(releaseTimer);
     if (!unread || !release) return;
@@ -451,6 +453,11 @@
     $$('[data-theme-mode]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.appearance.mode = button.dataset.themeMode; }, { reason: "appearance" }); applyAppearance(); }); });
     $$('button[data-button-style]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.controls.buttonStyle = button.dataset.buttonStyle; }, { reason: "appearance" }); applyAppearance(); }); });
     $$('[data-hints-enabled]').forEach(function (button) { button.addEventListener("click", function () { storage.mutate(function (next) { next.preferences.hints.enabled = button.dataset.hintsEnabled === "true"; }, { reason: "hints" }); applyAppearance(); }); });
+    $('#whatsNewEnabled').addEventListener('change',function () {
+      const enabled = this.checked;
+      storage.mutate(function (next) { next.preferences.controls.whatsNewEnabled = enabled; }, {reason:'banner-enabled'});
+      storage.saveNow(); applyAppearance(); renderHeader();
+    });
     $('#whatsNewDismissSeconds').addEventListener('change',function () {
       if (!this.reportValidity()) return;
       const seconds=Number(this.value);

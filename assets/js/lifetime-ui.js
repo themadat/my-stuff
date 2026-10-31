@@ -38,7 +38,7 @@
     $("#lifetimeAllTotal").textContent = "All categories: " + money(total(list.flatMap(function (entry) { return entry.purchases; })));
     const options = list.length ? list : [{ id: "", name: "3D Printer" }];
     $("#lifetimeMenu").innerHTML = options.map(function (entry) {
-      return '<button class="button" type="button" data-lifetime-category="' + esc(entry.id) + '">' + App.icons.markup("lifetime") + '<span>' + esc(entry.name) + '</span></button>';
+      return '<button class="button" type="button" data-lifetime-category="' + esc(entry.id) + '">' + App.icons.markup(entry.name.toLowerCase() === "3d printer" ? "category3DPrint" : "lifetime") + '<span>' + esc(entry.name) + '</span></button>';
     }).join("");
     if (!current) return;
     $("#lifetimeRename").value = current.name;

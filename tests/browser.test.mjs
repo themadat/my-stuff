@@ -973,12 +973,12 @@ test('inventory detail filters retain overall totals, use whole dollars, and arc
  {id:'lamp-a',name:'Lamp',owner:'me',room:'Nook',price:30,value:62.77,obtainedDate:'2023-09-10',description:'Desk light',categories:['Lighting'],properties:[{name:'Brand',value:'OXO'},{name:'Color',value:'Blue'}]},
  {id:'lamp-b',name:'Lamp',owner:'house',room:'Den',price:40,value:40,obtainedDate:'2024-01-31',properties:[]}
  ].map(window.LocalApp.inventoryModel.normalizeItem);}));
- assert.equal(await page.locator('.item-money').first().textContent(),'$63');
- assert.deepEqual(await page.locator('.inventory-table th').allTextContents(),['Object and Properties / Notes','Zone / Room / Space','Count','Value','Obtained','Actions']);
+ assert.equal(await page.locator('tr').filter({has:page.locator('[data-edit-item="lamp-a"]')}).locator('.item-money').textContent(),'$63');
+ assert.deepEqual(await page.locator('.inventory-table thead th').allTextContents(),['Object and Properties / Notes','Tags','#','Value','Obtained','Age','Actions']);
  await page.locator('#inventoryList [data-instant-filter="property:color"]').click();
  assert.equal(await page.locator('[data-edit-item]').count(),1);
  assert.match(await page.locator('[data-inventory-total="all"]').textContent(),/2objects\$103/);
- assert.match(await page.locator('[data-filtered-total="all"]').textContent(),/Filtered1\$63/);
+ assert.match(await page.locator('[data-filtered-total="all"]').textContent(),/Filter1\$63/);
  await page.locator('#clearInventoryFilters').click();
  await page.locator('#inventoryList [data-instant-filter="name"]').first().click(); assert.equal(await page.locator('[data-edit-item]').count(),2);
  await page.locator('#clearInventoryFilters').click();
@@ -1703,7 +1703,7 @@ test('ordinary copies share conveyed status and muted house colors',async t=>{
  const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.evaluate(()=>LocalApp.storage.mutate(s=>{s.inventory.items=[{id:'a',name:'Lamp',owner:'house',room:'Kitchen',obtainedHow:'Purchased',price:50,value:30},{id:'b',name:'Lamp',owner:'house',room:'Kitchen',obtainedHow:'Gift',price:20,value:40},{id:'c',name:'Table',owner:'house',room:'Kitchen',obtainedHow:'Purchased',price:100,value:100}].map(LocalApp.inventoryModel.normalizeItem);}));
  await page.locator('[data-edit-item="a"]').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');await page.locator('input[name="itemObtainedHowChoice"][value="Conveyed"]').check();await page.locator('#saveItemButton').click();
- const lamps=await page.evaluate(()=>LocalApp.storage.getState().inventory.items.filter(i=>i.name==='Lamp'));assert.ok(lamps.every(i=>i.obtainedHow==='Conveyed'&&i.price===0));const row=page.locator('tr[data-conveyed="true"]');assert.equal(await row.count(),1);assert.equal(await row.locator('[data-instant-filter="obtainedHow"]').count(),1);assert.equal(await row.locator('[data-instant-filter="obtainedHow"]').textContent(),'Conveyed');
+ const lamps=await page.evaluate(()=>LocalApp.storage.getState().inventory.items.filter(i=>i.name==='Lamp'));assert.ok(lamps.every(i=>i.obtainedHow==='Conveyed'&&i.price===0));const row=page.locator('tr[data-conveyed="true"]');assert.equal(await row.count(),1);assert.equal(await row.locator('[data-instant-filter="obtainedHow"]').count(),1);assert.equal(await row.locator('[data-instant-filter="obtainedHow"]').textContent(),'Convey');
  for(const theme of ['light','dark']) {await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);const colors=await page.locator('tr[data-item-owner="house"]').evaluateAll(rows=>rows.map(row=>getComputedStyle(row.querySelector('[data-instant-filter="name"]')).color));assert.notEqual(colors[0],colors[1]);}
  await page.screenshot({path:'/private/tmp/conveyed74-dark.png'});
 });
@@ -2265,14 +2265,15 @@ for (const width of [1440,390]) test('shared identity edits and House Conveyed N
    m.normalizeItem({id:'house-gone',name:'Gone house',owner:'house',obtainedHow:'Conveyed',value:70,archive:{date:'2026-09-01',reason:'Sold'}})
   ];},{reason:'inventory-save'});
  });
- await page.locator('[data-edit-item]').first().click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
+ const bagId=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.find(item=>item.name==='Bag').id);
+ await page.locator('[data-edit-item="'+bagId+'"]').click();await page.waitForFunction(()=>document.activeElement.id==='itemName');
  await page.locator('#itemName').fill('Shared Bag');await page.locator('#itemSource').fill('New store');
  await page.locator('[name="itemOwnerChoice"][value="house"]').check();await page.locator('#saveItemButton').click();
  const copies=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.filter(item=>item.copyGroup));
  assert.equal(copies.length,2);assert.ok(copies.every(item=>item.name==='Shared Bag'&&item.source==='New store'&&item.owner==='house'));
  if(width<700) await page.locator('[data-ownership-toggle="house"]').click();
  const labels=await page.locator('[data-inventory-total="house"] .stat-row > span:first-child').allTextContents();
- assert.deepEqual(labels,['Everything','Conveyed','New','Filtered']);
+ assert.deepEqual(labels,['All','Convey','New','Filter']);
  const tops=await page.locator('[data-inventory-total="house"] .stat-row > span:first-child').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().top));
  assert.ok(tops.every((top,i)=>i===0||top>tops[i-1]),'House rows must stay in order without overlap');
  assert.match(await page.locator('[data-house-total="conveyed"]').innerText(),/1.*\$100/s);
@@ -2491,7 +2492,7 @@ for (const width of [1440,390,320]) test('Lifetime matches Checklists sizing and
  }
  assert.equal(await page.locator('#lifetimeMenu button').count(),1);
  assert.equal(await page.locator('#lifetimeMenu button').innerText(),'3D Printer');
- assert.equal(await page.locator('#lifetimeMenu svg').getAttribute('viewBox'),'0 0 35.2051 16.3379');
+ assert.equal(await page.locator('#lifetimeMenu svg').getAttribute('viewBox'),'0 0 27.2804 24.1048');
  await page.keyboard.press('Escape'); assert.equal(await lifetime.getAttribute('aria-expanded'),'false');
  await lifetime.focus(); await page.keyboard.press('ArrowDown');
  assert.equal(await page.locator('#lifetimeMenu button').evaluate(el=>document.activeElement===el),true);
@@ -2502,4 +2503,24 @@ for (const width of [1440,390,320]) test('Lifetime matches Checklists sizing and
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await lifetime.click(); await page.locator('#appName').click();
  assert.equal(await lifetime.getAttribute('aria-expanded'),'false');
+});
+
+for (const width of [1440,390,320]) test('What’s New can be switched off and on persistently at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:900}});
+ await page.locator('#whatsNewDismissSeconds').fill('1'); await page.locator('#whatsNewDismissSeconds').dispatchEvent('change');
+ await page.locator('#whatsNewEnabled').uncheck();
+ assert.equal(await page.locator('#whatsNewBanner').isVisible(),false);
+ assert.equal(await page.locator('#whatsNewDismissSeconds').isDisabled(),true);
+ await page.waitForTimeout(1200);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().ui.seenReleaseVersion), '');
+ await page.reload();
+ assert.equal(await page.locator('#whatsNewBanner').isVisible(),false);
+ await page.locator('#supportButton').click();
+ assert.equal(await page.locator('#whatsNewEnabled').isChecked(),false);
+ await page.locator('#whatsNewEnabled').check();
+ assert.equal(await page.locator('#whatsNewBanner').isVisible(),true);
+ assert.equal(await page.locator('#whatsNewDismissSeconds').isDisabled(),false);
+ await page.locator('#whatsNewDismissSeconds').fill('300'); await page.locator('#whatsNewDismissSeconds').dispatchEvent('change');
+ await page.reload(); assert.equal(await page.locator('#whatsNewBanner').isVisible(),true);
+ await page.locator('#versionButton').click(); assert.equal(await page.locator('#releasesTab').getAttribute('aria-selected'),'true');
 });

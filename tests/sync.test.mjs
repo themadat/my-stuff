@@ -862,3 +862,17 @@ test('automatic failures show one actionable dialog per repeated reason', async 
   assert.equal(h.choices.length, 1);
   assert.match(h.choices[0].message, /GitHub temporarily unavailable/);
 });
+
+test('What’s New on/off defaults on, survives backups and stays local during cloud replacement',()=>{
+ const {App,state}=harness(),m=App.stateModel;
+ assert.equal(state.preferences.controls.whatsNewEnabled,true);
+ delete state.preferences.controls.whatsNewEnabled;
+ assert.equal(m.normalize(state).preferences.controls.whatsNewEnabled,true);
+ state.preferences.controls.whatsNewEnabled=false;
+ assert.equal(m.normalize(state).preferences.controls.whatsNewEnabled,false);
+ assert.equal(m.prepare(m.exportEnvelope(state)).state.preferences.controls.whatsNewEnabled,false);
+ const remote=m.prepareSync(m.syncPayload(m.createDefaultState())).state;
+ assert.equal(m.applySync(state,remote).preferences.controls.whatsNewEnabled,false);
+ assert.equal(m.resetPreferences(state).preferences.controls.whatsNewEnabled,true);
+ assert.doesNotMatch(JSON.stringify(m.syncPayload(state)),/whatsNewEnabled/);
+});
