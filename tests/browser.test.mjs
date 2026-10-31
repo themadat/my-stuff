@@ -415,13 +415,14 @@ test('service worker caches this release and inventory and Notes remain availabl
   assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Nook');
   await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
   await page.locator('#lifetimeButton').click();
-  await page.locator('[data-lifetime-starter="3D Printer"]').click();
+  await page.locator('#lifetimeMenu [data-lifetime-category]').first().click();
   await page.locator('#lifetimePurchaseForm [name="name"]').fill('Offline filament');
   await page.locator('#lifetimePurchaseForm [name="amount"]').fill('19.95');
   await page.locator('#lifetimePurchaseForm [name="kind"]').selectOption('consumable');
   await page.locator('#lifetimeSave').click();
   await page.evaluate(()=>window.LocalApp.storage.saveNow()); await page.reload();
   await page.locator('#lifetimeButton').click();
+  await page.locator('#lifetimeMenu [data-lifetime-category]').first().click();
   assert.match(await page.locator('#lifetimeHistory').textContent(),/Offline filament/);
   assert.match(await page.locator('#lifetimeTotal').textContent(),/\$19.95/);
   // Chromium can reset navigator.onLine on a worker-controlled navigation;
@@ -2451,8 +2452,8 @@ for (const width of [1440,390,320]) test('Lifetime category purchases, cents, ed
  const {page}=await fixture(t,{viewport:{width,height:900}});
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#lifetimeButton').click();
+ await page.locator('#lifetimeMenu [data-lifetime-category]').first().click();
  assert.equal(await page.locator('#lifetimeTab').getAttribute('aria-selected'),'true');
- await page.locator('[data-lifetime-starter="3D Printer"]').click();
  const form=page.locator('#lifetimePurchaseForm');
  await form.locator('[name="name"]').fill('Filament <blue>'); await form.locator('[name="amount"]').fill('24.95'); await form.locator('[name="kind"]').selectOption('consumable'); await form.locator('[name="date"]').fill('2026-10-30'); await form.locator('[name="notes"]').fill('<img src=x onerror=alert(1)>');
  await page.locator('#lifetimeSave').click();
@@ -2471,4 +2472,34 @@ for (const width of [1440,390,320]) test('Lifetime category purchases, cents, ed
  await page.locator('#lifetimeCategory').selectOption({label:'Bike · $9.95'});
  await page.locator('[data-lifetime-remove]').click(); await page.locator('[data-confirm-action]').click();
  assert.match(await page.locator('#lifetimeAllTotal').textContent(),/\$30.05/);
+});
+
+for (const width of [1440,390,320]) test('Lifetime matches Checklists sizing and dropdown controls at '+width, {timeout:30000}, async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:900},hasTouch:width<700,isMobile:width<700});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ const lifetime=page.locator('#lifetimeButton'), checklist=page.locator('#checklistButton');
+ const a=await lifetime.boundingBox(), b=await checklist.boundingBox();
+ assert.ok(Math.abs(a.width-b.width)<1,`widths ${a.width} and ${b.width}`);
+ assert.ok(Math.abs(a.height-b.height)<1,`heights ${a.height} and ${b.height}`);
+ assert.equal(await lifetime.locator('svg').getAttribute('viewBox'),'0 0 35.2051 16.3379');
+ if(width<700) {
+  await lifetime.tap(); await page.locator('#lifetimeMenu').waitFor({state:'visible'});
+  await lifetime.tap(); await page.locator('#lifetimeMenu').waitFor({state:'hidden'});
+  await lifetime.tap();
+ } else {
+  await lifetime.hover(); await page.locator('#lifetimeMenu').waitFor({state:'visible'});
+ }
+ assert.equal(await page.locator('#lifetimeMenu button').count(),1);
+ assert.equal(await page.locator('#lifetimeMenu button').innerText(),'3D Printer');
+ assert.equal(await page.locator('#lifetimeMenu svg').getAttribute('viewBox'),'0 0 35.2051 16.3379');
+ await page.keyboard.press('Escape'); assert.equal(await lifetime.getAttribute('aria-expanded'),'false');
+ await lifetime.focus(); await page.keyboard.press('ArrowDown');
+ assert.equal(await page.locator('#lifetimeMenu button').evaluate(el=>document.activeElement===el),true);
+ await page.keyboard.press('Enter');
+ assert.equal(await page.locator('#lifetimeTab').getAttribute('aria-selected'),'true');
+ assert.match(await page.locator('#lifetimeTotal').textContent(),/3D Printer/);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().lifetime.categories.length),1);
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await lifetime.click(); await page.locator('#appName').click();
+ assert.equal(await lifetime.getAttribute('aria-expanded'),'false');
 });

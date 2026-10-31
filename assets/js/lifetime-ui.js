@@ -36,6 +36,10 @@
     $("#lifetimeWorkspace").hidden = !current;
     $("#lifetimeEmpty").hidden = Boolean(current);
     $("#lifetimeAllTotal").textContent = "All categories: " + money(total(list.flatMap(function (entry) { return entry.purchases; })));
+    const options = list.length ? list : [{ id: "", name: "3D Printer" }];
+    $("#lifetimeMenu").innerHTML = options.map(function (entry) {
+      return '<button class="button" type="button" data-lifetime-category="' + esc(entry.id) + '">' + App.icons.markup("lifetime") + '<span>' + esc(entry.name) + '</span></button>';
+    }).join("");
     if (!current) return;
     $("#lifetimeRename").value = current.name;
     $("#lifetimeTotal").textContent = current.name + ": " + money(total(current.purchases)) + " · " + current.purchases.length + " purchases";
@@ -45,12 +49,53 @@
   }
   function init(open) {
     const root = $("#lifetimeContent");
-    root.innerHTML = '<p id="lifetimeAllTotal"></p><form id="lifetimeCategoryForm" class="lifetime-actions"><label class="field"><span>New category</span><input name="category" maxlength="300" required placeholder="3D Printer, Bike…"></label><button class="button" type="submit">Add Category</button></form><p id="lifetimeEmpty">Add a category to start tracking lifetime spending. Try <button class="button small" type="button" data-lifetime-starter="3D Printer">3D Printer</button> <button class="button small" type="button" data-lifetime-starter="Bike">Bike</button>.</p><div id="lifetimeWorkspace" hidden><label class="field"><span>Category</span><select id="lifetimeCategory"></select></label><form id="lifetimeRenameForm" class="lifetime-actions"><label class="field"><span>Category name</span><input id="lifetimeRename" maxlength="300" required></label><button class="button" type="submit">Rename</button><button id="lifetimeDeleteCategory" class="button" type="button">Remove Category</button></form><h4 id="lifetimeTotal"></h4><form id="lifetimePurchaseForm" class="lifetime-form"><label class="field"><span>Purchase</span><input name="name" maxlength="500" required></label><label class="field"><span>Amount ($)</span><input name="amount" type="number" min="0" max="999999999.99" step="0.01" required></label><label class="field"><span>Type</span><select name="kind"><option value="object">Object</option><option value="consumable">Consumable</option><option value="service">Service</option><option value="other">Other</option></select></label><label class="field"><span>Date (optional)</span><input name="date" type="date"></label><label class="field"><span>Seller (optional)</span><input name="seller" maxlength="300"></label><label class="field lifetime-notes"><span>Notes (optional)</span><textarea name="notes" rows="2"></textarea></label><div class="lifetime-actions"><button id="lifetimeSave" class="button primary" type="submit">Add Purchase</button><button id="lifetimeCancel" class="button" type="button" hidden>Cancel Edit</button></div></form><h4>Purchase history</h4><ul id="lifetimeHistory" class="lifetime-history"></ul></div><p id="lifetimeMessage" role="status" aria-live="polite"></p>';
+    root.innerHTML = '<p id="lifetimeAllTotal"></p><form id="lifetimeCategoryForm" class="lifetime-actions"><label class="field"><span>New category</span><input name="category" maxlength="300" required placeholder="3D Printer…"></label><button class="button" type="submit">Add Category</button></form><p id="lifetimeEmpty">Add a category to start tracking lifetime spending. Try <button class="button small" type="button" data-lifetime-starter="3D Printer">3D Printer</button>.</p><div id="lifetimeWorkspace" hidden><label class="field"><span>Category</span><select id="lifetimeCategory"></select></label><form id="lifetimeRenameForm" class="lifetime-actions"><label class="field"><span>Category name</span><input id="lifetimeRename" maxlength="300" required></label><button class="button" type="submit">Rename</button><button id="lifetimeDeleteCategory" class="button" type="button">Remove Category</button></form><h4 id="lifetimeTotal"></h4><form id="lifetimePurchaseForm" class="lifetime-form"><label class="field"><span>Purchase</span><input name="name" maxlength="500" required></label><label class="field"><span>Amount ($)</span><input name="amount" type="number" min="0" max="999999999.99" step="0.01" required></label><label class="field"><span>Type</span><select name="kind"><option value="object">Object</option><option value="consumable">Consumable</option><option value="service">Service</option><option value="other">Other</option></select></label><label class="field"><span>Date (optional)</span><input name="date" type="date"></label><label class="field"><span>Seller (optional)</span><input name="seller" maxlength="300"></label><label class="field lifetime-notes"><span>Notes (optional)</span><textarea name="notes" rows="2"></textarea></label><div class="lifetime-actions"><button id="lifetimeSave" class="button primary" type="submit">Add Purchase</button><button id="lifetimeCancel" class="button" type="button" hidden>Cancel Edit</button></div></form><h4>Purchase history</h4><ul id="lifetimeHistory" class="lifetime-history"></ul></div><p id="lifetimeMessage" role="status" aria-live="polite"></p>';
     const quick = document.createElement("button");
     quick.id = "lifetimeButton"; quick.type = "button"; quick.className = "button";
     quick.innerHTML = App.icons.markup("lifetime") + '<span>Lifetime</span>';
-    $(".checklist-quick").after(quick);
-    quick.addEventListener("click", function () { open(quick); });
+    const wrap = document.createElement("div");
+    wrap.className = "checklist-quick lifetime-quick";
+    wrap.append(quick);
+    $(".checklist-quick").after(wrap);
+    quick.setAttribute("aria-expanded", "false");
+    quick.setAttribute("aria-controls", "lifetimeMenu");
+    document.body.insertAdjacentHTML("beforeend", '<div id="lifetimeMenu" class="checklist-menu" aria-label="Lifetime categories" hidden></div>');
+    const menu = $("#lifetimeMenu");
+    let closeTimer, pinned = false;
+    function close() { pinned = false; clearTimeout(closeTimer); menu.hidden = true; quick.setAttribute("aria-expanded", "false"); }
+    function show() {
+      clearTimeout(closeTimer); menu.hidden = false; quick.setAttribute("aria-expanded", "true");
+      const rect = quick.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
+      menu.style.top = Math.min(rect.bottom, window.innerHeight - menu.offsetHeight - 8) + "px";
+    }
+    function contains(target) { return target && (wrap.contains(target) || menu.contains(target)); }
+    [wrap, menu].forEach(function (element) {
+      element.addEventListener("pointerenter", function (event) { if (event.pointerType !== "touch") show(); });
+      element.addEventListener("pointerleave", function (event) {
+        if (event.pointerType === "touch" || pinned) return;
+        closeTimer = setTimeout(function () { if (!contains(document.activeElement)) close(); }, 180);
+      });
+      element.addEventListener("focusout", function (event) { if (!pinned && !contains(event.relatedTarget)) close(); });
+    });
+    quick.addEventListener("click", function (event) {
+      if ((event.pointerType === "touch" || window.matchMedia("(hover: none)").matches) && pinned && !menu.hidden) { close(); return; }
+      pinned = true; show();
+    });
+    quick.addEventListener("keydown", function (event) { if (event.key === "ArrowDown") { event.preventDefault(); show(); menu.querySelector("button").focus({ preventScroll: true }); } });
+    document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !menu.hidden) { event.preventDefault(); close(); quick.focus(); } });
+    document.addEventListener("pointerdown", function (event) { if (!contains(event.target)) close(); });
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", function () { if (!menu.hidden) show(); }, true);
+    menu.addEventListener("click", function (event) {
+      const target = event.target.closest("[data-lifetime-category]"); if (!target) return;
+      let id = target.dataset.lifetimeCategory;
+      if (!id) {
+        id = u.uid("lifetime");
+        if (!change(function (list) { list.push({ id: id, name: "3D Printer", purchases: [] }); })) return;
+      }
+      selected = id; signature = ""; reset(); render(); close(); open(quick);
+    });
     $("#lifetimeCategoryForm").addEventListener("submit", function (event) {
       event.preventDefault();
       const name = u.cleanLine(this.elements.category.value, 300);

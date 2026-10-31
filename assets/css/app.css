@@ -1459,23 +1459,23 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 #checklistSettings summary { cursor: pointer; }
 
 .inventory-body.checklist-active { grid-template-columns: minmax(0,1fr); }
-.checklist-quick .button { height: 100%; }
+.checklist-quick .button { height: 100%; width: 7.5em; }
 
 .inventory-body.checklist-active .inventory-collection { grid-column: 1; padding-left: 0; }
 
 .checklist-ownership-actions { display: flex; align-items: stretch; gap: .25rem; }
 .checklist-ownership-actions #inventoryStats { margin-bottom: 0; }
-.checklist-quick #checklistButton, #resetChecklist { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .2rem; min-width: 52px; padding: .35rem .5rem; font-size: .65rem; }
+.checklist-quick #checklistButton, .checklist-quick #lifetimeButton, #resetChecklist { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .2rem; min-width: 52px; padding: .35rem .5rem; font-size: .65rem; }
 #resetChecklist[hidden] { display: none; }
-.checklist-quick #checklistButton .sf-symbol, #resetChecklist .sf-symbol { width: 22px; height: 22px; }
+.checklist-quick #checklistButton .sf-symbol, .checklist-quick #lifetimeButton .sf-symbol, #resetChecklist .sf-symbol { width: 22px; height: 22px; }
 .checklist-location h3 { margin: 1rem 0 0; padding: .65rem .75rem; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: .9rem; }
 @media(max-width:700px) {
  .checklist-ownership-actions { display: contents; }
- .checklist-quick { flex: 1 1 52px; }
- .checklist-quick #checklistButton { width: 100%; }
+ .checklist-quick { flex: 1 0 5rem; min-width: 5rem; }
+ .checklist-quick #checklistButton, .checklist-quick #lifetimeButton { width: 100%; }
 }
 .checklist-ownership-actions { align-items: flex-start; }
-.checklist-quick #checklistButton, #resetChecklist { box-sizing: border-box; height: var(--inventory-control-height); min-height: var(--inventory-control-height); }
+.checklist-quick #checklistButton, .checklist-quick #lifetimeButton, #resetChecklist { box-sizing: border-box; height: var(--inventory-control-height); min-height: var(--inventory-control-height); }
 .checklist-quick { align-self: flex-start; }
 
 /* Membership and tags precede copy totals in the object editor. */
@@ -1636,6 +1636,4 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .lifetime-purchase strong, .lifetime-purchase span { display: block; }
 .lifetime-purchase p { white-space: pre-wrap; }
 #lifetimeRenameForm { margin-top: 12px; }
-#lifetimeButton { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-#lifetimeButton svg { width: 24px; height: 24px; }
 @media (max-width: 480px) { .lifetime-form { grid-template-columns: minmax(0, 1fr); } }

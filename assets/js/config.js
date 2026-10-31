@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.105",
-      buildId: "0.0.1.105",
+      version: "0.0.1.106",
+      buildId: "0.0.1.106",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.106",
+  "date": "2026-10-31T04:00:20.161135Z",
+  "title": "Lifetime Category Dropdown",
+  "summary": "Match Lifetime and Checklists controls, with category dropdowns and the supplied infinity symbol.",
+  "features": [],
+  "improvements": [
+    "Lifetime and Checklists use matching button dimensions on desktop and mobile.",
+    "Lifetime category dropdown supports hover, click, touch and keyboard access, starting with 3D Printer.",
+    "The supplied infinity SVG appears on Lifetime and its category choices. Existing saved categories and purchases are preserved."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.105",
   "date": "2026-10-31T00:00:00.000Z",
   "title": "Lifetime Spending",
