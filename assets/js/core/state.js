@@ -11,6 +11,25 @@
     path: u.cleanLine(config.cloudSync.path || "data/my-stuff.json", 500).replace(/^\/+/, "")
   });
 
+  // Standalone spending records never create or alter inventory objects.
+  function normalizeLifetime(input) {
+    if (input === undefined) return { categories: [] };
+    if (!input || typeof input !== "object" || !Array.isArray(input.categories)) throw new Error("Invalid Lifetime categories.");
+    const ids = new Set();
+    return { categories: input.categories.map(function (category) {
+      if (!category || typeof category.id !== "string" || (!category.id || u.cleanLine(category.id, 100) !== category.id) || ids.has(category.id) || typeof category.name !== "string" || !category.name.trim() || !Array.isArray(category.purchases)) throw new Error("Invalid or duplicate Lifetime category.");
+      ids.add(category.id);
+      const purchases = new Set();
+      return { id: u.cleanLine(category.id, 100), name: u.cleanLine(category.name, 300), purchases: category.purchases.map(function (entry) {
+        if (!entry || typeof entry.id !== "string" || (!entry.id || u.cleanLine(entry.id, 100) !== entry.id) || purchases.has(entry.id) || typeof entry.name !== "string" || !entry.name.trim() || typeof entry.amount !== "number" || !Number.isFinite(entry.amount) || entry.amount < 0 || entry.amount > 999999999.99 || !["object", "consumable", "service", "other"].includes(entry.kind)) throw new Error("Invalid Lifetime purchase.");
+        purchases.add(entry.id);
+        const date = entry.date || "";
+        if (date && (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date + "T00:00:00Z")) || new Date(date + "T00:00:00Z").toISOString().slice(0, 10) !== date)) throw new Error("Invalid Lifetime purchase date.");
+        return { id: u.cleanLine(entry.id, 100), name: u.cleanLine(entry.name, 500), amount: Math.round(entry.amount * 100) / 100, kind: entry.kind, date: date, seller: u.cleanLine(entry.seller, 300), notes: u.cleanText(entry.notes) };
+      }) };
+    }) };
+  }
+
   function createDefaultState() {
     const now = u.isoNow();
     return {
@@ -24,6 +43,7 @@
       },
       notes: { text: "", updatedAt: now },
       inventory: App.inventoryModel.normalize(),
+      lifetime: normalizeLifetime(),
       preferences: {
         appearance: Object.assign({ mode: "system", textScale: 1 }, config.themeDefaults),
         controls: {
@@ -99,6 +119,7 @@
         updatedAt: u.ensureIso(notes.updatedAt, meta.updatedAt || now)
       },
       inventory: App.inventoryModel.normalize(source.inventory, Array.isArray(preferences.favoriteBrands) ? preferences.favoriteBrands.filter(function (name) { return typeof name === "string"; }) : []),
+      lifetime: normalizeLifetime(source.lifetime),
       preferences: {
         appearance: {
           mode: ["system", "light", "dark"].includes(appearance.mode) ? appearance.mode : "system",
@@ -127,7 +148,7 @@
       ui: {
         search: u.cleanLine(ui.search, 200),
         seenReleaseVersion: u.cleanLine(ui.seenReleaseVersion, 32),
-        supportTab: ["settings", "checklists", "inventory", "data-sync", "help", "releases", "roadmap", "shortcuts", "developer"].includes(ui.supportTab) ? ui.supportTab : "settings"
+        supportTab: ["settings", "checklists", "lifetime", "inventory", "data-sync", "help", "releases", "roadmap", "shortcuts", "developer"].includes(ui.supportTab) ? ui.supportTab : "settings"
       },
       modules: {
         roadmap: {
@@ -206,11 +227,11 @@
   }
 
   function syncPayload(state) {
-    const normalized = normalize(state), data = { inventory: normalized.inventory, favoriteBrands: normalized.preferences.favoriteBrands.slice().sort(function (a,b) { return a.localeCompare(b); }) };
+    const normalized = normalize(state), data = { inventory: normalized.inventory, lifetime: normalized.lifetime, favoriteBrands: normalized.preferences.favoriteBrands.slice().sort(function (a,b) { return a.localeCompare(b); }) };
     data.inventory.items.sort(function (a, b) { return a.id.localeCompare(b.id); });
     if (normalized.notes.text) data.notes = normalized.notes.text;
-    // Schema 8 protects backpacking bags from older clients that do not retain them.
-    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: normalized.inventory.backpacking ? 8 : 7, data: data };
+    // Schema 9 prevents older clients from dropping Lifetime spending records.
+    return { syncFormat: "local-first-app-data", syncVersion: 1, schemaVersion: 9, data: data };
   }
 
   function syncHash(state) { return "data-v3:" + u.fingerprint(syncPayload(state)); }
@@ -225,16 +246,19 @@
       const prepared = prepare(input);
       if (!source.inventory) prepared.state.syncNotesOnly = true;
       prepared.state.syncFavoritesMissing = true;
+      prepared.state.syncLifetimeMissing = source.lifetime === undefined;
       return Object.assign({}, prepared, { legacy: true });
     }
-    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6, 7, 8].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
+    if (input.syncFormat !== "local-first-app-data" || input.syncVersion !== 1 || ![5, 6, 7, 8, 9].includes(input.schemaVersion)) throw new Error("This cloud data uses an unsupported format or version.");
     const data = input.data;
-    const keys = input.schemaVersion === 5 ? ["notes"] : input.schemaVersion === 6 ? ["notes", "inventory"] : ["notes", "inventory", "favoriteBrands"];
+    const keys = input.schemaVersion === 5 ? ["notes"] : input.schemaVersion === 6 ? ["notes", "inventory"] : ["notes", "inventory", "favoriteBrands"].concat(input.schemaVersion >= 9 ? ["lifetime"] : []);
     if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).some(function (key) { return !keys.includes(key); })) throw new Error("The cloud data contains unsupported content.");
     if ("notes" in data && (typeof data.notes !== "string" || data.notes.length > config.controls.maxTextLength)) throw new Error("Cloud Notes are invalid or too large.");
     if (input.schemaVersion >= 6 && !data.inventory) throw new Error("Cloud inventory is missing.");
     if (input.schemaVersion >= 7 && (!Array.isArray(data.favoriteBrands) || data.favoriteBrands.length > 200 || data.favoriteBrands.some(function (name) { return typeof name !== 'string' || !name.trim() || name.length > 300; }))) throw new Error("Cloud brand favorites are invalid.");
-    const state = normalize({ notes: { text: data.notes || "" }, inventory: data.inventory, preferences: {favoriteBrands: data.favoriteBrands || []} });
+    if (input.schemaVersion >= 9 && !data.lifetime) throw new Error("Cloud Lifetime data is missing.");
+    const state = normalize({ notes: { text: data.notes || "" }, lifetime: data.lifetime, inventory: data.inventory, preferences: {favoriteBrands: data.favoriteBrands || []} });
+    if (input.schemaVersion < 9) state.syncLifetimeMissing = true;
     if (input.schemaVersion < 7) state.syncFavoritesMissing = true;
     if (input.schemaVersion === 5) state.syncNotesOnly = true;
     return { state: state, legacy: input.schemaVersion < 7, contentOnly: true, migrations: [], validation: validate(state) };
@@ -243,6 +267,7 @@
   function applySync(localState, remoteState) {
     const next = normalize(localState);
     next.notes = normalize(remoteState).notes;
+    if (!remoteState.syncLifetimeMissing && !remoteState.syncNotesOnly) next.lifetime = normalizeLifetime(remoteState.lifetime);
     if (!remoteState.syncFavoritesMissing && !remoteState.syncNotesOnly) next.preferences.favoriteBrands = normalize(remoteState).preferences.favoriteBrands;
     if (!remoteState.syncNotesOnly) next.inventory = normalize(remoteState).inventory;
     return normalize(touch(next));
@@ -252,6 +277,18 @@
     const local = normalize(localState), remote = normalize(remoteState);
     if (local.notes.text && remote.notes.text && local.notes.text !== remote.notes.text) throw new Error("Notes differ. Choose which copy to keep.");
     const next = applySync(local, local.notes.text ? local : remote);
+    if (remoteState.syncLifetimeMissing || remoteState.syncNotesOnly) next.lifetime = local.lifetime;
+    else if (!local.lifetime.categories.length) next.lifetime = remote.lifetime;
+    else if (!remote.lifetime.categories.length) next.lifetime = local.lifetime;
+    else {
+      // Union independent categories; require a choice if the same category differs.
+      const categories = new Map(local.lifetime.categories.map(function (category) { return [category.id, category]; }));
+      remote.lifetime.categories.forEach(function (category) {
+        if (categories.has(category.id) && JSON.stringify(categories.get(category.id)) !== JSON.stringify(category)) throw new Error("Lifetime purchases differ. Choose which copy to keep.");
+        categories.set(category.id, category);
+      });
+      next.lifetime = { categories: Array.from(categories.values()) };
+    }
     next.inventory = remoteState.syncNotesOnly ? local.inventory : App.inventoryModel.merge(local.inventory, remote.inventory);
     next.preferences.favoriteBrands = Array.from(new Map(local.preferences.favoriteBrands.concat(remoteState.syncFavoritesMissing || remoteState.syncNotesOnly ? [] : remote.preferences.favoriteBrands).map(function (name) { return [name.toLowerCase(),name]; })).values());
     return normalize(next);

@@ -101,7 +101,7 @@ test('current and archived inventory round trip through backup, cloud and recove
   const expected = JSON.stringify(h.state.inventory), hash = model.syncHash(h.state);
   assert.equal(JSON.stringify(model.prepare(model.exportEnvelope(h.state)).state.inventory), expected);
   const payload = model.syncPayload(h.state);
-  assert.equal(payload.schemaVersion, 7); assert.equal(payload.data.inventory.items.length, 2);
+  assert.equal(payload.schemaVersion, 9); assert.equal(payload.data.inventory.items.length, 2);
   assert.doesNotMatch(JSON.stringify(payload), /test-token|preferences|cloudSync|baseline/);
   const prepared = model.prepareSync(payload);
   h.remote = prepared.state; h.remote.preferences.appearance.mode = 'dark';
@@ -388,7 +388,7 @@ test('first upload still requires a choice; a synchronized copy needs no write',
 test('empty inventories sync only content, independent of device, UI, or save metadata', () => {
   const h = harness(), model = h.App.stateModel;
   const original = JSON.stringify(model.syncPayload(h.state));
-  assert.deepEqual(JSON.parse(original), { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 7, data: { inventory: { currency: 'USD', items: [] }, favoriteBrands: [] } });
+  assert.deepEqual(JSON.parse(original), { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 9, data: { inventory: { currency: 'USD', items: [] }, lifetime: { categories: [] }, favoriteBrands: [] } });
   assert.ok(Buffer.byteLength(JSON.stringify(model.syncPayload(h.state), null, 2)) < 250);
   h.App.storage.mutate(state => {
     state.preferences.appearance.mode = 'dark'; state.ui.search = 'cloud'; state.ui.supportTab = 'storage';
@@ -433,7 +433,7 @@ test('legacy whole-state files migrate without false conflicts and compact on ex
   assert.ok(h.requests.every(request => request.options.method !== 'PUT'));
   await h.sync.syncNow();
   const written = JSON.parse(Buffer.from(JSON.parse(h.requests.find(r => r.options.method === 'PUT').options.body).content, 'base64').toString());
-  assert.deepEqual(written.data, { inventory: { currency: 'USD', items: [] }, favoriteBrands: [] });
+  assert.deepEqual(written.data, { inventory: { currency: 'USD', items: [] }, lifetime: { categories: [] }, favoriteBrands: [] });
   assert.equal(written.syncVersion, 1);
   assert.equal(h.state.preferences.appearance.mode, 'system');
 });
@@ -778,7 +778,7 @@ test('backpacking bag entries checkmarks and subcategories round trip backup and
  h.state.inventory.backpacking={entries:[{id:'meal',name:'Dinner',date:'2026-10-04',price:5,weight:0.123456,notes:'Warm meal',category:'Food/Water',subcategory:'Meals',level:''}],checked:['object:'+h.state.inventory.items[0].id,'entry:meal']};
  const normalized=model.normalize(h.state),expected=JSON.stringify(normalized.inventory.backpacking);
  assert.equal(JSON.stringify(model.prepare(model.exportEnvelope(h.state)).state.inventory.backpacking),expected);
- const payload=model.syncPayload(h.state);assert.equal(payload.schemaVersion,8);assert.equal(payload.data.inventory.backpacking.checked.length,2);
+ const payload=model.syncPayload(h.state);assert.equal(payload.schemaVersion,9);assert.equal(payload.data.inventory.backpacking.checked.length,2);
  assert.equal(JSON.stringify(model.prepareSync(payload).state.inventory.backpacking),expected);
  const before=model.syncHash(h.state);h.state.inventory.backpacking.entries[0].notes='Changed';assert.notEqual(model.syncHash(h.state),before);
  assert.equal(model.prepareSync(payload).state.inventory.backpacking.entries[0].weight,0.123456);

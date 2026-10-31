@@ -520,6 +520,7 @@
   function init() {
     storage.load();
     App.inventoryUI.init();
+    App.lifetimeUI.init(function (trigger) { openSupport("lifetime", trigger); });
     App.inventoryCatalog.init();
     App.bulkEntry.init();
     App.icons.mount();

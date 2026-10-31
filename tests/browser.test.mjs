@@ -414,6 +414,16 @@ test('service worker caches this release and inventory and Notes remain availabl
   assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.backpacking.checked[0]),'entry:offline-food');
   assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().inventory.items[0].room), 'Nook');
   await page.waitForFunction(() => document.querySelector('#appIcon').complete && document.querySelector('#appIcon').naturalWidth > 0);
+  await page.locator('#lifetimeButton').click();
+  await page.locator('[data-lifetime-starter="3D Printer"]').click();
+  await page.locator('#lifetimePurchaseForm [name="name"]').fill('Offline filament');
+  await page.locator('#lifetimePurchaseForm [name="amount"]').fill('19.95');
+  await page.locator('#lifetimePurchaseForm [name="kind"]').selectOption('consumable');
+  await page.locator('#lifetimeSave').click();
+  await page.evaluate(()=>window.LocalApp.storage.saveNow()); await page.reload();
+  await page.locator('#lifetimeButton').click();
+  assert.match(await page.locator('#lifetimeHistory').textContent(),/Offline filament/);
+  assert.match(await page.locator('#lifetimeTotal').textContent(),/\$19.95/);
   // Chromium can reset navigator.onLine on a worker-controlled navigation;
   // verify the transport is actually offline independently of that indicator.
   assert.equal(await page.evaluate(async () => { try { await fetch('/uncached-offline-probe-' + Date.now()); return false; } catch { return true; } }), true);
@@ -2435,4 +2445,30 @@ test('sync failures explain recovery limits and overwrite saves latest raw GitHu
     await page.locator('#overwriteCloudButton').click(); await page.locator('[data-confirm-cancel]').click();
     assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().notes.text), 'Latest GitHub ☁️ <literal>');
   }
+});
+
+for (const width of [1440,390,320]) test('Lifetime category purchases, cents, editing and persistence at '+width, {timeout:30000}, async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:900}});
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#lifetimeButton').click();
+ assert.equal(await page.locator('#lifetimeTab').getAttribute('aria-selected'),'true');
+ await page.locator('[data-lifetime-starter="3D Printer"]').click();
+ const form=page.locator('#lifetimePurchaseForm');
+ await form.locator('[name="name"]').fill('Filament <blue>'); await form.locator('[name="amount"]').fill('24.95'); await form.locator('[name="kind"]').selectOption('consumable'); await form.locator('[name="date"]').fill('2026-10-30'); await form.locator('[name="notes"]').fill('<img src=x onerror=alert(1)>');
+ await page.locator('#lifetimeSave').click();
+ assert.match(await page.locator('#lifetimeTotal').textContent(),/\$24.95/); assert.equal(await page.locator('#lifetimeHistory img').count(),0);
+ await page.locator('[data-lifetime-edit]').click(); await form.locator('[name="amount"]').fill('30.05'); await page.locator('#lifetimeSave').click();
+ await page.locator('#lifetimeCategoryForm input').fill('Bike'); await page.locator('#lifetimeCategoryForm button').click();
+ await form.locator('[name="name"]').fill('Chain lubricant'); await form.locator('[name="kind"]').selectOption('consumable'); await form.locator('[name="amount"]').fill('9.95'); await page.locator('#lifetimeSave').click();
+ assert.match(await page.locator('#lifetimeAllTotal').textContent(),/\$40.00/);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),0);
+ await page.evaluate(()=>window.LocalApp.storage.saveNow()); await page.reload();
+ await page.locator('#supportButton').click(); await page.locator('#lifetimeTab').click();
+ assert.match(await page.locator('#lifetimeAllTotal').textContent(),/\$40.00/);
+ const data=await page.evaluate(()=>{const a=window.LocalApp; return a.stateModel.prepare(a.stateModel.exportEnvelope(a.storage.getState())).state.lifetime;});
+ assert.equal(data.categories[0].purchases[0].kind,'consumable'); assert.equal(data.categories[0].purchases[0].amount,30.05);
+ assert.equal(await page.locator('#lifetimePanel').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ await page.locator('#lifetimeCategory').selectOption({label:'Bike · $9.95'});
+ await page.locator('[data-lifetime-remove]').click(); await page.locator('[data-confirm-action]').click();
+ assert.match(await page.locator('#lifetimeAllTotal').textContent(),/\$30.05/);
 });

@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.104",
-      buildId: "0.0.1.104",
+      version: "0.0.1.105",
+      buildId: "0.0.1.105",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,21 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.105",
+  "date": "2026-10-31T00:00:00.000Z",
+  "title": "Lifetime Spending",
+  "summary": "Track lifetime purchase costs by category, including consumables and services outside inventory.",
+  "features": [
+    "Lifetime beside Checklists opens category purchase histories and spending totals.",
+    "Create and rename categories such as 3D Printer or Bike; add, edit and remove purchases with amounts, types, dates, sellers and notes.",
+    "Lifetime records are included in local backups, optional GitHub Sync and offline use."
+  ],
+  "improvements": [
+    "Cloud schema 9 protects Lifetime data from older clients; older cloud copies preserve local Lifetime records."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.104",
   "date": "2026-10-12",
   "title": "Reliable GitHub downloads and actionable sync failures",

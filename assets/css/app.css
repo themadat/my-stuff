@@ -1622,3 +1622,20 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 #roomOverview .location-overview-heading h2 { position:static; flex:1; margin:0; padding:.05rem 0; font-size:.75rem; }
 #locationReviewTotal { flex:none; text-align:right; white-space:nowrap; line-height:1.2; padding-bottom:.05rem; }
 .location-jump[data-selected="true"] { outline:1px solid #fff; outline-offset:-1px; border-radius:4px; }
+
+/* Lifetime spending */
+#lifetimeContent { min-width: 0; }
+.lifetime-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.lifetime-actions .field { flex: 1 1 180px; min-width: 0; }
+.lifetime-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lifetime-form .field { min-width: 0; }
+.lifetime-notes, .lifetime-form > .lifetime-actions { grid-column: 1 / -1; }
+.lifetime-history { list-style: none; padding: 0; }
+.lifetime-purchase { display: flex; flex-wrap: wrap; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.lifetime-purchase > div:first-child { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.lifetime-purchase strong, .lifetime-purchase span { display: block; }
+.lifetime-purchase p { white-space: pre-wrap; }
+#lifetimeRenameForm { margin-top: 12px; }
+#lifetimeButton { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+#lifetimeButton svg { width: 24px; height: 24px; }
+@media (max-width: 480px) { .lifetime-form { grid-template-columns: minmax(0, 1fr); } }
