@@ -1056,7 +1056,7 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
  .inventory-toolbar-scroll .inventory-actions { grid-column: 1 / -1; grid-row: 4; display: flex; flex-wrap: wrap; align-items: stretch; gap: .25rem; min-width: 0; }
  .inventory-toolbar-scroll .inventory-actions #inventoryStats { display: contents; }
  .inventory-actions > .button, .inventory-actions .inventory-stat[data-expanded="false"] { flex: 1 1 44px; min-width: 44px; width: auto; min-height: 44px; padding-inline: .25rem; }
- .inventory-actions .inventory-stat[data-expanded="true"] { flex: 1 1 260px; min-width: 260px; max-width: 100%; width: auto; grid-template-columns: 40px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)) 24px; }
+ .inventory-actions .inventory-stat[data-expanded="true"] { flex: 0 0 auto; min-width: 0; max-width: 100%; width: max-content; grid-template-columns: var(--ownership-columns); }
  .inventory-actions .inventory-stat-label { align-self: center; }
 }
 
@@ -1064,10 +1064,10 @@ main { padding-bottom: calc(.3rem + var(--safe-bottom)); }
 .ownership-select { display: flex; flex-direction: column; align-items: inherit; gap: .1rem; }
 .ownership-toggle { grid-column: 5; grid-row: 1 / 3; align-self: stretch; min-width: 24px; min-height: 44px; font-size: 1rem; }
 .ownership-toggle[aria-expanded="true"] { transform: rotate(180deg); }
-@media(max-width:700px) { .inventory-stat[data-expanded="false"] { flex-direction: column; gap: 0; } .inventory-stat[data-expanded="false"] .ownership-toggle { min-height: 24px; width: 100%; } }
+@media(max-width:700px) { .inventory-actions .inventory-stat[data-expanded="false"] { flex: 0 0 auto; } .inventory-stat[data-expanded="false"] { flex-direction: column; gap: 0; } .inventory-stat[data-expanded="false"] .ownership-toggle { min-height: 24px; width: 100%; } }
 
 /* Compact ownership and item editing. */
-.inventory-heading .inventory-stat { --ownership-gap: .2rem; grid-template-columns: 40px 5.2em max(4ch,var(--stat-count-width,4ch)) max(10ch,var(--stat-money-width,10ch)) 24px; }
+.inventory-heading .inventory-stat { --ownership-gap: .2rem; --ownership-columns: 40px 3.8em max(2ch,var(--stat-count-width,2ch)) max(5ch,var(--stat-money-width,5ch)) 24px; min-width: 0; grid-template-columns: var(--ownership-columns); }
 .inventory-heading .inventory-stat-label { width: 40px; }
 .inventory-heading .inventory-stat-label, .ownership-select { align-items: center; text-align: center; }
 .ownership-select { width: 100%; }
