@@ -68,7 +68,7 @@ test('shoe geometry preserves heel-to-toe stacks and independent drop measuremen
  assert.equal(shoe.properties[0].value,'');assert.equal(shoe.properties[1].value,'6');
  const row=value=>[m.normalizeItem({...base,properties:[{name:'Stack Height',value,unit:'mm'}]})];
  assert.ok(m.compareRows(row('9->5'),row('31->25'),'stack height','ascending')<0);
- assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Matter (Wi-Fi)','Matter (Thread)','BLE','UWB','NFC','Inactive']);
+ assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Infrared (IR)','Bluetooth','Matter (Wi-Fi)','Matter (Thread)','BLE','UWB','NFC','Inactive']);
  assert.ok(app.config.inventory.tagGroups.find(g=>g.name==='Systems').tags.includes('Network'));
 });
 

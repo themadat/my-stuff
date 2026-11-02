@@ -1857,11 +1857,11 @@ test('shoe stack/drop input and Network dropdown persist on desktop and mobile',
  await page.locator('#clearInventoryFilters').click();
  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.locator('#itemName').fill('Network sensor');await page.getByRole('button',{name:'Apply Network Property Set',exact:true}).click();
- assert.equal(await page.locator('[data-connection]').count(),14);
- await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('#saveItemButton').click();
+ assert.equal(await page.locator('[data-connection]').count(),15);
+ await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('[data-connection="Infrared (IR)"]').click();await page.locator('#saveItemButton').click();await page.reload();
  await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).locator('[data-edit-item]').click();
- assert.equal(await property('Connection Type').inputValue(),'Wi-Fi 5.0 GHz | BLE');
- await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('[data-connection="Inactive"]').click();await page.locator('#saveItemButton').click();
+ assert.equal(await property('Connection Type').inputValue(),'Wi-Fi 5.0 GHz | Infrared (IR) | BLE');
+ await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('[data-connection="Infrared (IR)"]').click();await page.locator('[data-connection="Inactive"]').click();await page.locator('#saveItemButton').click();
  await page.reload();assert.match(await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).innerText(),/Connection Type: Inactive/);
  assert.equal(await page.locator('[aria-label="Filter by Network"] svg').getAttribute('viewBox'),'0 0 26.6943 26.3477');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -2756,6 +2756,7 @@ for(const width of [1920,390,320]) test('Add fills viewport and Lifetime toggle 
  if(await page.locator('#supportDialog').evaluate(el=>el.open)) await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#addItemButton').click();
  const box=await page.locator('#itemDialog').boundingBox();assert.equal(box.x,0);assert.equal(box.y,0);assert.equal(box.width,width);assert.equal(box.height,1000);
+ const layout=await page.locator('.item-checklists-tags-row').evaluate(el=>{const checklist=el.querySelector('.item-checklists').getBoundingClientRect(),lifetime=el.querySelector('.item-lifetime').getBoundingClientRect(),tags=el.querySelector('.item-tag-area').getBoundingClientRect();return {beside:checklist.right<=lifetime.left+1,aligned:Math.abs(checklist.top-lifetime.top)<2,tagsBelow:tags.top>=Math.max(checklist.bottom,lifetime.bottom)};});assert.deepEqual(layout,{beside:true,aligned:true,tagsBelow:true});
  const toggle=page.locator('#itemLifetimeKindToggle');await toggle.click();assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'consumable');assert.equal(await toggle.getAttribute('aria-pressed'),'true');
  await toggle.click();assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'object');
  const row=await page.locator('.item-lifetime-controls').evaluate(el=>{const a=el.querySelector('button').getBoundingClientRect(),b=el.querySelector('details').getBoundingClientRect();return {beside:a.right<=b.left+1,aligned:Math.abs(a.top-b.top)<2};});assert.deepEqual(row,{beside:true,aligned:true});

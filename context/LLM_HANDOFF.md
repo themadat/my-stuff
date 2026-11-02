@@ -1,24 +1,17 @@
-# Current handoff
+# Current state
 
-## State
+Build 0.0.1.117 is prepared, verified, and uncommitted. Checklists and Lifetime share a horizontal row in the object editor at all widths; Tags occupies its own full-width row below. Existing desktop/mobile editor tests assert section alignment and Tags placement at 1920, 390, and 320 pixels (including enlarged text).
 
-Release **0.0.1.115** prepared and verified, uncommitted/unpushed. Working tree was clean at task start. No unfinished implementation work.
+Prior uncommitted build 0.0.1.116 changes are preserved: Infrared (IR) Network choice, current Help update, and save/reload browser coverage.
 
-Add/Edit now fills the available viewport in both dimensions, with a scrolling body between the header and footer. Lifetime uses a one-click Object/Consumable toggle and an adjacent category dropdown. Existing categories, Not included and New category remain available; a new category's name appears in the control while typed. Hidden fields retain the same editor/draft values; no storage schema changed. Consumables require a category before any save or conversion confirmation.
+Verification: all 193 non-browser tests and 4 browser checks passed (three editor sizes and service-worker offline reload). `git diff --check` passed. Preview server stopped. No commit or push performed.
 
-Lifetime categories and item tag groups share hover/click behavior: hover opens, click pins, another click closes, and Escape/outside click closes. Touch toggles without relying on hover. Keyboard focus and menu positioning are preserved. Controls remain side by side at 320px/130% text; narrow-screen category text uses compact readable controls.
+# Constraints and pointers
 
-## Verification
+Static local-first app; no runtime dependencies or required build. Preserve storage, recovery/import, optional GitHub Sync and PWA behavior. Follow AGENTS.md. Do not commit/push without explicit request.
 
-193 non-browser checks and 16 relevant release browser flows passed. Coverage includes full viewport sizing at 1920/390/320px, 320px at 130% text, mouse hover/pinning, real touch toggles, category/type persistence, new category labels and escaping, required category validation, existing Lifetime object/consumable saves and conversion recovery, bulk pause/resume, tag selection/search/Escape, single-copy editor, wide item form and service-worker offline reload. Desktop and enlarged mobile screenshots inspected. Diff whitespace passed. No real GitHub data changed. Preview stopped.
+Connection choices and Help: `assets/js/config.js`. Network normalization: `assets/js/core/inventory.js`. Tests: `tests/inventory-details.test.mjs`, `tests/browser.test.mjs`. Verification and release commands: `docs/DEVELOPMENT.md`.
 
-## Pointers and constraints
+Node runtime: `/Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`. Playwright module: `/Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs`. Browser checks need local preview on port 8765 and escalation for localhost/Chromium in this environment.
 
-- Editor: assets/js/inventory-ui.js, initItemMenu(), positionItemTagPopup(), initChecklists() Lifetime controls, syncItemLifetime(), openItem()/saveItem().
-- CSS: assets/css/app.css, item-lifetime-controls/menu plus final #itemDialog viewport rules.
-- Tests: tests/browser.test.mjs. Lifetime helpers now operate the toggle and category menu instead of native selects.
-- Release/cache surfaces aligned once with scripts/release.mjs. Do not bump again for this batch.
-- Node: /Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node. Playwright: sibling node/node_modules/playwright/index.mjs.
-- Browser log: /tmp/my-stuff-full-add-release-browser.log. Non-browser log: /var/folders/0b/9tnrd3bx12d0xymx11rpxgnr0000gn/T/my-stuff-check-lAHduD/results.log.
-- Screenshots: /tmp/my-stuff-full-add-lifetime-{1920,320}.png and /tmp/my-stuff-full-add-tags-{1920,320}.png.
-- docs/DEVELOPMENT.md describes checks. Preserve local-first storage/recovery/import/sync/PWA. No commit/push without explicit instruction; stage only this batch's files.
+No unfinished implementation work.
