@@ -31,6 +31,7 @@
   function reconcile() {
     if (!queue) return;
     const ids = new Set(App.storage.getState().inventory.items.map(function (item) { return item.id; }));
+    App.storage.getState().lifetime.categories.forEach(function (category) {category.purchases.forEach(function (purchase) {if (purchase.kind==='consumable') ids.add(purchase.id);});});
     if (queue.rows.some(function (r) { return r.status !== 'saved' && ids.has(r.id); })) {
       if (!App.storage.saveNow()) throw new Error('A reviewed object has not reached browser storage yet. Keep this page open and try again after freeing storage.');
       const next = u.clone(queue); next.rows.forEach(function (r) { if (ids.has(r.id)) r.status = 'saved'; }); persist(next);
@@ -94,7 +95,7 @@
   function skip() {
     try { saveDraft(); const ids = new Set(reviewCopies().map(function (r) { return r.id; })), next = u.clone(queue); next.rows.forEach(function (r) { if (ids.has(r.id)) r.status = 'skipped'; }); persist(next); advance(); } catch (e) { error(e.message); }
   }
-  function accept(item, count, locations) {
+  function accept(item, count, locations, lifetime) {
     saveDraft(); const current = row(); if (!current) throw new Error('No bulk row is being reviewed.');
     const members = reviewCopies(current), memberIds = new Set(members.map(function (r) { return r.id; }));
     if (queue.rows.length - members.length + count > 500) throw new Error('These copies would exceed the 500-object review limit.');
@@ -109,13 +110,29 @@
     });
     if (members.some(function (member) { return existing.some(function (saved) { return saved.id === member.id; }) && !copies.some(function (copy) { return copy.id === member.id; }); })) throw new Error('Some copies have already been saved. Pause and resume before changing their count.');
     const additions = copies.filter(function (copy) { return !existing.some(function (entry) { return entry.id === copy.id; }); });
-    if (existing.length + additions.length > 5000) throw new Error('These copies would exceed the 5,000-item inventory limit.');
+    const consumable=lifetime?.kind==='consumable';
+    if (!consumable && existing.length + additions.length > 5000) throw new Error('These copies would exceed the 5,000-item inventory limit.');
+    const purchases=lifetime?App.stateModel.itemLifetime(App.storage.getState(),copies,lifetime,[]):null;
+    const prepared=u.clone(App.storage.getState());
+    const updateState=function (state) {
+      if (!consumable) state.inventory.items.push(...additions);
+      if (purchases) state.lifetime=purchases;
+      (lifetime?.checklists || []).forEach(function (key) {
+        if (!state.inventory.checklists) state.inventory.checklists={};
+        const list=state.inventory.checklists[key] || {objects:[],entries:[],checked:[]};
+        if (consumable) copies.forEach(function (copy) {if (!list.entries.some(function (entry) {return entry.id===copy.id;})) list.entries.push({id:copy.id,text:u.cleanLine(copy.name,500)});});
+        else list.objects=Array.from(new Set(list.objects.concat(copies.map(function (copy) {return copy.id;}))));
+        state.inventory.checklists[key]=list;
+      });
+    };
+    updateState(prepared);
+    const validated=App.stateModel.normalize(prepared);
     // Persist all identities before writing inventory so retries/reloads cannot duplicate copies.
     const nextQueue = u.clone(queue), index = nextQueue.rows.findIndex(function (entry) { return entry.id === current.id; });
     nextQueue.rows = nextQueue.rows.filter(function (entry) { return !memberIds.has(entry.id); });
     const rows = copies.map(function (copy,i) { return Object.assign({},u.clone(current),{id:copy.id,copy:(i+1)+' of '+count,draft:Object.assign({},current.draft,copy,{_copies:count,_copyLocations:locations || [],_priceMode:'each'})}); });
     nextQueue.rows.splice(index,0,...rows); persist(nextQueue);
-    if (additions.length) App.storage.mutate(function (state) { state.inventory.items.push(...additions); }, {reason:'inventory-save'});
+    if (additions.length || purchases) App.storage.mutate(function (state) {state.inventory=validated.inventory;state.lifetime=validated.lifetime;}, {reason:'inventory-save'});
     if (!App.storage.saveNow()) throw new Error('These copies are only in memory because browser storage failed. Keep this page open and try saving again.');
     const savedIds = new Set(copies.map(function (copy) { return copy.id; })), done = u.clone(queue);
     done.rows.forEach(function (entry) { if (savedIds.has(entry.id)) entry.status = 'saved'; });

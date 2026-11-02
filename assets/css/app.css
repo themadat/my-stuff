@@ -1488,7 +1488,10 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .checklist-quick { align-self: flex-start; }
 
 /* Membership and tags precede copy totals in the object editor. */
-.item-checklists-tags-row { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .65rem; align-items: start; }
+.item-checklists-tags-row { display: grid; grid-template-columns: minmax(120px,.6fr) minmax(170px,.8fr) minmax(0,1.6fr); gap: .65rem; align-items: start; }
+.item-lifetime { display: grid; gap: .35rem; margin: 0; padding: .35rem .5rem; align-self: stretch; }
+.item-lifetime .field, .item-lifetime small { font-size: .75rem; }
+.item-lifetime select, .item-lifetime input { width: 100%; min-width: 0; }
 .item-checklists-tags-row > * { min-width: 0; }
 .item-checklists-tags-row .item-checklists { margin: 0; padding: .35rem .5rem; gap: .5rem; }
 .item-checklists-tags-row .item-checklists label { font-size: .75rem; gap: .3rem; }
@@ -1498,14 +1501,15 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 .item-editor-notes textarea { width: 100%; min-height: var(--control-height); }
 #itemDialog [data-category-preset] .preset-description { display: flex; align-self: stretch; align-items: center; line-height: normal; }
 @media(max-width:700px) {
- .item-checklists-tags-row { grid-template-columns: minmax(95px,.6fr) minmax(0,1.4fr); gap: .4rem; }
+ .item-checklists-tags-row { grid-template-columns: minmax(112px,.75fr) minmax(0,1.25fr); gap: .4rem; }
+ .item-checklists-tags-row .item-tag-area { grid-column: 1 / -1; }
  .item-checklists-tags-row .item-checklists { flex-direction: column; gap: .35rem; }
  .item-tag-area { grid-template-columns: minmax(85px,1fr) minmax(0,1fr); gap: .3rem; }
  .item-tag-area .tag-order-hint { overflow-wrap: anywhere; }
 }
 .item-tag-area > label { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; font-size: .75rem; font-weight: 700; }
 .item-tag-area > .picker, .item-tag-area > .selected-tags { grid-row: 2; }
-.item-checklists-tags-row .item-checklists { align-self: end; }
+.item-checklists-tags-row .item-checklists { align-self: start; }
 
 #itemDialog .item-location-description-row { grid-template-columns: repeat(3,minmax(0,1fr)) minmax(0,2fr); align-items: stretch; }
 .item-location-description-row .item-editor-notes { min-width: 0; }

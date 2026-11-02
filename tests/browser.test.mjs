@@ -2009,8 +2009,8 @@ for (const viewport of [{width:1440,height:1000},{width:390,height:844}]) {
   await page.locator('#checklistButton').click();await page.locator('#checklistButton').press('ArrowDown');
   assert.equal(await page.locator('#checklistMenu').isVisible(),true);
   await page.locator('[data-checklist-view="volleyball"]').click();
-  assert.deepEqual(await page.locator('.checklist-row label span').allTextContents(),['Water <img src=x>','Updated <b> Kitchen kit','Acme <b> Office kit','Sport bag']);
-  assert.deepEqual(await page.locator('.checklist-location h3').allTextContents(),['Main Level › Kitchen','Upstairs › Office','Unassigned']);
+  assert.deepEqual(await page.locator('.checklist-row label span').allTextContents(),['Water <img src=x>','Sport bag','Updated <b> Kitchen kit','Acme <b> Office kit']);
+  assert.deepEqual(await page.locator('.checklist-location h3').allTextContents(),['Unassigned','Main Level › Kitchen','Upstairs › Office']);
   if (process.env.QA_SCREENSHOTS) await page.screenshot({path:'/tmp/checklist-layout-'+viewport.width+'.png'});
   assert.equal(await page.locator('.checklist-row img').count(),0);
   await page.locator('[data-checklist-check]').nth(0).check();await page.locator('[data-checklist-check]').nth(1).check();
@@ -2559,4 +2559,69 @@ for (const width of [1440,390,320]) test('sync attention shows a safe field diff
   await page.locator('[data-choice-value="download"]').click();
   assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items[0].value),150);
   assert.equal(writes.length,0);
+});
+
+for (const width of [1440,390,320]) test('item Lifetime section saves consumables outside objects and updates object spending at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});
+ if(width===320) await page.locator('#textSizeSlider').fill('130');
+ await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();
+ await page.locator('#itemName').fill('PLA <blue>');await page.locator('#itemPrice').fill('24.95');await page.locator('#itemValue').fill('5');
+ await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#itemLifetimeCategory').selectOption('new');await page.locator('#itemLifetimeNewCategory').fill('3D Printer');
+ await page.locator('[name="itemChecklist"][value="travel"]').check();
+ assert.equal(await page.locator('.item-lifetime').evaluate(el=>el.previousElementSibling.classList.contains('item-checklists')),true);
+ assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ await page.locator('#saveAndNewItemButton').click();
+ let result=await page.evaluate(()=>({items:window.LocalApp.storage.getState().inventory.items,lifetime:window.LocalApp.storage.getState().lifetime,checklists:window.LocalApp.storage.getState().inventory.checklists}));
+ assert.equal(result.items.length,0);assert.equal(result.lifetime.categories[0].purchases[0].amount,24.95);assert.equal(result.lifetime.categories[0].purchases[0].kind,'consumable');
+ assert.equal(result.checklists.travel.entries[0].text,'PLA <blue>');assert.equal(result.checklists.travel.objects.length,0);
+ assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'object');
+ await page.locator('#itemName').fill('Printer');await page.locator('#itemPrice').fill('200');await page.locator('#itemValue').fill('80');
+ const category=result.lifetime.categories[0].id;
+ await page.locator('#itemLifetimeCategory').selectOption(category);await page.locator('#saveItemButton').click();
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
+ await page.locator('[data-edit-item]').first().click();
+ assert.equal(await page.locator('#itemLifetimeCategory').inputValue(),category);
+ await page.locator('#itemPrice').fill('210');await page.locator('#saveItemButton').click();
+ result=await page.evaluate(()=>window.LocalApp.storage.getState().lifetime);
+ assert.equal(result.categories[0].purchases.length,2);assert.equal(result.categories[0].purchases.find(p=>p.kind==='object').amount,210);
+ await page.reload();await page.locator('[data-edit-item]').first().click();
+ await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#saveItemButton').click();await page.locator('[data-confirm-cancel]').click();
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
+ await page.locator('#saveItemButton').click();await page.locator('[data-confirm-action]').click();
+ await page.waitForFunction(()=>window.LocalApp.storage.getState().inventory.items.length===0);
+ result=await page.evaluate(()=>({lifetime:window.LocalApp.storage.getState().lifetime,recovery:window.LocalApp.storage.recoveryInfo()}));
+ assert.equal(result.lifetime.categories[0].purchases.length,2);assert.ok(result.lifetime.categories[0].purchases.every(p=>p.kind==='consumable'));assert.ok(result.recovery);
+ await page.reload();assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),0);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().lifetime.categories[0].purchases.reduce((sum,p)=>sum+p.amount,0)),234.95);
+});
+
+test('bulk consumable Lifetime choice survives pause and saves once without an object',{timeout:30000},async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#bulkEntryButton').click();await page.locator('#bulkPaste').fill('Object\tPrice\nFilament\t15');await page.locator('#readBulkPaste').click();await page.locator('#startBulkReview').click();
+ await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#itemLifetimeCategory').selectOption('new');await page.locator('#itemLifetimeNewCategory').fill('Printer supplies');
+ await page.locator('[data-inv-close="itemDialog"]').last().click();await page.reload();
+ await page.locator('#bulkEntryButton').click();await page.locator('#resumeBulkButton').click();
+ assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'consumable');assert.equal(await page.locator('#itemLifetimeNewCategory').inputValue(),'Printer supplies');
+ await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ const data=await page.evaluate(()=>({items:window.LocalApp.storage.getState().inventory.items,lifetime:window.LocalApp.storage.getState().lifetime}));
+ assert.equal(data.items.length,0);assert.equal(data.lifetime.categories[0].purchases.length,1);assert.equal(data.lifetime.categories[0].purchases[0].amount,15);
+ await page.reload();assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().lifetime.categories[0].purchases.length),1);
+});
+
+test('Lifetime item validation preserves state, allocates copy cents and rejects stale spending edits',{timeout:30000},async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.locator('#itemName').fill('Filament');
+ await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#itemLifetimeCategory').selectOption('new');await page.locator('#itemLifetimeNewCategory').fill('Supplies');
+ await page.locator('#saveItemButton').click();assert.match(await page.locator('#itemFormError').innerText(),/obtaining price/);
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().lifetime.categories.length),0);
+ await page.locator('#itemPrice').fill('10.01');await page.locator('#itemCopies').fill('3');await page.locator('#itemCopies').dispatchEvent('change');
+ await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ let data=await page.evaluate(()=>window.LocalApp.storage.getState().lifetime);
+ assert.equal(data.categories[0].purchases.length,3);assert.equal(data.categories[0].purchases.reduce((sum,p)=>sum+Math.round(p.amount*100),0),1001);
+ await addInventoryItem(page,{name:'Spool rack'});await page.locator('[data-edit-item]').first().click();await page.locator('#itemLifetimeCategory').selectOption(data.categories[0].id);await page.locator('#saveItemButton').click();
+ await page.locator('[data-edit-item]').first().click();
+ await page.evaluate(()=>window.LocalApp.storage.mutate(s=>{s.lifetime.categories[0].purchases.find(p=>p.kind==='object').amount=99;}));
+ await page.locator('#itemPrice').fill('120');await page.locator('#saveItemButton').click();assert.match(await page.locator('#itemFormError').innerText(),/Lifetime purchases changed/);
+ data=await page.evaluate(()=>window.LocalApp.storage.getState().lifetime);assert.equal(data.categories[0].purchases.find(p=>p.kind==='object').amount,99);
 });

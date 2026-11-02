@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.109",
-      buildId: "0.0.1.109",
+      version: "0.0.1.110",
+      buildId: "0.0.1.110",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,23 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.110",
+  "date": "2026-11-02T17:31:24.137Z",
+  "title": "Lifetime in Item Entry",
+  "summary": "Choose Lifetime spending categories and save consumables directly from item entry.",
+  "features": [
+    "Item entry includes a Lifetime section beside Checklists with category selection, new categories, and Object or Consumable types.",
+    "Consumables record spending without becoming inventory objects; selected checklists retain them as non-object entries."
+  ],
+  "improvements": [
+    "Object purchases update their Lifetime records without duplication, using obtaining prices and allocated copy amounts.",
+    "Bulk review preserves Lifetime choices through pause and resume, with retry-safe consumable saves."
+  ],
+  "fixes": [
+    "Existing object conversion keeps a recovery copy; stale Lifetime edits and invalid purchase amounts stop before saving."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.109",
   "date": "2026-11-02T17:04:42.755868+00:00",
   "title": "Sync Differences",

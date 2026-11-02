@@ -5,6 +5,7 @@
   const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
   const esc = u.escapeHtml;
   let directArchive=false;
+  let originalLifetime = "";
   const monthlyCosts = new Set();
   const viewSorts=new Map(), viewGroupings=new Map();
   let currentSpecial='', activeChecklist='', packShow='all';
@@ -760,6 +761,9 @@
     tagArea.prepend($('label',$('#itemTagSearch').closest('.picker')));
     notes.classList.add('item-editor-notes');$('.item-location-row').classList.add('item-location-description-row');$('.item-location-row').append(notes);
     tagRow.insertAdjacentHTML('afterbegin','<fieldset class="item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
+    $('.item-checklists',tagRow).insertAdjacentHTML('afterend','<fieldset class="item-lifetime"><legend>Lifetime</legend><label class="field"><span>Type</span><select id="itemLifetimeKind"><option value="object">Object</option><option value="consumable">Consumable</option></select></label><label class="field"><span>Category</span><select id="itemLifetimeCategory"></select></label><label class="field" id="itemLifetimeNewField" hidden><span>New category</span><input id="itemLifetimeNewCategory" maxlength="300"></label><small id="itemLifetimeHint">Choose a category to include the obtaining price in Lifetime.</small></fieldset>');
+    $('#itemLifetimeCategory').addEventListener('change',syncItemLifetime);
+    $('#itemLifetimeKind').addEventListener('change',syncItemLifetime);
     const group=document.createElement('div');group.className='checklist-ownership-actions';
     actions.prepend(group);
     ['#resetChecklist','.checklist-quick','#inventoryStats'].forEach(function (selector) {group.append($(selector));});
@@ -1355,6 +1359,22 @@
     syncCopyToPrimary(row);
   }
 
+  function lifetimeSelection() {
+    return {kind:$('#itemLifetimeKind').value,categoryId:$('#itemLifetimeCategory').value,categoryName:$('#itemLifetimeNewCategory').value,checklists:$$('[name="itemChecklist"]:checked').map(function (input) {return input.value;})};
+  }
+  function syncItemLifetime() {
+    const consumable=$('#itemLifetimeKind').value==='consumable';
+    $('#itemLifetimeNewField').hidden=$('#itemLifetimeCategory').value!=='new';
+    $('#itemLifetimeNewCategory').required=!$('#itemLifetimeNewField').hidden;
+    $('#itemLifetimeCategory').required=consumable;
+    $('#itemDirectArchive').hidden=!directArchive || consumable;
+    $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) {input.disabled=!directArchive || consumable;});
+    $('#itemDirectGoneReason').required=directArchive && !consumable;
+    $('#itemLifetimeHint').textContent=consumable?'Saves to Lifetime only; does not count as an object. Uses the obtaining price.':'Choose a category to include the obtaining price in Lifetime.';
+  }
+  function linkedLifetime(ids) {
+    return JSON.stringify(App.storage.getState().lifetime.categories.map(function (category) {return [category.id,category.purchases.filter(function (purchase) {return ids.includes(purchase.id);})];}).filter(function (entry) {return entry[1].length;}));
+  }
   function openItem(id, trigger, copy, draft) {
     let item = inventory().items.find(function (entry) { return entry.id === id; });
     if (id && !item) return;
@@ -1418,6 +1438,14 @@
     $('#copySellerToBrand').disabled = !$('#itemSource').value.trim();
     suggestProperties(); fillMissingAmount(); syncDateUnknown(); if ($('#itemIsSet').checked) sumPieceValues(); renderPricing();
     $$('[name="itemChecklist"]').forEach(function (input) {input.checked=checklist(input.value).objects.includes(editingId);});
+    const linked=App.storage.getState().lifetime.categories.find(function (category) {return category.purchases.some(function (purchase) {return purchase.id===editingId;});});
+    $('#itemLifetimeCategory').innerHTML='<option value="">Not included</option>'+App.storage.getState().lifetime.categories.map(function (category) {return '<option value="'+esc(category.id)+'">'+esc(category.name)+'</option>';}).join('')+'<option value="new">New category…</option>';
+    $('#itemLifetimeCategory').value=draft?._lifetime?.categoryId || linked?.id || '';
+    $('#itemLifetimeKind').value=draft?._lifetime?.kind || 'object';
+    $('#itemLifetimeNewCategory').value=draft?._lifetime?.categoryName || '';
+    if (draft?._lifetime?.checklists) $$('[name="itemChecklist"]').forEach(function (input) {input.checked=draft._lifetime.checklists.includes(input.value);});
+    syncItemLifetime();
+    originalLifetime=linkedLifetime((editingCopies.length?editingCopies:item && id?[item]:[]).map(function (entry) {return entry.id;}));
     originalForm = formSignature("#itemForm");
     App.components.openDialog("#itemDialog", { trigger: trigger, focus: id || draft ? "#itemName" : "#itemSmartEntry" });
   }
@@ -1429,8 +1457,9 @@
       const previous = editingId ? currentItemUnchanged(editingId, originalItem) : null;
       const count = previous?.archive ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
-      if (!App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
-      const item = { id: editingId || u.uid("item"), ...(previous?.copyGroup ? {copyGroup:previous.copyGroup} : {}), archive: directArchive ? {date:$('#itemDirectGoneDateUnknown').checked?'':inputDate($('#itemDirectGoneDate').value),reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
+      const lifetime=lifetimeSelection(), consumable=lifetime.kind==='consumable';
+      if (!consumable && !App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
+      const item = { id: editingId || u.uid("item"), ...(previous?.copyGroup ? {copyGroup:previous.copyGroup} : {}), archive: consumable ? null : directArchive ? {date:$('#itemDirectGoneDateUnknown').checked?'':inputDate($('#itemDirectGoneDate').value),reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
       item.obtainedDate=$('#itemDateUnknown').checked ? '' : inputDate(item.obtainedDate);
       commitTags();
@@ -1444,7 +1473,7 @@
       item.properties.filter(function (p) { return p.name.toLowerCase()==='mileage'; }).forEach(function (p) { m.mileage(p.value); });
       App.smartEntry.conveyedFields(item,JSON.stringify([item.name,item.description,item.source,item.categories,item.properties]));
       const next = m.favoriteTag(m.normalizeItem(item),App.storage.getState().preferences.favoriteBrands);
-      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, saveCopyLocations(count)); return; }
+      if (App.bulkEntry?.current()) { App.bulkEntry.accept(next, count, saveCopyLocations(count), lifetime); return; }
       let copies;
       if (previous && !previous.archive) {
         const verifyCopies = function () {
@@ -1484,16 +1513,29 @@
         }
       } else copies = previous ? [next] : m.createCopies(next, count, saveCopyLocations(count)).map(function (copy) { return m.normalizeItem(Object.assign({},copy,{archive:next.archive})); });
       const replaced = new Set(previous ? (editingCopies.length ? editingCopies : [previous]).map(function (entry) { return entry.id; }) : []);
-      App.storage.mutate(function (state) { state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(copies);
+      const verifyLifetime=function () {if (linkedLifetime([...replaced])!==originalLifetime) throw new Error('Lifetime purchases changed while editing. Close and reopen the item.');};
+      verifyLifetime();
+      if (consumable && previous) {
+        if (!await App.components.confirm({title:'Save as a Consumable?',message:'Move '+replaced.size+' object'+(replaced.size===1?'':'s')+' out of inventory and record the purchase in Lifetime? A recovery copy will preserve the previous inventory details.',confirmLabel:'Save Consumable',trigger:$('#saveItemButton')})) return;
+        (editingCopies.length?editingCopies:[previous]).forEach(function (entry) {currentItemUnchanged(entry.id,JSON.stringify(entry));});
+        verifyLifetime();
+        if (!App.storage.saveRecovery('Before converting objects to consumables')) throw new Error('A recovery copy could not be saved. Export a backup before converting this object.');
+      }
+      const purchases=App.stateModel.itemLifetime(App.storage.getState(),copies,lifetime,[...replaced]);
+      const updateState=function (state) { state.lifetime=purchases; state.inventory.items = state.inventory.items.filter(function (entry) { return !replaced.has(entry.id); }).concat(consumable?[]:copies);
         $$('[name="itemChecklist"]').forEach(function (input) {
           if (!state.inventory.checklists) state.inventory.checklists={};
           const list=state.inventory.checklists[input.value] || {objects:[],entries:[],checked:[]};
           list.objects=list.objects.filter(function (id) {return !replaced.has(id);});
-          if (input.checked) list.objects=Array.from(new Set(list.objects.concat(copies.map(function (copy) {return copy.id;}))));
+          if (input.checked && !consumable) list.objects=Array.from(new Set(list.objects.concat(copies.map(function (copy) {return copy.id;}))));
+          if (input.checked && consumable) list.entries.push(...copies.map(function (copy) {return {id:copy.id,text:u.cleanLine(copy.name,500)};}));
           state.inventory.checklists[input.value]=list;
-        }); }, { reason: "inventory-save" });
+        }); };
+      const prepared=u.clone(App.storage.getState());updateState(prepared);
+      const validated=App.stateModel.normalize(prepared);
+      App.storage.mutate(function (state) {state.inventory=validated.inventory;state.lifetime=validated.lifetime;}, {reason:'inventory-save'});
       const saved = App.storage.saveNow(); App.components.closeDialog("#itemDialog", "saved");
-      App.components.toast(saved ? (count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + (directArchive ? " is in Stuff I Had." : " is in your inventory.")) : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
+      App.components.toast(saved ? (consumable?next.name+' saved to Lifetime as a consumable.':count > 1 ? count + " copies of " + next.name + " are in your inventory." : next.name + (directArchive ? " is in Stuff I Had." : " is in your inventory.")) : "Browser storage is unavailable. Export a backup before closing this tab.", { title: saved ? "Item saved" : "Saved for this session only", kind: saved ? "success" : "warning" });
       if (addNew) openItem(null, $("#addItemButton"));
       else $(view === "have" ? "#addItemButton" : "#inventoryTitle").focus();
     } catch (error) { formError("#itemFormError", error.message); }
@@ -1555,6 +1597,7 @@
     draft._tagSearch = $("#itemTagSearch").value; draft._smartEntry = $("#itemSmartEntry").value;
     draft._smartManual = Array.from(smartManual); draft._smartApplied = smartApplied;
     draft._priceMode=$('#itemPriceMode').value; draft._isSet=$('#itemIsSet').checked;
+    draft._lifetime=lifetimeSelection();
     draft._copies = Number($("#itemCopies").value); draft._copyLocations = copyLocations();
     if (App.bulkEntry?.current()?.draft.copyGroup) draft.copyGroup = App.bulkEntry.current().draft.copyGroup;
     if (directArchive) { draft._archiveMode=true; draft.archive={date:$('#itemDirectGoneDateUnknown').checked?'':$('#itemDirectGoneDate').value,reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value}; }

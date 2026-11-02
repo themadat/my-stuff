@@ -40,3 +40,29 @@ test('invalid Lifetime amounts, dates, types and duplicate IDs cannot replace sa
  assert.throws(()=>m.normalize({lifetime:{categories:[...lifetime.categories,...lifetime.categories]}}),/Lifetime/);
  assert.deepEqual(plain(state().lifetime),lifetime);
 });
+
+test('item entry records objects or consumables once and uses purchase price rather than current value',()=>{
+ const saved=state(), item={id:'item-printer',name:'Printer',price:210.25,value:100,obtainedDate:'2026-10-30',source:'Shop',description:'Keep receipt'};
+ const selection={categoryId:'printer',kind:'object'};
+ saved.lifetime=m.itemLifetime(saved,[item],selection,[]);
+ assert.equal(saved.lifetime.categories[0].purchases.length,2);
+ assert.equal(saved.lifetime.categories[0].purchases[1].amount,210.25);
+ saved.lifetime=m.itemLifetime(saved,[{...item,price:220}],selection,[item.id]);
+ assert.equal(saved.lifetime.categories[0].purchases.length,2);
+ assert.equal(saved.lifetime.categories[0].purchases[1].amount,220);
+ saved.lifetime=m.itemLifetime(saved,[item],{kind:'consumable',categoryId:'new',categoryName:'Filament'},[item.id]);
+ assert.equal(saved.lifetime.categories[0].purchases.length,1);
+ assert.equal(saved.lifetime.categories[1].purchases[0].kind,'consumable');
+ assert.equal(saved.inventory.items.length,0);
+ saved.lifetime=m.itemLifetime(saved,[item],{kind:'consumable',categoryId:'new',categoryName:'filament'},[item.id]);
+ assert.equal(saved.lifetime.categories.length,2); assert.equal(saved.lifetime.categories[1].purchases.length,1);
+ const restored=m.prepareSync(m.syncPayload(saved)).state;
+ assert.deepEqual(plain(restored.lifetime),plain(saved.lifetime));
+});
+test('Lifetime item entry validates selection and amounts before modifying saved purchases',()=>{
+ const saved=state(), before=JSON.stringify(saved);
+ const item={id:'item-x',name:'Free sample',price:null,obtainedDate:'',source:'',description:''};
+ for(const selection of [{categoryId:'',kind:'consumable'},{categoryId:'missing',kind:'object'},{categoryId:'new',categoryName:' ',kind:'object'},{categoryId:'printer',kind:'object'}]) assert.throws(()=>m.itemLifetime(saved,[item],selection,[]));
+ assert.equal(JSON.stringify(saved),before);
+ assert.equal(m.itemLifetime(saved,[{...item,price:0}],{categoryId:'printer',kind:'consumable'},[]).categories[0].purchases[1].amount,0);
+});

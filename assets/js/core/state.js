@@ -30,6 +30,27 @@
     }) };
   }
 
+  // Item IDs also identify their spending records, so reopening or retrying an
+  // item save updates the same purchase without requiring another data format.
+  function itemLifetime(state, items, selection, replacedIds) {
+    const next = normalizeLifetime(state.lifetime);
+    const ids = new Set((replacedIds || []).concat(items.map(function (item) { return item.id; })));
+    let category = next.categories.find(function (entry) { return entry.id === selection.categoryId; });
+    if (selection.categoryId === "new") {
+      const name = u.cleanLine(selection.categoryName, 300);
+      if (!name) throw new Error("Enter a Lifetime category name.");
+      category = next.categories.find(function (entry) { return entry.name.toLowerCase() === name.toLowerCase(); });
+      if (!category) { category = { id: u.uid("lifetime"), name: name, purchases: [] }; next.categories.push(category); }
+    } else if (selection.categoryId && !category) throw new Error("This Lifetime category was removed. Reopen the item and choose another category.");
+    if (selection.kind === "consumable" && !category) throw new Error("Choose a Lifetime category for this consumable.");
+    if (category && items.some(function (item) { return item.price == null; })) throw new Error("Enter an obtaining price for Lifetime, using 0 when it was free.");
+    next.categories.forEach(function (entry) { entry.purchases = entry.purchases.filter(function (purchase) { return !ids.has(purchase.id); }); });
+    if (category) items.forEach(function (item) {
+      category.purchases.push({ id: item.id, name: item.name, amount: item.price, kind: selection.kind, date: item.obtainedDate, seller: item.source, notes: item.description });
+    });
+    return normalizeLifetime(next);
+  }
+
   function createDefaultState() {
     const now = u.isoNow();
     return {
@@ -304,6 +325,7 @@
     migrations: [],
     createDefaultState: createDefaultState,
     normalize: normalize,
+    itemLifetime: itemLifetime,
     validate: validate,
     prepare: prepare,
     touch: touch,

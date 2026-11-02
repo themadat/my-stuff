@@ -6,8 +6,8 @@ function setup(quantity=2) {
  const elements=new Map(), memory=new Map(); let failSave=false, failQueue=false, writes=0, homes=0;
  const document={querySelector(selector){if(!elements.has(selector))elements.set(selector,{value:'',innerHTML:'',textContent:'',hidden:false,setAttribute(){}});return elements.get(selector);}};
  const ctx=vm.createContext({window:{LocalApp:{}},document,localStorage:{getItem:k=>memory.get(k)??null,setItem(k,v){if(failQueue)throw Error('full');memory.set(k,v);}},clearTimeout(){},setTimeout(){return 1;}});
- for(const file of ['config','core/utils','core/inventory','core/smart-entry','core/bulk-import'])vm.runInContext(readFileSync(new URL('../assets/js/'+file+'.js',import.meta.url),'utf8'),ctx);
- const app=ctx.window.LocalApp,state={inventory:{currency:'USD',items:[]}};
+ for(const file of ['config','core/utils','core/inventory','core/state','core/smart-entry','core/bulk-import'])vm.runInContext(readFileSync(new URL('../assets/js/'+file+'.js',import.meta.url),'utf8'),ctx);
+ const app=ctx.window.LocalApp,state=app.stateModel.normalize({inventory:{currency:'USD',items:[]}});
  app.storage={getState:()=>state,mutate(fn){writes++;fn(state);},saveNow:()=>!failSave};app.icons={markup:()=>''};app.components={closeDialog(){}};
  let draft;app.inventoryUI={captureDraft:()=>JSON.parse(JSON.stringify(draft)),openDraft(value){draft=JSON.parse(JSON.stringify(value));},home(){homes++;}};
  const source=readFileSync(new URL('../assets/js/bulk-entry.js',import.meta.url),'utf8').replace('App.bulkEntry = {','App.bulkEntry = { testSet(value) { queue=value; lastJson=null; reviewing=true; }, testRows() { return queue.rows; }, testAdvance:advance,');
@@ -44,8 +44,8 @@ test('resume reconciles a batch already in inventory after interrupted persisten
 test('bulk copies retain different colors and descriptions in one save',()=>{
  const h=setup(2);
  h.app.bulkEntry.accept(h.item(),2,[{color:'Black',notes:'Travel'},{color:'Blue',notes:'Desk'}]);
- assert.deepEqual(h.state.inventory.items.map(item=>item.properties.find(p=>p.name==='Color').value),['Black','Blue']);
- assert.deepEqual(h.state.inventory.items.map(item=>item.description),['Travel','Desk']);
+ assert.deepEqual(Array.from(h.state.inventory.items,item=>item.properties.find(p=>p.name==='Color').value),['Black','Blue']);
+ assert.deepEqual(Array.from(h.state.inventory.items,item=>item.description),['Travel','Desk']);
  assert.equal(h.writes,1);assert.equal(h.homes,1);
 });
 
@@ -56,4 +56,19 @@ test('bulk copies preserve individual dates and pieces and store allocated amoun
  assert.equal(h.state.inventory.items[0].obtainedDate,'2020-12-17');assert.equal(h.state.inventory.items[1].obtainedDate,'');
  assert.equal(h.state.inventory.items[1].properties.find(p=>p.name==='Set Piece').value,'Sensor');
  assert.ok(h.app.bulkEntry.testRows().every(row=>row.draft._priceMode==='each'));
+});
+
+test('consumable bulk saves retry without duplicate spending and reconcile after storage failure',()=>{
+ const h=setup(2);h.failSave(true);
+ const selection={categoryId:'new',categoryName:'Supplies',kind:'consumable'};
+ const item={...h.item(),price:10};
+ assert.throws(()=>h.app.bulkEntry.accept(item,2,[],selection),/only in memory/);
+ assert.equal(h.state.inventory.items.length,0);assert.equal(h.state.lifetime.categories[0].purchases.length,2);
+ const ids=h.state.lifetime.categories[0].purchases.map(p=>p.id);
+ h.failSave(false);h.app.bulkEntry.accept(item,2,[],selection);
+ assert.equal(h.state.lifetime.categories.length,1);assert.deepEqual(h.state.lifetime.categories[0].purchases.map(p=>p.id),ids);
+ assert.equal(h.homes,1);
+ const second=setup(1);second.failSave(true);assert.throws(()=>second.app.bulkEntry.accept({...second.item(),price:5},1,[],selection));
+ second.failSave(false);second.app.bulkEntry.testAdvance();
+ assert.equal(second.homes,1);assert.equal(second.state.lifetime.categories[0].purchases.length,1);assert.equal(second.state.inventory.items.length,0);
 });
