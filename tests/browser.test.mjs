@@ -1849,7 +1849,7 @@ test('shoe stack/drop input and Network dropdown persist on desktop and mobile',
  await page.locator('#clearInventoryFilters').click();
  await page.locator('#addItemButton').click();await page.waitForFunction(()=>document.activeElement.id==='itemSmartEntry');
  await page.locator('#itemName').fill('Network sensor');await page.getByRole('button',{name:'Apply Network Property Set',exact:true}).click();
- assert.equal(await page.locator('[data-connection]').count(),13);
+ assert.equal(await page.locator('[data-connection]').count(),14);
  await page.locator('[data-connection="Wi-Fi 5.0 GHz"]').click();await page.locator('[data-connection="BLE"]').click();await page.locator('#saveItemButton').click();
  await page.locator('tr[data-item-owner]').filter({hasText:'Network sensor'}).locator('[data-edit-item]').click();
  assert.equal(await property('Connection Type').inputValue(),'Wi-Fi 5.0 GHz | BLE');
@@ -1891,7 +1891,7 @@ test('Network and Smart Home views switch grouping, sort, and return to spacious
  assert.ok(layout.object>layout.row*.5,JSON.stringify(layout));assert.ok(Math.abs(layout.gap)<2);
  await page.locator('#inventoryList [aria-label="Filter by Network"]').first().click();
  assert.equal(await page.locator('.network-table').count(),1);
- assert.deepEqual(await page.locator('.special-group-heading').allTextContents(),['Thread','Unknown Connection Type','Zigbee']);
+ assert.deepEqual(await page.locator('.special-group-heading').allTextContents(),['Matter (Thread)','Unknown Connection Type','Zigbee']);
  assert.equal(await page.locator('td.connection-property').count(),3);
  assert.match(await page.locator('td.connection-property').first().innerText(),/Thread/);
  await page.locator('[data-view-grouping]').selectOption('location');
@@ -2656,4 +2656,24 @@ test('bulk inline copy count retains total purchase prices across pause and resu
  const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
  assert.equal(items.length,4);assert.equal(items.reduce((sum,item)=>sum+Math.round(item.price*100),0),60617);assert.equal(items.reduce((sum,item)=>sum+Math.round(item.value*100),0),20000);
  assert.ok(items.every(item=>item.categories.includes('Camera')));
+});
+
+for(const width of [1440,390]) test('Matter network types migrate Thread and remain distinct after save and reload at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);
+ await page.evaluate(()=>{
+  const app=window.LocalApp,s=structuredClone(app.storage.getState());
+  const item=app.inventoryModel.normalizeItem({id:'legacy-thread',name:'Matter sensor',owner:'me',categories:['Network'],properties:[{name:'Connection Type',value:'Thread'}]});
+  item.properties[0].value='Thread';s.inventory.items=[item];localStorage.setItem(app.config.storage.stateKey,JSON.stringify(s));
+ });
+ await page.reload();
+ assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items[0].properties[0].value),'Matter (Thread)');
+ await page.locator('[data-edit-item]').first().click();
+ assert.equal(await page.locator('[data-connection="Thread"]').count(),0);
+ assert.equal(await page.locator('[data-connection="Matter (Thread)"]').getAttribute('aria-pressed'),'true');
+ await page.locator('[data-connection="Matter (Wi-Fi)"]').click();await page.locator('#saveItemButton').click();
+ await page.reload();await page.locator('[data-edit-item]').first().click();
+ assert.equal(await page.locator('[data-connection="Matter (Wi-Fi)"]').getAttribute('aria-pressed'),'true');
+ assert.equal(await page.locator('[data-connection="Matter (Thread)"]').getAttribute('aria-pressed'),'true');
+ assert.equal(await page.evaluate(()=>window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()).data.inventory.items[0].properties[0].value),'Matter (Wi-Fi) | Matter (Thread)');
+ assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
 });

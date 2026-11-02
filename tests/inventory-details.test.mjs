@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {test} from 'node:test';
 const context=vm.createContext({window:{LocalApp:{}},crypto:globalThis.crypto});
-for(const file of ['config','core/utils','core/inventory','core/smart-entry']) vm.runInContext(readFileSync(new URL('../assets/js/'+file+'.js',import.meta.url),'utf8'),context);
+for(const file of ['config','core/utils','core/inventory','core/smart-entry','core/state']) vm.runInContext(readFileSync(new URL('../assets/js/'+file+'.js',import.meta.url),'utf8'),context);
 const app=context.window.LocalApp,m=app.inventoryModel;
 const base={id:'weather',name:'Weather station',owner:'house',obtainedDate:'2020-12-17',price:100,value:100};
 test('linked pieces retain names, dates, room locations and exact allocated money',()=>{
@@ -68,7 +68,7 @@ test('shoe geometry preserves heel-to-toe stacks and independent drop measuremen
  assert.equal(shoe.properties[0].value,'');assert.equal(shoe.properties[1].value,'6');
  const row=value=>[m.normalizeItem({...base,properties:[{name:'Stack Height',value,unit:'mm'}]})];
  assert.ok(m.compareRows(row('9->5'),row('31->25'),'stack height','ascending')<0);
- assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Thread','BLE','UWB','NFC','Inactive']);
+ assert.deepEqual(Array.from(app.config.inventory.connectionTypes),['Wi-Fi 2.4 GHz','Wi-Fi 5.0 GHz','Ethernet','Zigbee','RF (433 MHz)','RF (434 MHz)','RF (915 MHz)','Bluetooth','Matter (Wi-Fi)','Matter (Thread)','BLE','UWB','NFC','Inactive']);
  assert.ok(app.config.inventory.tagGroups.find(g=>g.name==='Systems').tags.includes('Network'));
 });
 
@@ -93,7 +93,7 @@ test('special views activate only for selections within their category',()=>{
 test('Network and Smart Home grouping preserve every object once and include unknown connections',()=>{
  const make=(id,categories,connection)=>m.normalizeItem({...base,id,categories,properties:connection?[{name:'Connection Type',value:connection}]:[]});
  const items=[make('a',['Network','Lights','Sensor'],'Thread'),make('b',['Network','Sensor'],'Zigbee'),make('c',['Network','Lights'],'')];
- const sections=m.specialSections(items,'network');assert.deepEqual(Array.from(sections,s=>s.path[0]),['Thread','Unknown Connection Type','Zigbee']);
+ const sections=m.specialSections(items,'network');assert.deepEqual(Array.from(sections,s=>s.path[0]),['Matter (Thread)','Unknown Connection Type','Zigbee']);
  const smart=m.specialSections(items,'smart');assert.deepEqual(Array.from(smart,s=>[s.path[0],s.items.length]),[['Lights',2],['Sensor',1]]);
  assert.equal(new Set(smart.flatMap(s=>s.items.map(item=>item.id))).size,3);
 });
@@ -178,4 +178,14 @@ test('backpacking entries and bag selections survive normalization and merge wit
  const changed=JSON.parse(JSON.stringify(normalized));changed.backpacking.checked=[];assert.throws(()=>m.merge(normalized,changed),/Backpacking bags differ/);
  for(const update of [{weight:-1},{price:'oops'},{date:'2026-02-30'},{name:''}]) {const bad=JSON.parse(JSON.stringify(source));Object.assign(bad.backpacking.entries[0],update);assert.throws(()=>m.normalize(bad));}
  const removed=JSON.parse(JSON.stringify(source));removed.items=[];removed.backpacking.entries=[];assert.equal(m.normalize(removed).backpacking.checked.length,0);
+});
+
+test('legacy Thread values migrate to Matter (Thread) without duplicate or lost connections across backup and sync',()=>{
+ const item=m.normalizeItem({...base,properties:[{name:'Connection Type',value:'Thread | Zigbee | Matter (Thread) | Matter (Wi-Fi) | Custom radio'}]});
+ assert.equal(item.properties[0].value,'Zigbee | Matter (Wi-Fi) | Matter (Thread) | Custom radio');
+ assert.deepEqual(Array.from(m.connectionTypes('thread | Thread | Matter (Thread)')),['Matter (Thread)']);
+ const model=app.stateModel, legacy={inventory:{currency:'USD',items:[{...base,properties:[{name:'Connection Type',value:'Thread | BLE'}]}]}};
+ const saved=model.normalize(legacy);
+ for(const state of [saved,model.prepare(model.exportEnvelope(saved)).state,model.prepareSync(model.syncPayload(saved)).state]) assert.equal(state.inventory.items[0].properties[0].value,'Matter (Thread) | BLE');
+ assert.equal(m.connectionTypes('Matter (Wi-Fi)')[0],'Matter (Wi-Fi)');
 });

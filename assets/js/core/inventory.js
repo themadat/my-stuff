@@ -61,7 +61,8 @@
       if (!property || typeof property !== "object") throw new Error("An item property is invalid.");
       const name = u.cleanLine(property.name, Infinity);
       if (!name) throw new Error("Give every property a name, or remove its row.");
-      return { name: name, value: u.cleanLine(property.value, Infinity), unit: u.cleanLine(property.unit, Infinity) };
+      const value = u.cleanLine(property.value, Infinity);
+      return { name: name, value: name.toLowerCase()==='connection type' ? connectionTypes(value).join(' | ') : value, unit: u.cleanLine(property.unit, Infinity) };
     });
     const propertyNames = properties.map(function (property) { return property.name.toLowerCase(); });
     if (new Set(propertyNames).size !== propertyNames.length) throw new Error("Property names must be unique within an item.");
@@ -281,7 +282,7 @@
     return items.reduce(function (total,item) { const weight=weightOunces(item); if (weight===null) total.unknown++; else total.ounces+=weight; return total; },{ounces:0,unknown:0});
   }
   function connectionTypes(value) {
-    const values=Array.from(new Set(String(value || '').split('|').map(function (v) { return v.trim(); }).filter(Boolean)));
+    const values=Array.from(new Set(String(value || '').split('|').map(function (v) { const clean=v.trim(); return /^thread$/i.test(clean) ? 'Matter (Thread)' : clean; }).filter(Boolean)));
     const order=App.config.inventory.connectionTypes;
     return values.sort(function (a,b) { const ai=order.indexOf(a),bi=order.indexOf(b); return (ai<0?order.length:ai)-(bi<0?order.length:bi) || a.localeCompare(b); });
   }
