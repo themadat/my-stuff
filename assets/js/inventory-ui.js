@@ -453,7 +453,7 @@
     });
     render();
   }
-  const smartLabels = { goneDate:"Gone Date", goneReason:"Departure Reason", goneNotes:"Departure Notes", name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained", room: "Room", zone: "Zone", space: "Space", categories: "Tags", volume: "Volume" };
+  const smartLabels = { copies:"Total Copies", goneDate:"Gone Date", goneReason:"Departure Reason", goneNotes:"Departure Notes", name: "Object", brand: "Brand", source: "Seller", price: "Obtaining Price", value: "Value", owner: "Belongs to", obtainedHow: "Obtained", description: "Notes", obtainedDate: "Date Obtained", room: "Room", zone: "Zone", space: "Space", categories: "Tags", volume: "Volume" };
   let smartApplied = {}, smartManual = new Set(), objectWordHistory = [];
   function smartField(key) { if (['goneDate','goneReason','goneNotes'].includes(key)) return $('#itemDirect'+key[0].toUpperCase()+key.slice(1)); if (key === "volume") { const row = $$('[data-property-name]').find(function (el) { return el.value.toLowerCase() === 'volume'; })?.closest('.item-property'); return row ? $('[data-property-value]', row) : null; } return $("#item" + key[0].toUpperCase() + key.slice(1)); }
   function resetSmart() {
@@ -479,12 +479,14 @@
     if (!previewOnly && result.fields.volume && !smartField('volume') && !smartManual.has('volume')) addProperty({ name: 'Volume', value: '', unit: result.fields.volumeUnit || 'oz' });
     Object.keys(smartLabels).forEach(function (key) {
       const el = smartField(key), next = result.fields[key];
+      const copiesBefore=key==='copies'?el?.value:null;
       if (!el || previewOnly) return;
-      if (!smartManual.has(key) && (!el.value || Object.hasOwn(smartApplied, key) || (!editingId && (key === "owner" || key === "obtainedHow")))) {
+      if (!smartManual.has(key) && (!el.value || Object.hasOwn(smartApplied, key) || (!editingId && (key === "owner" || key === "obtainedHow" || (key === "copies" && el.value === "1"))))) {
         if (next != null || Object.hasOwn(smartApplied, key)) {
-          el.value = next ?? (key === "owner" ? "me" : key === "obtainedHow" ? "Purchased" : "");
+          el.value = next ?? (key === "copies" ? "1" : key === "owner" ? "me" : key === "obtainedHow" ? "Purchased" : "");
           if (next != null) { smartApplied[key] = el.value; el.setAttribute("data-smart-field", key); }
           else { delete smartApplied[key]; el.removeAttribute("data-smart-field"); }
+          if (key==='copies' && copiesBefore!==el.value) {renderCopyLocations();renderPricing();}
         }
       }
     });
@@ -493,7 +495,7 @@
       suggestProperties();
     }
     $('#copySellerToBrand').disabled = !$('#itemSource').value.trim();
-    if (!previewOnly) fillMissingAmount(); syncSegments(); renderTags(); if (!previewOnly) syncDateUnknown();
+    if (!previewOnly) { fillMissingAmount(); renderPricing(); } syncSegments(); renderTags(); if (!previewOnly) syncDateUnknown();
     let cursor = 0, html = "";
     result.spans.forEach(function (span) {
       html += esc(text.slice(cursor, span.start));

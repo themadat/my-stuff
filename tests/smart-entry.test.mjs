@@ -23,7 +23,7 @@ test('all wish locations and grouped tags are present with repeated spaces scope
   assert.equal(new Set(c.locations.map(l => l.zone)).size, 3);
   assert.equal(c.locations.reduce((n,l) => n + l.spaces.length, 0), 22);
   assert.equal(c.tagGroups.length, 9);
-  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 86);
+  assert.equal(c.tagGroups.reduce((n,g) => n + g.tags.length, 0), 87);
   assert.equal(c.locations.filter(l => l.spaces.includes('Closet')).length, 6);
 });
 
@@ -146,4 +146,15 @@ test('household renames migrate tags, rooms and review dates and expose new spac
   for (const [group, names] of Object.entries({Smart:['Outlet','Thermostat','Mediabox','Detector','Button'],Power:['Plug'],Lighting:['Fixture','Puck'],Other:['Decoration','Gym','Health']})) {
     for (const name of names) assert.ok(app.config.inventory.tagGroups.find(g=>g.name===group).tags.includes(name));
   }
+});
+
+test('Robinhood payment account and trailing copy count stay separate from Aqara seller and camera name',()=>{
+ const text='2026-10-08 ($606.17) Robinhood Aqara - Camera Hub G5 Pro, Wi-Fi, White (4) [200] [O]';
+ const result=parse(text);
+ assert.deepEqual(result.fields,{obtainedDate:'2026-10-08',price:'606.17',value:'200',copies:'4',source:'Aqara',brand:'Aqara',name:'Camera Hub G5 Pro, Wi-Fi, White',description:'Robinhood'});
+ for(let i=1;i<result.spans.length;i++) assert.ok(result.spans[i].start>=result.spans[i-1].end);
+ assert.equal(parse(text.replaceAll(' ','\t')).fields.copies,'4');
+ for(const suffix of ['(2024)','(101)','(0)','(4K)']) assert.ok(parse('2026-10-08 $10 Aqara - Camera '+suffix+' [200]').fields.name.includes(suffix));
+ assert.equal(parse('Camera model (4)').fields.copies,undefined);
+ assert.equal(parse('$10 Aqara - Camera (4) mount').fields.copies,undefined);
 });

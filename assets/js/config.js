@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.110",
-      buildId: "0.0.1.110",
+      version: "0.0.1.111",
+      buildId: "0.0.1.111",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -29,8 +29,9 @@
       defaultCurrency: "USD",
       currencies: ["USD"],
       locations: [{"zone": "Outside", "room": "Yard", "spaces": []}, {"zone": "Outside", "room": "Shed", "spaces": []}, {"zone": "Outside", "room": "Nest", "spaces": ["Box"]}, {"zone": "Outside", "room": "Patio", "spaces": ["Pickle Bag"]}, {"zone": "Outside", "room": "Garage", "spaces": ["Car"]}, {"zone": "Outside", "room": "Attic", "spaces": []}, {"zone": "Outside", "room": "Crawl", "spaces": []}, {"zone": "Main Level", "room": "Foyer", "spaces": []}, {"zone": "Main Level", "room": "Hallway", "spaces": []}, {"zone": "Main Level", "room": "Game Room", "spaces": []}, {"zone": "Main Level", "room": "Kitchen", "spaces": ["Pantry", "Fridge"]}, {"zone": "Main Level", "room": "Nook", "spaces": ["Floating", "Go Bag", "Sling", "Wash Pouch"]}, {"zone": "Main Level", "room": "Den", "spaces": ["Bar"]}, {"zone": "Main Level", "room": "Doge’s Den", "spaces": []}, {"zone": "Main Level", "room": "Mud Room", "spaces": []}, {"zone": "Main Level", "room": "Powder Room", "spaces": []}, {"zone": "Main Level", "room": "Primary Bedroom", "spaces": ["Closet", "Memory Box"]}, {"zone": "Main Level", "room": "Primary Bathroom", "spaces": ["Closet", "Water Closet"]}, {"zone": "Upstairs", "room": "Loft", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Office", "spaces": ["Closet", "Desk", "Cabinent"]}, {"zone": "Upstairs", "room": "Utility Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "Guest Room", "spaces": ["Closet"]}, {"zone": "Upstairs", "room": "J&J Bathroom", "spaces": ["Guest Sinkroom", "Loft Sinkroom"]}],
-      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Paddles", "Soccer", "Climbing"]}, {"name": "Apparel", "tags": ["Headwear", "Eyewear", "Handwear", "Footwear", "Clothing", "Scarf"]}, {"name": "Systems", "tags": ["Fire", "Gas", "Climate", "Electrical", "Plumbing", "Security", "Network"]}, {"name": "Power", "tags": ["Coax/Ethernet", "Extension", "Powerstrip", "Plug"]}, {"name": "Lighting", "tags": ["Headlamp", "Flashlight", "Bulb", "Fixture", "Floor Lamp", "Table Lamp", "Strip", "Night", "String", "Puck"]}, {"name": "Smart", "tags": ["Doorbell", "Curtain", "Fan", "Hub", "Humidifier", "Lights", "Lock", "Sensor", "Shade", "Switch", "Air Purifier", "Outlet", "Thermostat", "Mediabox", "Detector", "Button"]}, {"name": "Tech", "tags": ["Speaker", "Router", "Remote", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Battery", "Furniture", "Soccer Balls", "Bags", "Books", "Games", "Decoration", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools", "Water Bottles", "Gym", "Health", "3D Print"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
-      brands: ["Logitech", "American Standard", "Spectra Metals", "Thermwell", "Walensee", "Adidas", "GE Profile", "Hamilton Beach", "Gatorade", "CamelBak", "HGN", "Leviton", "Nordic", "Govee", "Beats", "Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
+      tagGroups: [{"name": "Activity", "tags": ["Pickleball", "Backpacking", "Biking", "Golfing", "Paddles", "Soccer", "Climbing"]}, {"name": "Apparel", "tags": ["Headwear", "Eyewear", "Handwear", "Footwear", "Clothing", "Scarf"]}, {"name": "Systems", "tags": ["Fire", "Gas", "Climate", "Electrical", "Plumbing", "Security", "Network"]}, {"name": "Power", "tags": ["Coax/Ethernet", "Extension", "Powerstrip", "Plug"]}, {"name": "Lighting", "tags": ["Headlamp", "Flashlight", "Bulb", "Fixture", "Floor Lamp", "Table Lamp", "Strip", "Night", "String", "Puck"]}, {"name": "Smart", "tags": ["Camera", "Doorbell", "Curtain", "Fan", "Hub", "Humidifier", "Lights", "Lock", "Sensor", "Shade", "Switch", "Air Purifier", "Outlet", "Thermostat", "Mediabox", "Detector", "Button"]}, {"name": "Tech", "tags": ["Speaker", "Router", "Remote", "TV", "Tracker", "Laptop", "Watch", "Phone", "Tablet", "Cables", "Powerbanks", "Chargers", "Headphones"]}, {"name": "Other", "tags": ["Battery", "Furniture", "Soccer Balls", "Bags", "Books", "Games", "Decoration", "Float", "Barware", "Glassware", "Dishware", "Appliances", "Tools", "Water Bottles", "Gym", "Health", "3D Print"]}, {"name": "Brands", "tags": ["Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"]}],
+      brands: ["Aqara", "Logitech", "American Standard", "Spectra Metals", "Thermwell", "Walensee", "Adidas", "GE Profile", "Hamilton Beach", "Gatorade", "CamelBak", "HGN", "Leviton", "Nordic", "Govee", "Beats", "Vapur", "Final Touch", "Apple", "Fracture", "OXO", "Ryobi", "Popchart", "Nespresso"],
+      paymentAccounts: ["Robinhood"],
       brandCompanies: { Beats: "Apple", Govee: "Govee" },
       retailers: ["Amazon", "Target", "Walmart", "Costco", "IKEA", "eBay", "Best Buy"],
       roomAliases: { "dining room": "Game Room" },
@@ -89,6 +90,22 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.111",
+  "date": "2026-11-02T17:58:24.690Z",
+  "title": "Camera and Purchase Copy Parsing",
+  "summary": "Recognize payment accounts and copy counts in purchase lines, with Camera in the Smart category.",
+  "features": [
+    "Camera is available under Smart with the supplied camera SVG."
+  ],
+  "improvements": [
+    "Aqara is recognized as a seller and brand; Robinhood payment-account text stays in Notes.",
+    "Trailing parenthesized purchase copy counts populate Total Copies and survive bulk pause/resume."
+  ],
+  "fixes": [
+    "Inline purchase totals remain totals across multiple copies, with exact cent allocation and manual quantity corrections preserved."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.110",
   "date": "2026-11-02T17:31:24.137Z",
   "title": "Lifetime in Item Entry",

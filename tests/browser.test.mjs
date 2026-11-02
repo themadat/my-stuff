@@ -475,7 +475,7 @@ test('smart completion preserves manual corrections, searchable locations and mu
   assert.equal(await page.locator('#itemBrand').inputValue(), 'Final Touch');
   assert.equal(await page.locator('#itemSource').inputValue(), 'Amazon');
   assert.equal(await page.locator('[data-smart-target="price"]').getAttribute('title'), '62.77');
-  assert.match(await page.locator('#itemDescription').inputValue(), /Chase Prime: 125.54.*\[O\]/);
+  assert.equal(await page.locator('#itemDescription').inputValue(), 'Chase Prime: 125.54');
   await page.locator('#itemPrice').fill('60');
   await page.locator('#itemSmartEntry').fill(await page.locator('#itemSmartEntry').inputValue() + ' owner: house;');
   assert.equal(await page.locator('#itemPrice').inputValue(), '60');
@@ -2624,4 +2624,36 @@ test('Lifetime item validation preserves state, allocates copy cents and rejects
  await page.evaluate(()=>window.LocalApp.storage.mutate(s=>{s.lifetime.categories[0].purchases.find(p=>p.kind==='object').amount=99;}));
  await page.locator('#itemPrice').fill('120');await page.locator('#saveItemButton').click();assert.match(await page.locator('#itemFormError').innerText(),/Lifetime purchases changed/);
  data=await page.evaluate(()=>window.LocalApp.storage.getState().lifetime);assert.equal(data.categories[0].purchases.find(p=>p.kind==='object').amount,99);
+});
+
+for(const width of [1440,390]) test('Robinhood Aqara purchase parses four copies and Camera uses supplied Smart symbol at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);await page.locator('[data-close-dialog="supportDialog"]').click();
+ const line='2026-10-08 ($606.17) Robinhood Aqara - Camera Hub G5 Pro, Wi-Fi, White (4) [200] [O]';
+ await page.locator('#addItemButton').click();await page.locator('#itemSmartEntry').fill(line);
+ await page.waitForFunction(()=>document.querySelector('#itemCopies').value==='4');
+ assert.equal(await page.locator('#itemName').inputValue(),'Camera Hub G5 Pro, Wi-Fi, White');assert.equal(await page.locator('#itemBrand').inputValue(),'Aqara');assert.equal(await page.locator('#itemSource').inputValue(),'Aqara');
+ assert.equal(await page.locator('#itemDescription').inputValue(),'Robinhood');assert.equal(await page.locator('#itemObtainedDate').inputValue(),'2026-10-08');assert.equal(await page.locator('#itemPrice').inputValue(),'606.17');assert.equal(await page.locator('#itemValue').inputValue(),'200');
+ assert.equal(await page.locator('#itemPriceMode').inputValue(),'total');assert.equal(await page.locator('[data-copy-location]').count(),4);
+ await page.locator('#itemTagSearch').fill('Camera');await page.locator('#itemTagSearch').press('Enter');
+ assert.equal(await page.evaluate(()=>window.LocalApp.config.inventory.tagGroups.find(g=>g.name==='Smart').tags.includes('Camera')),true);
+ await page.locator('#saveItemButton').click();
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,4);assert.equal(items.reduce((sum,item)=>sum+Math.round(item.price*100),0),60617);assert.equal(items.reduce((sum,item)=>sum+Math.round(item.value*100),0),20000);assert.ok(items.every(item=>item.categories.includes('Camera')));
+ await page.locator('[data-category-group="group:Smart"]').click();await page.locator('[data-category-tag="Camera"]').check();
+ assert.equal(await page.locator('[data-remove-category="Camera"] svg').getAttribute('viewBox'),'0 0 20.7822 25.5367');
+ await page.locator('#addItemButton').click();await page.locator('#itemSmartEntry').fill(line);await page.waitForFunction(()=>document.querySelector('#itemCopies').value==='4');await page.locator('#itemCopies').fill('2');
+ await page.locator('#itemSmartEntry').fill(line.replace('(4)','(5)'));await page.waitForTimeout(400);assert.equal(await page.locator('#itemCopies').inputValue(),'2');
+});
+
+test('bulk inline copy count retains total purchase prices across pause and resume',{timeout:30000},async t=>{
+ const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
+ const line='2026-10-08 ($606.17) Robinhood Aqara - Camera Hub G5 Pro, Wi-Fi, White (4) [200] [O]';
+ await page.locator('#bulkEntryButton').click();await page.locator('#bulkPaste').fill('"'+line+'"');await page.locator('#readBulkPaste').click();await page.locator('#startBulkReview').click();
+ assert.equal(await page.locator('#itemCopies').inputValue(),'4');assert.equal(await page.locator('#itemPriceMode').inputValue(),'total');
+ await page.locator('[data-inv-close="itemDialog"]').last().click();await page.reload();await page.locator('#bulkEntryButton').click();await page.locator('#resumeBulkButton').click();
+ assert.equal(await page.locator('#itemCopies').inputValue(),'4');assert.equal(await page.locator('#itemPriceMode').inputValue(),'total');
+ await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,4);assert.equal(items.reduce((sum,item)=>sum+Math.round(item.price*100),0),60617);assert.equal(items.reduce((sum,item)=>sum+Math.round(item.value*100),0),20000);
+ assert.ok(items.every(item=>item.categories.includes('Camera')));
 });

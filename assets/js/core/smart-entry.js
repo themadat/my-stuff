@@ -154,6 +154,10 @@
     if (match) take(match[0].length - match[1].length, match[1].length, "price", match[2].replace(/,/g, ""));
     match = /\[\$?([\d,]+(?:\.\d{1,2})?)\]/.exec(text);
     if (match) take(match.index, match[0].length, "value", match[1].replace(/,/g, ""));
+    // Purchase exports use a trailing parenthesized copy count before annotations.
+    // Leave model numbers, years and unpriced product text intact.
+    match = /\(([1-9]\d{0,2})\)(?=\s*(?:\[[^\]]*\]\s*)*$)/.exec(text);
+    if (fields.price && match && Number(match[1]) <= 100) take(match.index, match[0].length, "copies", match[1]);
     // Explicit annotations work regardless of order; semicolons separate text fields.
     const labels = /\b(brand|seller|source|owner|belongs to|obtained|method|price|value)\s*:\s*([^;\n\t\[\]]+);?/gi;
     for (const found of text.matchAll(labels)) {
@@ -168,6 +172,11 @@
     // Payment/account columns are notes, never the obtaining price.
     match = /\b[^\t\n;]*?:\s*\$?[\d,]+\.\d{2}(?=\s*(?:\t|;|\n|$))/.exec(rest.join(""));
     if (match) { const lead = match[0].length - match[0].trimStart().length; take(match.index + lead, match[0].length - lead, null); }
+    if (fields.price) {
+      const remaining = rest.join(""), start = remaining.search(/\S/);
+      const account = (App.config.inventory.paymentAccounts || []).find(function (name) { return start >= 0 && remaining.slice(start, start + name.length).toLowerCase() === name.toLowerCase() && /\s/.test(remaining[start + name.length] || ""); });
+      if (account) take(start, account.length, null);
+    }
     for (const found of rest.join("").matchAll(/\[[^\]]*\]/g)) take(found.index, found[0].length, null);
     let remaining = rest.join("");
     const config = App.config.inventory;

@@ -134,3 +134,16 @@ test('mapped Conveyed notes set House ownership and strip the marker from all it
  assert.match(row.description,/keep outside/);assert.doesNotMatch(row.description,/conveyed/i);
  assert.ok(row.properties.every(p=>! /conveyed/i.test(p.value)));
 });
+
+test('inline purchase copy counts create grouped review rows using total prices while explicit quantity columns keep per-item pricing',()=>{
+ const line='2026-10-08 ($606.17) Robinhood Aqara - Camera Hub G5 Pro, Wi-Fi, White (4) [200] [O]';
+ const rows=bulk.prepare([[line]],false,[],[]);
+ assert.equal(rows.length,4);assert.ok(rows.every(row=>row.draft._priceMode==='total'));
+ assert.equal(new Set(rows.map(row=>row.draft.copyGroup)).size,1);
+ assert.equal(rows[0].draft.name,'Camera Hub G5 Pro, Wi-Fi, White');assert.equal(rows[0].draft.description,'Robinhood');
+ assert.ok(rows[0].draft.categories.includes('Camera'));assert.ok(rows[0].draft.categories.includes('Hub'));
+ const explicit=bulk.prepare([['Purchase','Qty','Price'],[line,'2','50']],true,['raw','quantity','price'],[]);
+ assert.equal(explicit.length,2);assert.equal(explicit[0].draft.price,50);assert.notEqual(explicit[0].draft._priceMode,'total');
+ const mixed=bulk.prepare([['Purchase','Price'],[line,'50']],true,['raw','price'],[]);
+ assert.equal(mixed.length,4);assert.equal(mixed[0].draft.price,200);assert.equal(mixed[0].draft.value,'200');assert.equal(mixed[0].draft._priceMode,'total');
+});

@@ -128,7 +128,14 @@
         category.properties.forEach(function (property) { if (!properties.some(function (p) { return p.name.toLowerCase() === property.name.toLowerCase(); })) properties.push({ name: property.name, value: '', unit: property.unit || '' }); });
       });
       const seen = new Set(); draft.properties = properties.filter(function (p) { const key = p.name.toLowerCase(); if (seen.has(key)) { warnings.push('Repeated property: ' + p.name); draft.description += '\n' + p.name + ': ' + p.value; return false; } seen.add(key); return true; });
-      let quantity = mapped.quantity ? Number(mapped.quantity) : 1;
+      let quantity = mapped.quantity ? Number(mapped.quantity) : Number(parsed.copies || 1);
+      if (parsed.copies && !mapped.quantity) {
+        draft._priceMode='total';
+        // Explicit spreadsheet amounts are per object; inline purchase amounts
+        // are totals. Present both as totals while reviewing this group.
+        ['price','value'].forEach(function (key) { if (mapped[key] && draft[key] !== '') draft[key]=Math.round(Number(draft[key])*100)*quantity/100; });
+      }
+      if (mapped.quantity) draft._smartManual=['copies'];
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error('Row ' + (index + 1) + ': Copies must be an integer from 1 to 100.');
       if (output.length + quantity > 500) throw new Error('Review up to 500 objects per batch, including copies. Split this spreadsheet into smaller batches.');
       if (quantity > 1) draft.copyGroup = u.uid('copies');

@@ -2,24 +2,26 @@
 
 ## State
 
-Release **0.0.1.110** prepared and verified, uncommitted/unpushed. Working tree was clean at task start. No unfinished implementation work.
+Release **0.0.1.111** prepared and verified, uncommitted/unpushed. Working tree was clean at task start. No unfinished implementation work.
 
-Item entry now has a Lifetime section beside Checklists: Object/Consumable type, optional existing category, or inline new category. Objects can record their obtaining price in Lifetime. Consumables require a Lifetime category and save only as spending records, never inventory objects. Selected checklists receive consumables as non-object text entries. New saves, copies, Save and add new, object edits and conversion are supported. Conversion confirms and requires a recovery copy.
+Smart Add correctly parses `2026-10-08 ($606.17) Robinhood Aqara - Camera Hub G5 Pro, Wi-Fi, White (4) [200] [O]`: date 2026-10-08, obtaining price 606.17, current value 200, four copies, seller/brand Aqara, clean camera name, Robinhood in Notes. [O] remains excluded. Robinhood is configured as a payment account; Aqara is in known brands. Trailing parenthesized copy counts are recognized only on priced purchase lines, bounded to 1–100; model years and other parentheses stay intact.
 
-Spending records use item IDs to update without duplicates, preserving the current schema. Prices use allocated per-copy obtaining amounts, including exact cents. Linked purchase snapshots guard stale edits; inventory/Lifetime/checklist changes validate together before mutation. Bulk review preserves selections through pause/resume; deterministic IDs and reconciliation prevent duplicate consumables after persistence failures.
+Manual copy edits survive Smart Add updates. Generated copy controls and pricing refresh when automatic counts change. Bulk inline counts create grouped review rows in Total mode and survive pause/resume. Explicit spreadsheet quantity and per-object amounts retain precedence, including mixed inline-total/explicit amounts. Saving four cameras keeps total cost $606.17 and total value $200, allocated exactly to cents.
+
+Camera is available in the Smart group with the user's supplied SVG through shared icons. Existing Smart group/filter/view behavior is retained.
 
 ## Verification
 
-187 non-browser checks passed. Fifteen relevant browser flows passed: new item Lifetime flows at 1440/390/320px (320px at 130% text), validation/copy cents/stale purchase edits, bulk consumable pause/resume, existing bulk review/storage failure, single-copy editor, Lifetime purchases, checklists, and service-worker offline inventory/Notes/Backpacking/Lifetime reload. Two old checklist ordering expectations were corrected for existing unassigned-first behavior; both reruns passed. Desktop/mobile section screenshots inspected; truncated type label and cramped mobile checkbox column corrected. Diff whitespace passed. No real GitHub data changed. Preview stopped.
+189 non-browser checks passed. Eight relevant browser flows passed: exact Aqara line/copies/manual corrections/Camera menu and icon at 1440/390px, bulk inline count pause/resume and total preservation, existing Smart Add corrections/escaping, bulk Smart Complete, Smart category ordering and service-worker offline reload. One old browser assertion expected [O] in Notes; corrected to established marker-removal behavior and rerun successfully. Diff whitespace passed. No real GitHub data changed. Preview stopped.
 
 ## Pointers and constraints
 
-- Entry UI and atomic save: assets/js/inventory-ui.js (lifetimeSelection, syncItemLifetime, linkedLifetime, openItem/saveItem/captureDraft).
-- Spending upsert/validation: assets/js/core/state.js, itemLifetime(). No schema change.
-- Bulk support: assets/js/bulk-entry.js, accept()/reconcile().
-- Layout: assets/css/app.css, .item-checklists-tags-row and .item-lifetime.
-- Tests: tests/lifetime.test.mjs, tests/bulk-entry.test.mjs, tests/browser.test.mjs.
+- Parser: assets/js/core/smart-entry.js, trailing copy-count/payment-account handling.
+- UI copy destination/manual guards: assets/js/inventory-ui.js, smartLabels/completeSmart.
+- Bulk totals and explicit columns: assets/js/core/bulk-import.js, prepare().
+- Camera/Aqara/Robinhood configuration: assets/js/config.js. Supplied SVG/shared mapping: assets/js/icons.js.
+- Tests: tests/smart-entry.test.mjs, tests/bulk-import.test.mjs, tests/browser.test.mjs.
 - Release/cache surfaces aligned once with scripts/release.mjs. Do not bump again for this batch.
 - Node: /Users/stripes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node. Playwright: sibling node/node_modules/playwright/index.mjs.
-- Browser logs: /tmp/my-stuff-item-lifetime-release-browser.log and /tmp/my-stuff-lifetime-checklist-recheck.log. Non-browser log: /var/folders/0b/9tnrd3bx12d0xymx11rpxgnr0000gn/T/my-stuff-check-4eI8nC/results.log.
+- Logs: /tmp/my-stuff-camera-release-browser.log and /tmp/my-stuff-camera-manual-recheck.log. Non-browser log: /var/folders/0b/9tnrd3bx12d0xymx11rpxgnr0000gn/T/my-stuff-check-jnrZuW/results.log.
 - docs/DEVELOPMENT.md describes checks. Preserve local-first storage/recovery/import/sync/PWA. No commit/push without explicit instruction; stage only this batch's files.
