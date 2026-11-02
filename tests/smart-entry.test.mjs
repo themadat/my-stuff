@@ -168,3 +168,10 @@ test('payment details are ignored while ordinary notes and item amounts remain i
  const accountOnly=parse('($10)\tChase Prime: 89.81\tAqara - Sensor [O]');
  assert.equal(accountOnly.fields.description,undefined);assert.equal(accountOnly.fields.name,'Sensor');
 });
+
+test('parenthesized copies with a bracketed total need no separate obtaining price',()=>{
+ const result=parse('Aqara - Camera (2) [400] [O]');
+ assert.equal(result.fields.copies,'2');assert.equal(result.fields.value,'400');assert.equal(result.fields.name,'Camera');
+ assert.equal(result.fields.price,undefined);assert.equal(result.fields.description,undefined);
+ const account=parse('Robinhood Aqara - Camera (2) [400]');assert.equal(account.fields.source,'Aqara');assert.equal(account.fields.description,undefined);
+});

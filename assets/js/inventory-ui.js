@@ -169,6 +169,10 @@
       const remove=event.target.closest('[data-pack-remove]');if (!remove) return;
       changePack(function (bag) { bag.entries=bag.entries.filter(function (entry) { return entry.id!==remove.dataset.packRemove; });bag.checked=bag.checked.filter(function (key) { return key!=='entry:'+remove.dataset.packRemove; }); });renderList();$('[data-pack-show]')?.focus();
     });
+    $('#inventoryList').addEventListener('input',function (event) {
+      const input=event.target.closest('[data-pack-property="Weight"]');
+      if (input) input.closest('.pack-weight').dataset.missingWeight=String(input.value==='');
+    });
     $('#inventoryList').addEventListener('click',function (event) {
       const sort=event.target.closest('[data-special-sort]'); if (sort) { const key=sort.dataset.specialSort, previous=specialSort(); viewSorts.set(currentSpecial,{key:key,direction:previous.key===key && previous.direction==='ascending'?'descending':'ascending'}); renderList(); $$('[data-special-sort]').find(function (el) { return el.dataset.specialSort===key; })?.focus(); return; }
       const cost=event.target.closest('[data-age-cost]'); if (cost) { const id=cost.dataset.ageCost; if (monthlyCosts.has(id)) monthlyCosts.delete(id); else monthlyCosts.add(id); renderList(); $$('[data-age-cost]').find(function (el) { return el.dataset.ageCost===id; })?.focus(); return; }
@@ -491,6 +495,7 @@
       }
     });
     if (!previewOnly) {
+      if (result.fields.copies && smartApplied.copies && !smartManual.has('copies')) $('#itemPriceMode').value='total';
       if (result.fields.volume && smartField('volume')?.hasAttribute('data-smart-field')) { const unit = $('[data-property-unit]', smartField('volume').closest('.item-property')); unit.value = result.fields.volumeUnit || 'oz'; unit.setAttribute('data-smart-field','volume'); }
       suggestProperties();
     }
@@ -601,6 +606,28 @@
     const brand=$('#itemBrand').value.trim();
     if (brand && App.inventoryCatalog.isFavorite(brand) && !ordered.some(function (tag) { return tag.toLowerCase()===brand.toLowerCase(); })) $('#tagOrderStatus').textContent='Remove a tag to make room for the favorited brand (30-tag limit).';
     $('#selectedItemTags').innerHTML=ordered.map(function (tag) { const fixed=fixedTag(tag); return '<span class="ordered-tag" draggable="'+!fixed+'" data-fixed="'+fixed+'" data-order-tag="'+esc(tag)+'"'+(fixed ? ' title="Fixed Position"' : ' tabindex="0" aria-label="'+esc(tag)+', Alt+Arrow Keys to Reorder"')+'><span>'+esc(tag)+'</span><button type="button" data-remove-tag="'+esc(tag)+'" aria-label="Remove '+esc(tag)+'">'+icon('close')+'</button></span>'; }).join('');
+    renderItemTagGroups();
+  }
+  let itemTagGroupSignature='';
+  function positionItemTagPopup(panel,anchor) {
+    const bounds=anchor.getBoundingClientRect(), body=$('#itemDialog .dialog-body').getBoundingClientRect(), bar=$('#itemTagGroups').getBoundingClientRect();
+    const width=Math.min(384,body.width-24);
+    panel.style.width=width+'px';panel.style.right='auto';panel.style.left=(Math.max(body.left+12,Math.min(bounds.left,body.right-12-width))-bounds.left)+'px';
+    const below=body.bottom-bar.bottom-12,above=bar.top-body.top-12,useAbove=below<Math.min(200,panel.scrollHeight) && above>below;
+    panel.style.maxHeight=Math.max(80,Math.min(288,useAbove?above:below))+'px';
+    panel.style.top=useAbove?'auto':(bar.bottom-bounds.top+4)+'px';panel.style.bottom=useAbove?(bounds.bottom-bar.top+4)+'px':'auto';
+  }
+  function renderItemTagGroups() {
+    const root=$('#itemTagGroups');if (!root) return;
+    const groups=App.inventoryCatalog.data(inventory().items).tagGroups;
+    const signature=JSON.stringify(groups);
+    if (signature!==itemTagGroupSignature) {
+      itemTagGroupSignature=signature;
+      root.innerHTML=groups.map(function (group) {return '<details data-item-tag-group="'+esc(group.name)+'"><summary class="button small">'+App.icons.category(group.name)+'<span>'+esc(group.name)+'</span><span aria-hidden="true">▾</span></summary><div class="item-tag-menu" role="group" aria-label="'+esc(group.name)+' tags">'+group.tags.slice().sort(function (a,b) {return a.localeCompare(b);}).map(function (tag) {return '<label><input type="checkbox" data-item-tag-option="'+esc(tag)+'">'+App.icons.category(tag)+'<span>'+esc(tag)+'</span></label>';}).join('')+'</div></details>';}).join('');
+      $$('details',root).forEach(function (details) {details.addEventListener('toggle',function () {if (!this.open) return;$$('details[open]',root).forEach(function (other) {if (other!==details) other.open=false;});positionItemTagPopup($('.item-tag-menu',details),details);});});
+    }
+    const selected=m.tags($('#itemCategories').value).map(function (tag) {return tag.toLowerCase();});
+    $$('[data-item-tag-option]',root).forEach(function (input) {input.checked=selected.includes(input.dataset.itemTagOption.toLowerCase());});
   }
   function commitTags() {
     const value = $("#itemTagSearch").value.trim();
@@ -665,6 +692,10 @@
       if (!["itemZone","itemRoom","itemSpace"].includes(type) && query && !choices.some(function (option) { return option.value.toLowerCase() === query; })) choices.push({ value: input.value.trim(), detail: "Use Custom " + (id === "itemTagSearch" ? "Tag" : "Location") });
       list.innerHTML = choices.map(function (option, index) { return '<div role="option" aria-selected="false" id="' + id + 'Option' + index + '" data-option="' + index + '" style="padding-left:' + (.65 + (option.level || 0) * .9) + 'rem"><span>' + esc(option.value) + '</span><small>' + esc(option.detail) + '</small></div>'; }).join("") || '<p>No More Suggestions</p>';
       active = -1; input.removeAttribute("aria-activedescendant"); list.hidden = false; input.setAttribute("aria-expanded", "true");
+      if (id==='itemTagSearch' && $('#itemTagGroups')) {
+        $$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});
+        positionItemTagPopup(list,input.closest('.picker'));
+      }
     }
     input.addEventListener("focus", show);
     if (['itemRoom','itemSpace'].includes(type)) input.addEventListener('click', function () {
@@ -761,6 +792,23 @@
     const tagRow=$('#itemCategories').closest('.item-tags-notes-row'), tagArea=$('#itemCategories').parentElement, notes=$('#itemDescription').closest('label');
     tagRow.className='full item-checklists-tags-row';tagArea.classList.add('item-tag-area');
     tagArea.prepend($('label',$('#itemTagSearch').closest('.picker')));
+    $('#itemTagSearch').closest('.picker').insertAdjacentHTML('afterend','<div id="itemTagGroups" class="item-tag-browse" role="group" aria-label="Browse tags by group"></div>');
+    $('#itemTagGroups').addEventListener('change',function (event) {
+      const input=event.target.closest('[data-item-tag-option]');if (!input) return;
+      try {
+        const tag=input.dataset.itemTagOption, current=m.tags($('#itemCategories').value), next=input.checked?m.tags(current.concat(tag)):current.filter(function (value) {return value.toLowerCase()!==tag.toLowerCase();});
+        if (next.length>30) throw new Error('Use up to 30 tags per item.');
+        if (input.checked) $('#itemTagSearch').value='';
+        smartManual.add('categories');$('#itemCategories').removeAttribute('data-smart-field');$('#itemCategories').value=next.join(', ');renderTags();suggestProperties();
+      } catch (error) {renderItemTagGroups();formError('#itemFormError',error.message);}
+    });
+    $('#itemTagGroups').addEventListener('click',function (event) {if (event.target.closest('summary')) {$('#itemTagSearchOptions').hidden=true;$('#itemTagSearch').setAttribute('aria-expanded','false');}});
+    window.addEventListener('resize',function () {$$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});});
+    $('#itemForm').addEventListener('keydown',function (event) {
+      const open=$('#itemTagGroups details[open]');if (event.key!=='Escape' || !open) return;
+      event.preventDefault();event.stopPropagation();open.open=false;$('summary',open).focus();
+    },true);
+    $('#itemDialog').addEventListener('click',function (event) {if (!event.target.closest('#itemTagGroups')) $$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});});
     notes.classList.add('item-editor-notes');$('.item-location-row').classList.add('item-location-description-row');$('.item-location-row').append(notes);
     tagRow.insertAdjacentHTML('afterbegin','<fieldset class="item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
     $('.item-checklists',tagRow).insertAdjacentHTML('afterend','<fieldset class="item-lifetime"><legend>Lifetime</legend><label class="field"><span>Type</span><select id="itemLifetimeKind"><option value="object">Object</option><option value="consumable">Consumable</option></select></label><label class="field"><span>Category</span><select id="itemLifetimeCategory"></select></label><label class="field" id="itemLifetimeNewField" hidden><span>New category</span><input id="itemLifetimeNewCategory" maxlength="300"></label><small id="itemLifetimeHint">Choose a category to include the obtaining price in Lifetime.</small></fieldset>');
@@ -990,6 +1038,7 @@
     const price = $('#itemPrice'), value = $('#itemValue');
     if (document.activeElement !== price && !price.value && value.value && value.validity.valid) price.value = value.value;
     if (document.activeElement !== value && !value.value && price.value && price.validity.valid) value.value = price.value;
+    renderPricing();
   }
   function filterValue(item, key) {
     if (key === 'roomOwner') return [item.room || 'Unassigned',item.owner];
@@ -1122,7 +1171,7 @@
         const ounces=m.weightOunces(item),level=item.properties.find(function (p) { return p.name.toLowerCase()==='weight level'; })?.value || '',sub=packSubcategory(item);
         const heading=previousSub===sub?'':'<tr class="pack-subcategory"><th colspan="7" scope="rowgroup">'+esc(sub || 'No subcategory')+'</th></tr>';previousSub=sub;
         const object=item.packEntry?'<div class="pack-entry-inline">'+entryField(item,'name','Name','text',item.name)+entryField(item,'notes','Notes','textarea',item.description)+'</div>':packObjectCell(item);
-        return heading+'<tr data-item-owner="'+esc(item.owner)+'" data-conveyed="'+(item.obtainedHow==='Conveyed')+'"><td class="pack-object"><div class="pack-object-content"><input type="checkbox" data-pack-check="'+esc(key(item))+'" aria-label="'+esc('In bag: '+checklistObjectName(item))+'"'+(checked(item)?' checked':'')+'><div>'+object+'</div></div></td><td data-label="Weight · oz"><div class="pack-weight"><input type="number" min="0" step="any" data-pack-property="Weight"'+attrs(item)+' aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Unknown lb':(ounces/16).toFixed(2)+' lb')+'</small></div></td><td data-label="Category / Subcategory"><div class="pack-classification">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'<label class="pack-subcategory-field"><span>Subcategory</span><input data-pack-property="Backpacking Subcategory"'+attrs(item)+' aria-label="Subcategory for '+esc(item.name)+'" placeholder="Subcategory" value="'+esc(sub)+'"></label></div></td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td><td class="pack-date" data-label="Date">'+(item.packEntry?entryField(item,'date','Date','date',item.obtainedDate):esc(dateLabel(item.obtainedDate)))+'</td><td class="pack-cost" data-label="Cost">'+(item.packEntry?entryField(item,'price','Cost','number',item.price):esc(money(item.price,true)))+'</td><td class="inventory-row-actions">'+(item.packEntry?'<button type="button" class="button small" data-pack-remove="'+esc(item.id)+'" aria-label="Remove '+esc(item.name)+'">Remove</button>':'<button type="button" class="button small" data-edit-item="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">'+icon('inventoryEdit')+'</button>')+'</td></tr>';
+        return heading+'<tr data-item-owner="'+esc(item.owner)+'" data-conveyed="'+(item.obtainedHow==='Conveyed')+'"><td class="pack-object"><div class="pack-object-content"><input type="checkbox" data-pack-check="'+esc(key(item))+'" aria-label="'+esc('In bag: '+checklistObjectName(item))+'"'+(checked(item)?' checked':'')+'><div>'+object+'</div></div></td><td data-label="Weight · oz"><div class="pack-weight" data-missing-weight="'+(ounces===null)+'"><input type="number" min="0" step="any" data-pack-property="Weight"'+attrs(item)+' aria-label="Weight in ounces for '+esc(item.name)+'" value="'+(ounces===null?'':Number(ounces.toFixed(6)))+'"><small>'+(ounces===null?'Unknown lb':(ounces/16).toFixed(2)+' lb')+'</small></div></td><td data-label="Category / Subcategory"><div class="pack-classification">'+select(item,'Backpacking Category',m.packCategories.map(function (entry) { return entry[0]; }))+'<label class="pack-subcategory-field"><span>Subcategory</span><input data-pack-property="Backpacking Subcategory"'+attrs(item)+' aria-label="Subcategory for '+esc(item.name)+'" placeholder="Subcategory" value="'+esc(sub)+'"></label></div></td><td data-label="Weight Level" class="pack-level" data-level="'+(m.packLevels.includes(level)?level:'')+'">'+select(item,'Weight Level',m.packLevels)+'</td><td class="pack-date" data-label="Date">'+(item.packEntry?entryField(item,'date','Date','date',item.obtainedDate):esc(dateLabel(item.obtainedDate)))+'</td><td class="pack-cost" data-label="Cost">'+(item.packEntry?entryField(item,'price','Cost','number',item.price):esc(money(item.price,true)))+'</td><td class="inventory-row-actions">'+(item.packEntry?'<button type="button" class="button small" data-pack-remove="'+esc(item.id)+'" aria-label="Remove '+esc(item.name)+'">Remove</button>':'<button type="button" class="button small" data-edit-item="'+esc(item.id)+'" aria-label="Edit '+esc(item.name)+'">'+icon('inventoryEdit')+'</button>')+'</td></tr>';
       }).join('')+'</tbody></table></div>':'<p class="pack-empty">'+(packShow==='checked'?'No checked items in this category.':'No items in this category.')+'</p>')+'</section>';
     }).join('')+'</div>'; } finally { packRendering=false; }
     drafts.forEach(function (draft) { const form=$$('[data-pack-add]').find(function (el) { return el.dataset.packAdd===draft.category; });if (form) { form.closest('details').open=draft.open;draft.values.forEach(function ([name,value]) { form.elements.namedItem(name).value=value; }); } });
@@ -1286,7 +1335,7 @@
     $('#itemPriceToggle').textContent=total?'Total':'Per item'; $('#itemPriceToggle').setAttribute('aria-label',total?'Total pricing; switch to per item':'Per-item pricing; switch to totals'); $('#itemPriceToggle').setAttribute('aria-pressed',String(total)); $('#itemPriceToggle').title=total?'Amounts are totals. Click for per-item pricing.':'Amounts are per item. Click for total pricing.';
     $('#itemPriceLabel').textContent=total?'Total Obtaining Price':'Obtaining Price per Copy / Piece';
     $('#itemValueLabel').textContent=(total || $('#itemIsSet').checked)?'Total Current Value':'Current Value per Copy / Piece';
-    $('#itemPriceBreakdown').textContent=['Price','Value'].map(function (label) { const raw=$('#item'+label).value; if (raw==='') return label+': unknown'; const amount=Number(raw), asTotal=total || (label==='Value' && $('#itemIsSet').checked); return label+': '+money(asTotal?amount:amount*count)+' total · '+money(asTotal?amount/count:amount)+' per '+($('#itemIsSet').checked?'piece':'copy')+(total && Math.round(amount*100)%count ? ' (extra cents assigned to first copies)' : ''); }).join(' | ');
+    $('#itemPriceBreakdown').textContent=['Price','Value'].map(function (label) { const raw=$('#item'+label).value || $('#item'+(label==='Price'?'Value':'Price')).value; if (raw==='') return label+': unknown'; const amount=Number(raw), asTotal=total || (label==='Value' && $('#itemIsSet').checked); if (count===1) return label+': '+money(amount); return label+': '+money(asTotal?amount:amount*count)+' total · '+money(asTotal?amount/count:amount)+' per '+($('#itemIsSet').checked?'piece':'copy')+(total && Math.round(amount*100)%count ? ' (extra cents assigned to first copies)' : ''); }).join(' | ');
   }
   function saveCopyLocations(count) {
     const rows=copyLocations(), original=originalItem?JSON.parse(originalItem):null;
@@ -1389,6 +1438,7 @@
     directArchive=Boolean(item?.archive) || (!id && !copy && (draft ? Boolean(draft._archiveMode) : view==='previous'));
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
+    $$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});
     $('#itemDirectArchive').hidden=!directArchive;
     $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) { input.disabled=!directArchive; });
     $('#itemDirectGoneReason').required=directArchive; $('#itemDirectGoneDate').max=m.today();

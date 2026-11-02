@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.113",
-      buildId: "0.0.1.113",
+      version: "0.0.1.114",
+      buildId: "0.0.1.114",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -90,6 +90,23 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.114",
+  "date": "2026-11-02T18:24:42.794Z",
+  "title": "Item Tags, Copy Pricing and Missing Weights",
+  "summary": "Browse tag groups in item entry, correctly split bracketed copy totals and make missing Backpacking weights visible.",
+  "features": [
+    "Item entry has group dropdowns beside tag search, with multi-select checkboxes for the existing catalog vocabulary.",
+    "Missing Backpacking weights have red input borders that clear when a weight, including zero, is entered."
+  ],
+  "improvements": [
+    "Tag dropdowns fit desktop and narrow screens, support keyboard closing, and preserve search and selected-tag behavior."
+  ],
+  "fixes": [
+    "Parenthesized counts with bracketed totals work without a separate purchase price: (2) [400] saves two copies at $200 each.",
+    "Single-copy price and value summaries refresh from entered amounts and their normal fallback, including explicit zero."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.113",
   "date": "2026-11-02T18:14:42.642Z",
   "title": "Omit Payment Details from Descriptions",

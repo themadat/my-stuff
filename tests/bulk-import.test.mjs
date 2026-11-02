@@ -147,3 +147,8 @@ test('inline purchase copy counts create grouped review rows using total prices 
  const mixed=bulk.prepare([['Purchase','Price'],[line,'50']],true,['raw','price'],[]);
  assert.equal(mixed.length,4);assert.equal(mixed[0].draft.price,200);assert.equal(mixed[0].draft.value,'200');assert.equal(mixed[0].draft._priceMode,'total');
 });
+
+test('a bracket-only total with parenthesized copies stays a total in bulk review',()=>{
+ const rows=bulk.prepare([['Aqara - Camera (2) [400]']],false,[],[]);
+ assert.equal(rows.length,2);assert.equal(rows[0].draft._priceMode,'total');assert.equal(Number(rows[0].draft.price),400);assert.equal(Number(rows[0].draft.value),400);
+});

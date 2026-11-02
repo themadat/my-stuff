@@ -2690,3 +2690,52 @@ for(const width of [1440,390]) test('Smart Convert omits payment details and kee
  const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
  assert.equal(items.length,4);assert.ok(items.every(item=>item.description==='Handwritten note'));assert.equal(items.reduce((sum,item)=>sum+Math.round(item.price*100),0),60617);
 });
+
+for(const width of [1440,390,320]) test('item tag group dropdowns support selection, search, Escape and copy totals at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);
+ if(width===320) {if (!await page.locator('#supportDialog').evaluate(el=>el.open)) await page.locator('#supportButton').click();await page.locator('#textSizeSlider').fill('130');}
+ if(await page.locator('#supportDialog').evaluate(el=>el.open)) await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#addItemButton').click();
+ await page.locator('#itemPriceToggle').click();await page.locator('#itemSmartEntry').fill('Aqara - Camera (2) [400] [O]');
+ await page.waitForFunction(()=>document.querySelector('#itemCopies').value==='2');
+ assert.equal(await page.locator('#itemPriceMode').inputValue(),'total');assert.equal(await page.locator('#itemValue').inputValue(),'400');
+ await page.locator('#itemTagSearch').fill('Cam');
+ const smart=page.locator('[data-item-tag-group="Smart"]');await smart.locator('summary').click();await smart.locator('[data-item-tag-option="Camera"]').check();await smart.locator('[data-item-tag-option="Sensor"]').check();
+ assert.equal(await smart.evaluate(el=>el.open),true);assert.equal(await page.locator('#itemTagSearch').inputValue(),'');
+ const bounds=await smart.locator('.item-tag-menu').boundingBox();assert.ok(bounds.x>=0 && bounds.x+bounds.width<=width);
+ const tech=page.locator('[data-item-tag-group="Tech"]');await tech.locator('summary').click();await tech.locator('[data-item-tag-option="Router"]').check();assert.equal(await smart.evaluate(el=>el.open),false);
+ await tech.locator('[data-item-tag-option="Router"]').uncheck();await tech.locator('summary').press('Escape');
+ assert.equal(await tech.evaluate(el=>el.open),false);assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),true);
+ await page.locator('#itemTagSearch').fill('Family <b>');await page.locator('#itemTagSearch').press('Enter');
+ assert.equal(await page.locator('#selectedItemTags b').count(),0);assert.match(await page.locator('#itemCategories').inputValue(),/Camera/);assert.match(await page.locator('#itemCategories').inputValue(),/Sensor/);assert.doesNotMatch(await page.locator('#itemCategories').inputValue(),/Router/);
+ assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,2);assert.ok(items.every(item=>item.value===200 && item.price===200));assert.ok(items.every(item=>item.categories.includes('Camera') && item.categories.includes('Sensor') && item.categories.includes('Family <b>')));
+});
+
+for(const width of [1440,390]) test('single-copy price summary uses entered amounts, fallback and zero at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});await page.locator('[data-close-dialog="supportDialog"]').click();await page.locator('#addItemButton').click();
+ await page.locator('#itemPrice').fill('12.34');await page.locator('#itemName').fill('Single item');
+ await page.waitForFunction(()=>document.querySelector('#itemValue').value==='12.34');
+ assert.equal(await page.locator('#itemPriceBreakdown').innerText(),'Price: $12.34 | Value: $12.34');
+ await page.locator('#itemValue').fill('5.67');await page.locator('#itemPrice').fill('0');
+ assert.equal(await page.locator('#itemPriceBreakdown').innerText(),'Price: $0.00 | Value: $5.67');
+ await page.locator('#saveItemButton').click();await page.locator('[data-edit-item]').first().click();
+ assert.equal(await page.locator('#itemPriceBreakdown').innerText(),'Price: $0.00 | Value: $5.67');
+});
+
+for(const width of [1440,390]) test('Backpacking missing weights have red inputs that clear for entered and zero weights at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.evaluate(()=>{const a=window.LocalApp;a.storage.mutate(s=>{s.inventory.items=[a.inventoryModel.normalizeItem({id:'missing-weight',name:'Tent without weight',owner:'me',categories:['Backpacking']})];s.inventory.backpacking={entries:[{id:'food-missing',name:'Food without weight',date:'',price:null,weight:null,notes:'',category:'Food/Water',subcategory:'',level:''}],checked:[]};});a.storage.saveNow();});
+ await page.reload();await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ const object=page.locator('[data-pack-item="missing-weight"][data-pack-property="Weight"]'),entry=page.locator('[data-pack-entry="food-missing"][data-pack-property="Weight"]');
+ for(const input of [object,entry]) {
+  assert.equal(await input.locator('..').getAttribute('data-missing-weight'),'true');
+  assert.equal(await input.evaluate(el=>{const probe=document.createElement('span');probe.style.color='var(--danger)';document.body.append(probe);const expected=getComputedStyle(probe).color;probe.remove();return getComputedStyle(el).borderTopColor===expected;}),true);
+ }
+ await object.fill('8');assert.equal(await object.locator('..').getAttribute('data-missing-weight'),'false');await object.press('Tab');
+ await entry.fill('0');assert.equal(await entry.locator('..').getAttribute('data-missing-weight'),'false');await entry.press('Tab');
+ await object.fill('');assert.equal(await object.locator('..').getAttribute('data-missing-weight'),'true');await object.press('Tab');
+ await page.reload();await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
+ assert.equal(await object.locator('..').getAttribute('data-missing-weight'),'true');assert.equal(await entry.locator('..').getAttribute('data-missing-weight'),'false');assert.equal(await entry.inputValue(),'0');
+});

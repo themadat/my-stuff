@@ -157,7 +157,7 @@
     // Purchase exports use a trailing parenthesized copy count before annotations.
     // Leave model numbers, years and unpriced product text intact.
     match = /\(([1-9]\d{0,2})\)(?=\s*(?:\[[^\]]*\]\s*)*$)/.exec(text);
-    if (fields.price && match && Number(match[1]) <= 100) take(match.index, match[0].length, "copies", match[1]);
+    if ((fields.price || fields.value) && match && Number(match[1]) <= 100) take(match.index, match[0].length, "copies", match[1]);
     // Explicit annotations work regardless of order; semicolons separate text fields.
     const labels = /\b(brand|seller|source|owner|belongs to|obtained|method|price|value)\s*:\s*([^;\n\t\[\]]+);?/gi;
     for (const found of text.matchAll(labels)) {
@@ -174,7 +174,7 @@
       const lead = account[0].length - account[0].trimStart().length;
       take(account.index + lead, account[0].length - lead, null, undefined, true);
     }
-    if (fields.price) {
+    if (fields.price || fields.value) {
       const remaining = rest.join(""), start = remaining.search(/\S/);
       const account = (App.config.inventory.paymentAccounts || []).find(function (name) { return start >= 0 && remaining.slice(start, start + name.length).toLowerCase() === name.toLowerCase() && /\s/.test(remaining[start + name.length] || ""); });
       if (account) take(start, account.length, null, undefined, true);
