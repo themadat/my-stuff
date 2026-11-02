@@ -52,7 +52,7 @@
     const brands=knownBrands || App.config.inventory.brands;
     if (!fields.brand) fields.brand=tags.find(function (tag) { return brands.some(function (brand) { return brand.toLowerCase()===tag.toLowerCase(); }); }) || '';
     fields.value=cells[valueIndex].trim().replace(/[$,]/g,''); fields.price=fields.obtainedHow==='Conveyed'?'0':fields.value; if (fields.obtainedHow==='Conveyed') fields.obtainedDate='2020-12-17'; mark(valueIndex,'value');
-    product.spans.forEach(function (span) { spans.push({start:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.start,end:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.end,field:span.field}); });
+    product.spans.forEach(function (span) { spans.push({start:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.start,end:offsets[objectIndex]+(objectText.startsWith('"')?1:0)+span.end,field:span.field,...(span.ignored?{ignored:true}:{})}); });
     if (extraNotes) fields.description=[fields.description,extraNotes].filter(Boolean).join('\n');
     if (archiveMode) {
     date(goneIndex,'goneDate','Gone Date');
@@ -83,9 +83,9 @@
     const archiveMode=Boolean(options?.archive);
     if (text.includes("\t")) { const household=householdRow(text,knownBrands,archiveMode); if (household) { conveyedFields(household.fields,text); return household; } }
     const fields = {}, spans = []; let rest = text.split("");
-    function take(start, length, field, value) {
+    function take(start, length, field, value, ignored) {
       if (spans.some(function (span) { return start < span.end && start + length > span.start; })) return;
-      spans.push({ start: start, end: start + length, field: field });
+      spans.push({ start: start, end: start + length, field: field, ...(ignored ? { ignored: true } : {}) });
       rest.fill(" ", start, start + length); if (field) fields[field] = value;
     }
     // Spreadsheet cells retain offsets so extracted values stay highlighted in their original columns.
@@ -169,13 +169,15 @@
       take(found.index, found[0].length, key, value);
     }
     for (const conveyed of rest.join('').matchAll(/(?:\[\s*conveyed\s*\]|\bconveyed\b)(?:[ \t]*[-–—][ \t]+)?/gi)) take(conveyed.index,conveyed[0].length,'obtainedHow','Conveyed');
-    // Payment/account columns are notes, never the obtaining price.
-    match = /\b[^\t\n;]*?:\s*\$?[\d,]+\.\d{2}(?=\s*(?:\t|;|\n|$))/.exec(rest.join(""));
-    if (match) { const lead = match[0].length - match[0].trimStart().length; take(match.index + lead, match[0].length - lead, null); }
+    // Payment/account details are consumed without becoming item descriptions.
+    for (const account of rest.join("").matchAll(/\b[^\t\n;]*?:\s*\$?[\d,]+\.\d{2}(?=\s*(?:\t|;|\n|$))/g)) {
+      const lead = account[0].length - account[0].trimStart().length;
+      take(account.index + lead, account[0].length - lead, null, undefined, true);
+    }
     if (fields.price) {
       const remaining = rest.join(""), start = remaining.search(/\S/);
       const account = (App.config.inventory.paymentAccounts || []).find(function (name) { return start >= 0 && remaining.slice(start, start + name.length).toLowerCase() === name.toLowerCase() && /\s/.test(remaining[start + name.length] || ""); });
-      if (account) take(start, account.length, null);
+      if (account) take(start, account.length, null, undefined, true);
     }
     for (const found of rest.join("").matchAll(/\[[^\]]*\]/g)) take(found.index, found[0].length, null);
     let remaining = rest.join("");
@@ -218,7 +220,7 @@
       });
       fields.name = name;
     }
-    const notes = spans.filter(function (span) { return !span.field; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(function (note) { return note && !/^\[O\]$/i.test(note); }).join(" · ");
+    const notes = spans.filter(function (span) { return !span.field && !span.ignored; }).map(function (span) { return text.slice(span.start, span.end).trim(); }).filter(function (note) { return note && !/^\[O\]$/i.test(note); }).join(" · ");
     if (fields.categories) fields.categories = App.inventoryModel.tags(fields.categories).join(", ");
     if (notes) fields.description = notes;
     conveyedFields(fields,text);

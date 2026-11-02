@@ -475,7 +475,7 @@ test('smart completion preserves manual corrections, searchable locations and mu
   assert.equal(await page.locator('#itemBrand').inputValue(), 'Final Touch');
   assert.equal(await page.locator('#itemSource').inputValue(), 'Amazon');
   assert.equal(await page.locator('[data-smart-target="price"]').getAttribute('title'), '62.77');
-  assert.equal(await page.locator('#itemDescription').inputValue(), 'Chase Prime: 125.54');
+  assert.equal(await page.locator('#itemDescription').inputValue(), '');
   await page.locator('#itemPrice').fill('60');
   await page.locator('#itemSmartEntry').fill(await page.locator('#itemSmartEntry').inputValue() + ' owner: house;');
   assert.equal(await page.locator('#itemPrice').inputValue(), '60');
@@ -2632,7 +2632,7 @@ for(const width of [1440,390]) test('Robinhood Aqara purchase parses four copies
  await page.locator('#addItemButton').click();await page.locator('#itemSmartEntry').fill(line);
  await page.waitForFunction(()=>document.querySelector('#itemCopies').value==='4');
  assert.equal(await page.locator('#itemName').inputValue(),'Camera Hub G5 Pro, Wi-Fi, White');assert.equal(await page.locator('#itemBrand').inputValue(),'Aqara');assert.equal(await page.locator('#itemSource').inputValue(),'Aqara');
- assert.equal(await page.locator('#itemDescription').inputValue(),'Robinhood');assert.equal(await page.locator('#itemObtainedDate').inputValue(),'2026-10-08');assert.equal(await page.locator('#itemPrice').inputValue(),'606.17');assert.equal(await page.locator('#itemValue').inputValue(),'200');
+ assert.equal(await page.locator('#itemDescription').inputValue(),'');assert.equal(await page.locator('#itemObtainedDate').inputValue(),'2026-10-08');assert.equal(await page.locator('#itemPrice').inputValue(),'606.17');assert.equal(await page.locator('#itemValue').inputValue(),'200');
  assert.equal(await page.locator('#itemPriceMode').inputValue(),'total');assert.equal(await page.locator('[data-copy-location]').count(),4);
  await page.locator('#itemTagSearch').fill('Camera');await page.locator('#itemTagSearch').press('Enter');
  assert.equal(await page.evaluate(()=>window.LocalApp.config.inventory.tagGroups.find(g=>g.name==='Smart').tags.includes('Camera')),true);
@@ -2676,4 +2676,17 @@ for(const width of [1440,390]) test('Matter network types migrate Thread and rem
  assert.equal(await page.locator('[data-connection="Matter (Thread)"]').getAttribute('aria-pressed'),'true');
  assert.equal(await page.evaluate(()=>window.LocalApp.stateModel.syncPayload(window.LocalApp.storage.getState()).data.inventory.items[0].properties[0].value),'Matter (Wi-Fi) | Matter (Thread)');
  assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+});
+
+for(const width of [1440,390]) test('Smart Convert omits payment details and keeps genuine or manually entered notes at '+width,{timeout:30000},async t=>{
+ const {page}=await fixture(t,{viewport:{width,height:1000}});page.setDefaultTimeout(5000);await page.locator('[data-close-dialog="supportDialog"]').click();
+ const line='2026-10-08\t($606.17)\tChase Prime: 89.81\tAqara - Camera (4) [200] [O] [Keep receipt]';
+ await page.locator('#addItemButton').click();await page.locator('#itemSmartEntry').fill(line);
+ await page.waitForFunction(()=>document.querySelector('#itemCopies').value==='4');
+ assert.equal(await page.locator('#itemDescription').inputValue(),'[Keep receipt]');
+ const noteSpans=await page.locator('#smartPreview [data-smart-kind="description"]').allTextContents();assert.ok(noteSpans.includes('[Keep receipt]'));assert.equal(noteSpans.some(text=>/Chase Prime|89\.81/.test(text)),false);
+ await page.locator('#itemDescription').fill('Handwritten note');await page.locator('#itemSmartEntry').fill(line.replace('89.81','99.81'));
+ assert.equal(await page.locator('#itemDescription').inputValue(),'Handwritten note');await page.locator('#saveItemButton').click();
+ const items=await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items);
+ assert.equal(items.length,4);assert.ok(items.every(item=>item.description==='Handwritten note'));assert.equal(items.reduce((sum,item)=>sum+Math.round(item.price*100),0),60617);
 });

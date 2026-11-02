@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.112",
-      buildId: "0.0.1.112",
+      version: "0.0.1.113",
+      buildId: "0.0.1.113",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -90,6 +90,19 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.113",
+  "date": "2026-11-02T18:14:42.642Z",
+  "title": "Omit Payment Details from Descriptions",
+  "summary": "Smart Convert ignores payment-card names and account totals instead of adding them to item descriptions.",
+  "features": [],
+  "improvements": [
+    "Payment-account fields such as Chase Prime: 89.81 and recognized account prefixes are omitted from generated descriptions and Notes highlights."
+  ],
+  "fixes": [
+    "Keep item prices, values, copy counts, ordinary notes and manually entered descriptions intact during conversion."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.112",
   "date": "2026-11-02T18:01:47.460Z",
   "title": "Matter Network Types",

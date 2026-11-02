@@ -499,7 +499,7 @@
     let cursor = 0, html = "";
     result.spans.forEach(function (span) {
       html += esc(text.slice(cursor, span.start));
-      html += '<mark data-smart-kind="' + esc(span.field || "description") + '" title="' + esc(smartLabels[span.field] || "Notes — Review") + '">' + esc(text.slice(span.start, span.end)) + '</mark>';
+      html += span.ignored ? esc(text.slice(span.start, span.end)) : '<mark data-smart-kind="' + esc(span.field || "description") + '" title="' + esc(smartLabels[span.field] || "Notes — Review") + '">' + esc(text.slice(span.start, span.end)) + '</mark>';
       cursor = span.end;
     });
     $("#smartPreview").innerHTML = html + esc(text.slice(cursor)); $("#smartPreview").hidden = !text;

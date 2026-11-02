@@ -5,9 +5,9 @@ import { test } from 'node:test';
 const ctx = vm.createContext({ window: { LocalApp: {} } });
 for (const file of ['config', 'core/utils', 'core/inventory', 'core/smart-entry']) vm.runInContext(readFileSync(new URL('../assets/js/' + file + '.js', import.meta.url), 'utf8'), ctx);
 const app = ctx.window.LocalApp, parse = text => JSON.parse(JSON.stringify(app.smartEntry.parse(text)));
-test('purchase sample maps exact fields and retains account amount and strips the O marker', () => {
+test('purchase sample maps exact fields and omits payment details and the O marker', () => {
   const result = parse(app.smartEntry.example.replace(/^08\/03\/26\t/, ""));
-  assert.deepEqual(result.fields, { price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand', description: 'Chase Prime: 125.54' });
+  assert.deepEqual(result.fields, { price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand' });
   for (let i = 1; i < result.spans.length; i++) assert.ok(result.spans[i].start >= result.spans[i - 1].end);
 });
 test('plain names and unfamiliar brands remain intact; explicit annotations override defaults', () => {
@@ -31,7 +31,7 @@ test('dated purchase lines remove date and price before matching brand and objec
   for (const date of ['08/03/26', '8/3/2026', '2026-08-03']) {
     const text = app.smartEntry.example.replace('08/03/26', date);
     const result = parse(text);
-    assert.deepEqual(result.fields, { obtainedDate: '2026-08-03', price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand', description: 'Chase Prime: 125.54' });
+    assert.deepEqual(result.fields, { obtainedDate: '2026-08-03', price: '62.77', value: '65', source: 'Amazon', brand: 'Final Touch', name: 'Whiskey Flight Set with 3 Tasting Glasses & Modern Wood Stand' });
     assert.equal(text.slice(result.spans[0].start, result.spans[0].end), date);
     for (let i = 1; i < result.spans.length; i++) assert.ok(result.spans[i].start >= result.spans[i - 1].end);
   }
@@ -151,10 +151,20 @@ test('household renames migrate tags, rooms and review dates and expose new spac
 test('Robinhood payment account and trailing copy count stay separate from Aqara seller and camera name',()=>{
  const text='2026-10-08 ($606.17) Robinhood Aqara - Camera Hub G5 Pro, Wi-Fi, White (4) [200] [O]';
  const result=parse(text);
- assert.deepEqual(result.fields,{obtainedDate:'2026-10-08',price:'606.17',value:'200',copies:'4',source:'Aqara',brand:'Aqara',name:'Camera Hub G5 Pro, Wi-Fi, White',description:'Robinhood'});
+ assert.deepEqual(result.fields,{obtainedDate:'2026-10-08',price:'606.17',value:'200',copies:'4',source:'Aqara',brand:'Aqara',name:'Camera Hub G5 Pro, Wi-Fi, White'});
  for(let i=1;i<result.spans.length;i++) assert.ok(result.spans[i].start>=result.spans[i-1].end);
  assert.equal(parse(text.replaceAll(' ','\t')).fields.copies,'4');
  for(const suffix of ['(2024)','(101)','(0)','(4K)']) assert.ok(parse('2026-10-08 $10 Aqara - Camera '+suffix+' [200]').fields.name.includes(suffix));
  assert.equal(parse('Camera model (4)').fields.copies,undefined);
  assert.equal(parse('$10 Aqara - Camera (4) mount').fields.copies,undefined);
+});
+
+test('payment details are ignored while ordinary notes and item amounts remain intact',()=>{
+ const text='2026-10-08\t($606.17)\tChase Prime: 89.81\tOther card: $516.36\tAqara - Camera (4) [200] [O] [Keep receipt]';
+ const result=parse(text);
+ assert.equal(result.fields.price,'606.17');assert.equal(result.fields.value,'200');assert.equal(result.fields.copies,'4');
+ assert.equal(result.fields.description,'[Keep receipt]');assert.equal(result.fields.name,'Camera');
+ assert.equal(result.spans.filter(span=>span.ignored).length,2);
+ const accountOnly=parse('($10)\tChase Prime: 89.81\tAqara - Sensor [O]');
+ assert.equal(accountOnly.fields.description,undefined);assert.equal(accountOnly.fields.name,'Sensor');
 });
