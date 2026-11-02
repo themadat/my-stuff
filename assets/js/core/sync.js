@@ -507,6 +507,39 @@
     return performUpload();
   }
 
+  function comparison() {
+    const local = storage.getState();
+    // Apply legacy omissions just as a download would: absent legacy sections
+    // preserve local content and must not appear as deletions in the review.
+    const left = model.syncPayload(local).data;
+    const right = runtime.remoteState ? model.syncPayload(model.applySync(local, runtime.remoteState)).data : undefined;
+    const rows = [];
+    function visit(a, b, path) {
+      if (JSON.stringify(a) === JSON.stringify(b)) return;
+      if (Array.isArray(a) && Array.isArray(b) && a.concat(b).every(function (value) { return value && typeof value === "object" && typeof value.id === "string"; })) {
+        const localItems = new Map(a.map(function (value) { return [value.id, value]; }));
+        const remoteItems = new Map(b.map(function (value) { return [value.id, value]; }));
+        if (a.length === b.length && a.every(function (value) { return remoteItems.has(value.id); }) && a.some(function (value, index) { return value.id !== b[index].id; })) {
+          rows.push({ label: path.concat("Order").join(" → "), local: a.map(function (value) { return value.name || value.id; }).join("\n"), remote: b.map(function (value) { return value.name || value.id; }).join("\n") });
+        }
+        new Set([...localItems.keys(), ...remoteItems.keys()]).forEach(function (id) {
+          const item = localItems.get(id) || remoteItems.get(id);
+          visit(localItems.get(id), remoteItems.get(id), path.concat((item.name || "Record") + " [" + id + "]"));
+        });
+      } else if (a && b && !Array.isArray(a) && !Array.isArray(b) && typeof a === "object" && typeof b === "object") {
+        new Set([...Object.keys(a), ...Object.keys(b)]).forEach(function (key) {
+          visit(a[key], b[key], path.concat(key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, function (letter) { return letter.toUpperCase(); })));
+        });
+      } else {
+        const display = function (value) { return value === undefined ? "Not present" : value === "" ? "(empty)" : typeof value === "string" ? value : JSON.stringify(value, null, 2); };
+        rows.push({ label: path.join(" → ") || "Cloud data file", local: display(a), remote: display(b) });
+      }
+    }
+    if (runtime.remoteMissing) rows.push({ label: "GitHub data file", local: "Saved content on this device", remote: "Not present — uploading will create it" });
+    visit(left, runtime.remoteMissing ? {} : right, []);
+    return rows;
+  }
+
   async function syncNow(trigger) {
     const info = getInfo();
     if (info.busy) return;
@@ -535,6 +568,7 @@
             { value: "download", symbol: "icloud.and.arrow.down", label: "Download GitHub", description: "Replace saved content after making a recovery copy; keep this device’s settings.", kind: "secondary" }
           ];
       const sequence = runtime.requestSequence;
+      const reviewedHash = model.syncHash(storage.getState());
       runtime.deciding = true;
       emit();
       let choice;
@@ -542,12 +576,17 @@
         choice = await App.components.choose({
           title: state === "conflict" ? "Resolve Sync Conflict" : "Choose the First Sync Copy",
           message: getInfo().newer + " Nothing will be overwritten until you choose.",
+          comparison: comparison(),
           choices: choices,
           cancelLabel: "Cancel Sync",
           trigger: trigger
         });
       } finally { runtime.deciding = false; emit(); }
       if (sequence !== runtime.requestSequence || navigator.onLine === false || !configured()) return;
+      if (choice !== "cancel" && reviewedHash !== model.syncHash(storage.getState())) {
+        App.components.toast("Saved content changed during review. Use Sync Now to compare the latest copies.", { title: "Review Sync Again", kind: "warning" });
+        return;
+      }
       if (choice === "upload") return performUpload();
       if (choice === "download") return performDownload();
       if (choice === "merge") return performMerge();

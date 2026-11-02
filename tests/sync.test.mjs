@@ -876,3 +876,53 @@ test('What’s New on/off defaults on, survives backups and stays local during c
  assert.equal(m.resetPreferences(state).preferences.controls.whatsNewEnabled,true);
  assert.doesNotMatch(JSON.stringify(m.syncPayload(state)),/whatsNewEnabled/);
 });
+
+
+test('sync review compares changed fields, matched IDs and one-sided content without device settings', async () => {
+  const h = harness(); h.setBaseline();
+  h.state.inventory.items = [inventoryItem(h), inventoryItem(h, {id:'local-only', name:'Only here'})];
+  h.remote.inventory.items = [inventoryItem(h, {value:150}), inventoryItem(h, {id:'remote-only', name:'Only on GitHub'})];
+  changeNotes(h.state, 'Device <literal>\nSecond line'); changeNotes(h.remote, 'GitHub notes');
+  h.state.preferences.appearance.mode = 'dark';
+  await h.sync.syncNow();
+  const rows = h.choices[0].comparison;
+  assert.ok(rows.some(row => /Trail shoes.*Value/.test(row.label) && row.local === '100' && row.remote === '150'));
+  assert.ok(rows.some(row => /Only here/.test(row.label) && row.remote === 'Not present'));
+  assert.ok(rows.some(row => /Only on GitHub/.test(row.label) && row.local === 'Not present'));
+  assert.ok(rows.some(row => row.label === 'Notes' && row.local === 'Device <literal>\nSecond line' && row.remote === 'GitHub notes'));
+  assert.equal(rows.some(row => /appearance|token|baseline|updatedAt/i.test(row.label)), false);
+  assert.equal(h.replacements.length, 0); assert.equal(h.requests.some(r => r.options.method === 'PUT'), false);
+});
+
+test('legacy Notes-only review preserves omitted sections and missing cloud files explain creation', async () => {
+  const h = harness(); h.state.inventory.items = [inventoryItem(h)]; changeNotes(h.state, 'Local');
+  h.respond = () => response(200, {type:'file', sha:'old-sha', content:Buffer.from(JSON.stringify({syncFormat:'local-first-app-data', syncVersion:1, schemaVersion:5, data:{notes:'Remote'}})).toString('base64')});
+  await h.sync.syncNow();
+  assert.equal(h.choices[0].comparison.length, 1); assert.equal(h.choices[0].comparison[0].label, 'Notes');
+  h.respond = () => response(404); await h.sync.syncNow();
+  assert.match(h.choices[1].comparison[0].remote, /uploading will create it/);
+});
+
+test('sync review blocks a choice after saved local content changes during comparison', async () => {
+  const h = harness(); changeNotes(h.state, 'Local'); changeNotes(h.remote, 'Remote');
+  h.App.components.choose = async () => { changeNotes(h.state, 'New edit'); return 'download'; };
+  await h.sync.syncNow();
+  assert.equal(h.state.notes.text, 'New edit'); assert.equal(h.replacements.length, 0);
+  assert.equal(h.toasts.at(-1).title, 'Review Sync Again');
+});
+
+test('sync diff covers Lifetime record edits and order, checklist changes and cleared Notes', async () => {
+  const h = harness();
+  const category = (id, name) => ({id,name,purchases:[{id:'purchase-'+id,name:'Purchase',amount:10,kind:'other',date:'',seller:'',notes:''}]});
+  h.state.lifetime.categories = [category('one','First'), category('two','Second')];
+  h.remote.lifetime.categories = [category('two','Second'), category('one','First')];
+  h.remote.lifetime.categories[1].purchases[0].amount = 25;
+  h.state.inventory.checklists = {travel:{objects:[],entries:[{id:'list-note',text:'Device list'}],checked:[]}};
+  changeNotes(h.state,'Remove me');
+  await h.sync.syncNow();
+  const rows = h.choices[0].comparison;
+  assert.ok(rows.some(row => /Lifetime.*Order/.test(row.label) && row.local === 'First\nSecond' && row.remote === 'Second\nFirst'));
+  assert.ok(rows.some(row => /Purchase.*Amount/.test(row.label) && row.local === '10' && row.remote === '25'));
+  assert.ok(rows.some(row => /Checklists/.test(row.label)));
+  assert.ok(rows.some(row => row.label === 'Notes' && row.local === 'Remove me' && row.remote === 'Not present'));
+});

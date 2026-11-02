@@ -265,7 +265,7 @@ test('real controls upload only Notes, confirm cloud restore, retain settings, e
   await page.locator('#syncNowButton').click();
   await page.locator('#choiceDialog').getByRole('button', { name: /Upload This Device/ }).click();
   await page.waitForFunction(() => window.LocalApp.sync.getInfo().state === 'upToDate');
-  assert.deepEqual(h.writes[0], { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 7, data: { inventory: { currency: 'USD', items: [] }, favoriteBrands: [], notes: 'Local ☁️\n<literal> Notes' } });
+  assert.deepEqual(h.writes[0], { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 9, data: { inventory: { currency: 'USD', items: [] }, lifetime: { categories: [] }, favoriteBrands: [], notes: 'Local ☁️\n<literal> Notes' } });
   h.remote = { syncFormat: 'local-first-app-data', syncVersion: 1, schemaVersion: 5, data: { notes: 'Cloud Notes' } };
   await page.locator('#restoreCloudButton').click(); await page.locator('[data-confirm-cancel]').click();
   assert.equal(await page.evaluate(() => window.LocalApp.storage.getState().notes.text), 'Local ☁️\n<literal> Notes');
@@ -2523,4 +2523,40 @@ for (const width of [1440,390,320]) test('What’s New can be switched off and o
  await page.locator('#whatsNewDismissSeconds').fill('300'); await page.locator('#whatsNewDismissSeconds').dispatchEvent('change');
  await page.reload(); assert.equal(await page.locator('#whatsNewBanner').isVisible(),true);
  await page.locator('#versionButton').click(); assert.equal(await page.locator('#releasesTab').getAttribute('aria-selected'),'true');
+});
+
+
+for (const width of [1440,390,320]) test('sync attention shows a safe field diff before choosing copies at '+width, {timeout:30000}, async t => {
+  const h = await fixture(t, {viewport:{width,height:900}}), {page,writes} = h;
+  await page.evaluate(() => {
+    const a=window.LocalApp;
+    a.storage.mutate(s=>{
+      s.modules.cloudSync.autoSync=false;
+      s.notes.text='Local <img src=x onerror=alert(1)>\nKeep this line';
+      s.inventory.items=[a.inventoryModel.normalizeItem({id:'diff-item',name:'Diff shoes',owner:'me',value:100})];
+    });
+  });
+  h.remote=await page.evaluate(()=>{
+    const a=window.LocalApp, s=structuredClone(a.storage.getState());
+    s.notes.text='Remote notes'; s.inventory.items[0].value=150;
+    return a.stateModel.syncPayload(s);
+  });
+  await page.evaluate(async()=>{const a=window.LocalApp;a.sync.saveConfiguration({owner:'themadat',repo:'app-data',branch:'main',path:'data/my-stuff.json',token:'diff-test-token'});await a.sync.check(true);});
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  assert.equal(await page.locator('#floatingStatus').getAttribute('data-sync-state'),'warning');
+  await page.locator('#floatingStatus').click();
+  await page.locator('[data-choice-comparison]').waitFor({state:'visible'});
+  assert.match(await page.locator('[data-choice-comparison]').innerText(),/Diff shoes.*Value/s);
+  assert.match(await page.locator('[data-choice-comparison]').innerText(),/100.*150/s);
+  assert.match(await page.locator('[data-choice-comparison]').innerText(),/Local <img src=x onerror=alert\(1\)>\nKeep this line/);
+  assert.equal(await page.locator('[data-choice-comparison] img').count(),0);
+  assert.equal(await page.locator('[data-comparison-focus]').evaluate(el=>el===document.activeElement),true);
+  assert.equal(await page.locator('#choiceDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+  assert.equal(writes.length,0);
+  await page.locator('[data-choice-cancel]').click();
+  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items[0].value),100);
+  await page.locator('#floatingStatus').click();
+  await page.locator('[data-choice-value="download"]').click();
+  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items[0].value),150);
+  assert.equal(writes.length,0);
 });

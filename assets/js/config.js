@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.108",
-      buildId: "0.0.1.108",
+      version: "0.0.1.109",
+      buildId: "0.0.1.109",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -89,6 +89,21 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.109",
+  "date": "2026-11-02T17:04:42.755868+00:00",
+  "title": "Sync Differences",
+  "summary": "Review differences between this device and GitHub before resolving sync attention.",
+  "features": [
+    "Sync conflict and first-sync dialogs show changed fields and content present in only one copy, labelled This Device and GitHub."
+  ],
+  "improvements": [
+    "Comparisons match inventory and Lifetime records by ID and preserve sections omitted by older cloud formats."
+  ],
+  "fixes": [
+    "Sync choices stop for another review if saved content changes while the comparison is open."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.108",
   "date": "2026-10-31T04:17:07.598803Z",
   "title": "Compact Ownership Totals",

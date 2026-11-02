@@ -63,6 +63,33 @@
     const dialog = document.querySelector("#choiceDialog");
     dialog.querySelector("[data-choice-title]").textContent = settings.title;
     dialog.querySelector("[data-choice-message]").textContent = settings.message;
+    const comparison = dialog.querySelector("[data-choice-comparison]");
+    comparison.replaceChildren();
+    comparison.hidden = !settings.comparison;
+    dialog.classList.toggle("has-comparison", Boolean(settings.comparison));
+    if (settings.comparison) {
+      const heading = document.createElement("h3");
+      heading.textContent = "Differences (" + settings.comparison.length + ")";
+      heading.tabIndex = -1;
+      heading.dataset.comparisonFocus = "";
+      comparison.appendChild(heading);
+      settings.comparison.forEach(function (row) {
+        const entry = document.createElement("article");
+        const title = document.createElement("h4");
+        title.textContent = row.label;
+        entry.appendChild(title);
+        const values = document.createElement("dl");
+        [["This Device", row.local], ["GitHub", row.remote]].forEach(function (pair) {
+          const cell = document.createElement("div"), label = document.createElement("dt"), value = document.createElement("dd");
+          label.textContent = pair[0];
+          value.textContent = pair[1];
+          cell.append(label, value);
+          values.appendChild(cell);
+        });
+        entry.appendChild(values);
+        comparison.appendChild(entry);
+      });
+    }
     const container = dialog.querySelector("[data-choice-actions]");
     container.innerHTML = "";
     settings.choices.forEach(function (choice, index) {
@@ -96,7 +123,7 @@
     if (choiceResolve) choiceResolve("cancel");
     return new Promise(function (resolve) {
       choiceResolve = resolve;
-      openDialog(dialog, { trigger: settings.trigger, focus: "[data-initial-focus]" });
+      openDialog(dialog, { trigger: settings.trigger, focus: settings.comparison ? "[data-comparison-focus]" : "[data-initial-focus]" });
     });
   }
 
