@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.114",
-      buildId: "0.0.1.114",
+      version: "0.0.1.115",
+      buildId: "0.0.1.115",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -90,6 +90,23 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.115",
+  "date": "2026-11-02T19:21:58.535Z",
+  "title": "Full-Size Add and Hover Pickers",
+  "summary": "Item entry fills the available viewport with a one-click Lifetime type toggle and hover-capable category and tag pickers.",
+  "features": [
+    "Object and Consumable switch with one click, with the Lifetime category picker beside the toggle."
+  ],
+  "improvements": [
+    "The Add/Edit dialog fills the viewport while its body scrolls between the header and footer.",
+    "Lifetime categories and tag groups open on hover or click, support click pinning, keyboard closing and touch toggling.",
+    "New Lifetime category names appear in the category control as they are typed."
+  ],
+  "fixes": [
+    "Consumable saves require a Lifetime category before any inventory or spending changes."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.114",
   "date": "2026-11-02T18:24:42.794Z",
   "title": "Item Tags, Copy Pricing and Missing Weights",

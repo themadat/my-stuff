@@ -17,6 +17,14 @@ async function addInventoryItem(page, { name = 'Trail shoes', owner = 'me', room
   await page.locator('#saveItemButton').click();
 }
 
+async function setItemLifetimeKind(page, kind) {
+  if (await page.locator('#itemLifetimeKind').inputValue() !== kind) await page.locator('#itemLifetimeKindToggle').click();
+}
+async function chooseItemLifetimeCategory(page, value) {
+  await page.locator('#itemLifetimeCategoryButton').click();
+  await page.locator('[data-item-lifetime-category="'+value+'"]').click();
+}
+
 test('inventory editor, category properties, ownership totals, filters, archive duration and return work end to end', { timeout: 30000 }, async t => {
   const { page } = await fixture(t);
   await page.locator('[data-close-dialog="supportDialog"]').click();
@@ -2567,7 +2575,7 @@ for (const width of [1440,390,320]) test('item Lifetime section saves consumable
  await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#addItemButton').click();
  await page.locator('#itemName').fill('PLA <blue>');await page.locator('#itemPrice').fill('24.95');await page.locator('#itemValue').fill('5');
- await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#itemLifetimeCategory').selectOption('new');await page.locator('#itemLifetimeNewCategory').fill('3D Printer');
+ await setItemLifetimeKind(page,'consumable');await chooseItemLifetimeCategory(page,'new');await page.locator('#itemLifetimeNewCategory').fill('3D Printer');
  await page.locator('[name="itemChecklist"][value="travel"]').check();
  assert.equal(await page.locator('.item-lifetime').evaluate(el=>el.previousElementSibling.classList.contains('item-checklists')),true);
  assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
@@ -2578,7 +2586,7 @@ for (const width of [1440,390,320]) test('item Lifetime section saves consumable
  assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'object');
  await page.locator('#itemName').fill('Printer');await page.locator('#itemPrice').fill('200');await page.locator('#itemValue').fill('80');
  const category=result.lifetime.categories[0].id;
- await page.locator('#itemLifetimeCategory').selectOption(category);await page.locator('#saveItemButton').click();
+ await chooseItemLifetimeCategory(page,category);await page.locator('#saveItemButton').click();
  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
  await page.locator('[data-edit-item]').first().click();
  assert.equal(await page.locator('#itemLifetimeCategory').inputValue(),category);
@@ -2586,7 +2594,7 @@ for (const width of [1440,390,320]) test('item Lifetime section saves consumable
  result=await page.evaluate(()=>window.LocalApp.storage.getState().lifetime);
  assert.equal(result.categories[0].purchases.length,2);assert.equal(result.categories[0].purchases.find(p=>p.kind==='object').amount,210);
  await page.reload();await page.locator('[data-edit-item]').first().click();
- await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#saveItemButton').click();await page.locator('[data-confirm-cancel]').click();
+ await setItemLifetimeKind(page,'consumable');await page.locator('#saveItemButton').click();await page.locator('[data-confirm-cancel]').click();
  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),1);
  await page.locator('#saveItemButton').click();await page.locator('[data-confirm-action]').click();
  await page.waitForFunction(()=>window.LocalApp.storage.getState().inventory.items.length===0);
@@ -2599,7 +2607,7 @@ for (const width of [1440,390,320]) test('item Lifetime section saves consumable
 test('bulk consumable Lifetime choice survives pause and saves once without an object',{timeout:30000},async t=>{
  const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#bulkEntryButton').click();await page.locator('#bulkPaste').fill('Object\tPrice\nFilament\t15');await page.locator('#readBulkPaste').click();await page.locator('#startBulkReview').click();
- await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#itemLifetimeCategory').selectOption('new');await page.locator('#itemLifetimeNewCategory').fill('Printer supplies');
+ await setItemLifetimeKind(page,'consumable');await chooseItemLifetimeCategory(page,'new');await page.locator('#itemLifetimeNewCategory').fill('Printer supplies');
  await page.locator('[data-inv-close="itemDialog"]').last().click();await page.reload();
  await page.locator('#bulkEntryButton').click();await page.locator('#resumeBulkButton').click();
  assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'consumable');assert.equal(await page.locator('#itemLifetimeNewCategory').inputValue(),'Printer supplies');
@@ -2612,14 +2620,14 @@ test('bulk consumable Lifetime choice survives pause and saves once without an o
 test('Lifetime item validation preserves state, allocates copy cents and rejects stale spending edits',{timeout:30000},async t=>{
  const {page}=await fixture(t);await page.locator('[data-close-dialog="supportDialog"]').click();
  await page.locator('#addItemButton').click();await page.locator('#itemName').fill('Filament');
- await page.locator('#itemLifetimeKind').selectOption('consumable');await page.locator('#itemLifetimeCategory').selectOption('new');await page.locator('#itemLifetimeNewCategory').fill('Supplies');
+ await setItemLifetimeKind(page,'consumable');await chooseItemLifetimeCategory(page,'new');await page.locator('#itemLifetimeNewCategory').fill('Supplies');
  await page.locator('#saveItemButton').click();assert.match(await page.locator('#itemFormError').innerText(),/obtaining price/);
  assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().lifetime.categories.length),0);
  await page.locator('#itemPrice').fill('10.01');await page.locator('#itemCopies').fill('3');await page.locator('#itemCopies').dispatchEvent('change');
  await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
  let data=await page.evaluate(()=>window.LocalApp.storage.getState().lifetime);
  assert.equal(data.categories[0].purchases.length,3);assert.equal(data.categories[0].purchases.reduce((sum,p)=>sum+Math.round(p.amount*100),0),1001);
- await addInventoryItem(page,{name:'Spool rack'});await page.locator('[data-edit-item]').first().click();await page.locator('#itemLifetimeCategory').selectOption(data.categories[0].id);await page.locator('#saveItemButton').click();
+ await addInventoryItem(page,{name:'Spool rack'});await page.locator('[data-edit-item]').first().click();await chooseItemLifetimeCategory(page,data.categories[0].id);await page.locator('#saveItemButton').click();
  await page.locator('[data-edit-item]').first().click();
  await page.evaluate(()=>window.LocalApp.storage.mutate(s=>{s.lifetime.categories[0].purchases.find(p=>p.kind==='object').amount=99;}));
  await page.locator('#itemPrice').fill('120');await page.locator('#saveItemButton').click();assert.match(await page.locator('#itemFormError').innerText(),/Lifetime purchases changed/);
@@ -2738,4 +2746,38 @@ for(const width of [1440,390]) test('Backpacking missing weights have red inputs
  await object.fill('');assert.equal(await object.locator('..').getAttribute('data-missing-weight'),'true');await object.press('Tab');
  await page.reload();await page.locator('#inventoryList [data-instant-filter="categories"]').first().click();
  assert.equal(await object.locator('..').getAttribute('data-missing-weight'),'true');assert.equal(await entry.locator('..').getAttribute('data-missing-weight'),'false');assert.equal(await entry.inputValue(),'0');
+});
+
+for(const width of [1920,390,320]) test('Add fills viewport and Lifetime toggle and tag menus support hover or touch at '+width,{timeout:30000},async t=>{
+ const touch=width!==1920;
+ const {page}=await fixture(t,{viewport:{width,height:1000},hasTouch:touch,isMobile:touch});page.setDefaultTimeout(5000);
+ if(width===320) {if (!await page.locator('#supportDialog').evaluate(el=>el.open)) await page.locator('#supportButton').click();await page.locator('#textSizeSlider').fill('130');}
+ await page.evaluate(()=>window.LocalApp.storage.mutate(s=>{s.lifetime.categories=[{id:'printer-ui',name:'3D Printer',purchases:[]},{id:'camp-ui',name:'Camp <supplies>',purchases:[]}];}));
+ if(await page.locator('#supportDialog').evaluate(el=>el.open)) await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();
+ const box=await page.locator('#itemDialog').boundingBox();assert.equal(box.x,0);assert.equal(box.y,0);assert.equal(box.width,width);assert.equal(box.height,1000);
+ const toggle=page.locator('#itemLifetimeKindToggle');await toggle.click();assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'consumable');assert.equal(await toggle.getAttribute('aria-pressed'),'true');
+ await toggle.click();assert.equal(await page.locator('#itemLifetimeKind').inputValue(),'object');
+ const row=await page.locator('.item-lifetime-controls').evaluate(el=>{const a=el.querySelector('button').getBoundingClientRect(),b=el.querySelector('details').getBoundingClientRect();return {beside:a.right<=b.left+1,aligned:Math.abs(a.top-b.top)<2};});assert.deepEqual(row,{beside:true,aligned:true});
+ const picker=page.locator('#itemLifetimePicker'),category=page.locator('#itemLifetimeCategoryButton');
+ if(touch) await category.tap();else {await category.hover();await page.waitForFunction(()=>document.querySelector('#itemLifetimePicker').open);await page.mouse.move(10,10);await page.waitForFunction(()=>!document.querySelector('#itemLifetimePicker').open);await category.hover();}
+ await page.waitForFunction(()=>document.querySelector('#itemLifetimePicker').open);
+ const choice=page.locator('[data-item-lifetime-category="camp-ui"]');if(touch) await choice.tap();else await choice.click();
+ assert.equal(await page.locator('#itemLifetimeCategory').inputValue(),'camp-ui');assert.equal(await category.locator('supplies').count(),0);assert.match(await category.innerText(),/Camp <supplies>/);
+ const smart=page.locator('[data-item-tag-group="Smart"]'),summary=smart.locator('summary');
+ if(touch) {await summary.tap();assert.equal(await smart.evaluate(el=>el.open),true);await summary.tap();assert.equal(await smart.evaluate(el=>el.open),false);await summary.tap();}
+ else {await summary.hover();await page.waitForFunction(()=>document.querySelector('[data-item-tag-group="Smart"]').open);await smart.locator('.item-tag-menu').hover();assert.equal(await smart.evaluate(el=>el.open),true);await summary.click();await page.mouse.move(10,10);await page.waitForTimeout(220);assert.equal(await smart.evaluate(el=>el.open),true);}
+ const camera=smart.locator('[data-item-tag-option="Camera"]');if(touch) await camera.tap();else await camera.click();
+ assert.match(await page.locator('#itemCategories').inputValue(),/Camera/);await summary.press('Escape');assert.equal(await smart.evaluate(el=>el.open),false);assert.equal(await page.locator('#itemDialog').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+});
+
+test('Lifetime toggle requires a category and shows the new category name before saving',{timeout:30000},async t=>{
+ const {page}=await fixture(t);page.setDefaultTimeout(5000);if(await page.locator('#supportDialog').evaluate(el=>el.open)) await page.locator('[data-close-dialog="supportDialog"]').click();
+ await page.locator('#addItemButton').click();await page.locator('#itemName').fill('Filament');await page.locator('#itemPrice').fill('12.95');await page.locator('#itemLifetimeKindToggle').click();await page.locator('#saveItemButton').click();
+ assert.match(await page.locator('#itemFormError').innerText(),/Choose a Lifetime category/);assert.equal(await page.evaluate(()=>window.LocalApp.storage.getState().inventory.items.length),0);
+ await chooseItemLifetimeCategory(page,'new');await page.locator('#itemLifetimeNewCategory').fill('Supplies <literal>');
+ assert.match(await page.locator('#itemLifetimeCategoryButton').innerText(),/Supplies <literal>/);assert.equal(await page.locator('#itemLifetimeCategoryButton literal').count(),0);
+ await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+ const saved=await page.evaluate(()=>window.LocalApp.storage.getState());assert.equal(saved.inventory.items.length,0);assert.equal(saved.lifetime.categories[0].name,'Supplies <literal>');assert.equal(saved.lifetime.categories[0].purchases[0].kind,'consumable');
 });

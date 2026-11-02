@@ -609,13 +609,23 @@
     renderItemTagGroups();
   }
   let itemTagGroupSignature='';
-  function positionItemTagPopup(panel,anchor) {
-    const bounds=anchor.getBoundingClientRect(), body=$('#itemDialog .dialog-body').getBoundingClientRect(), bar=$('#itemTagGroups').getBoundingClientRect();
+  function positionItemTagPopup(panel,anchor,barElement) {
+    const bounds=anchor.getBoundingClientRect(), body=$('#itemDialog .dialog-body').getBoundingClientRect(), bar=(barElement || $('#itemTagGroups')).getBoundingClientRect();
     const width=Math.min(384,body.width-24);
     panel.style.width=width+'px';panel.style.right='auto';panel.style.left=(Math.max(body.left+12,Math.min(bounds.left,body.right-12-width))-bounds.left)+'px';
     const below=body.bottom-bar.bottom-12,above=bar.top-body.top-12,useAbove=below<Math.min(200,panel.scrollHeight) && above>below;
     panel.style.maxHeight=Math.max(80,Math.min(288,useAbove?above:below))+'px';
     panel.style.top=useAbove?'auto':(bar.bottom-bounds.top+4)+'px';panel.style.bottom=useAbove?(bounds.bottom-bar.top+4)+'px':'auto';
+  }
+  function initItemMenu(details,position) {
+    let pinned=false,timer;
+    details.dataset.itemMenu='';
+    const close=function () {clearTimeout(timer);pinned=false;details.open=false;};
+    details.addEventListener('pointerenter',function (event) {if (event.pointerType==='touch') return;clearTimeout(timer);if (!details.open) pinned=false;details.open=true;});
+    details.addEventListener('pointerleave',function (event) {if (event.pointerType==='touch' || pinned) return;timer=setTimeout(function () {if (!details.contains(document.activeElement)) close();},180);});
+    details.addEventListener('focusout',function (event) {if (!pinned && !details.contains(event.relatedTarget)) close();});
+    $('summary',details).addEventListener('click',function (event) {event.preventDefault();clearTimeout(timer);if (details.open && pinned) close();else {pinned=true;details.open=true;}});
+    details.addEventListener('toggle',function () {if (!details.open) {clearTimeout(timer);pinned=false;return;}$$('#itemDialog [data-item-menu][open]').forEach(function (other) {if (other!==details) other.open=false;});position();});
   }
   function renderItemTagGroups() {
     const root=$('#itemTagGroups');if (!root) return;
@@ -624,7 +634,7 @@
     if (signature!==itemTagGroupSignature) {
       itemTagGroupSignature=signature;
       root.innerHTML=groups.map(function (group) {return '<details data-item-tag-group="'+esc(group.name)+'"><summary class="button small">'+App.icons.category(group.name)+'<span>'+esc(group.name)+'</span><span aria-hidden="true">▾</span></summary><div class="item-tag-menu" role="group" aria-label="'+esc(group.name)+' tags">'+group.tags.slice().sort(function (a,b) {return a.localeCompare(b);}).map(function (tag) {return '<label><input type="checkbox" data-item-tag-option="'+esc(tag)+'">'+App.icons.category(tag)+'<span>'+esc(tag)+'</span></label>';}).join('')+'</div></details>';}).join('');
-      $$('details',root).forEach(function (details) {details.addEventListener('toggle',function () {if (!this.open) return;$$('details[open]',root).forEach(function (other) {if (other!==details) other.open=false;});positionItemTagPopup($('.item-tag-menu',details),details);});});
+      $$('details',root).forEach(function (details) {initItemMenu(details,function () {$('#itemTagSearchOptions').hidden=true;$('#itemTagSearch').setAttribute('aria-expanded','false');positionItemTagPopup($('.item-tag-menu',details),details);});});
     }
     const selected=m.tags($('#itemCategories').value).map(function (tag) {return tag.toLowerCase();});
     $$('[data-item-tag-option]',root).forEach(function (input) {input.checked=selected.includes(input.dataset.itemTagOption.toLowerCase());});
@@ -693,7 +703,7 @@
       list.innerHTML = choices.map(function (option, index) { return '<div role="option" aria-selected="false" id="' + id + 'Option' + index + '" data-option="' + index + '" style="padding-left:' + (.65 + (option.level || 0) * .9) + 'rem"><span>' + esc(option.value) + '</span><small>' + esc(option.detail) + '</small></div>'; }).join("") || '<p>No More Suggestions</p>';
       active = -1; input.removeAttribute("aria-activedescendant"); list.hidden = false; input.setAttribute("aria-expanded", "true");
       if (id==='itemTagSearch' && $('#itemTagGroups')) {
-        $$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});
+        $$('#itemDialog [data-item-menu][open]').forEach(function (details) {details.open=false;});
         positionItemTagPopup(list,input.closest('.picker'));
       }
     }
@@ -803,17 +813,25 @@
       } catch (error) {renderItemTagGroups();formError('#itemFormError',error.message);}
     });
     $('#itemTagGroups').addEventListener('click',function (event) {if (event.target.closest('summary')) {$('#itemTagSearchOptions').hidden=true;$('#itemTagSearch').setAttribute('aria-expanded','false');}});
-    window.addEventListener('resize',function () {$$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});});
+    window.addEventListener('resize',function () {$$('#itemDialog [data-item-menu][open]').forEach(function (details) {details.open=false;});});
     $('#itemForm').addEventListener('keydown',function (event) {
-      const open=$('#itemTagGroups details[open]');if (event.key!=='Escape' || !open) return;
+      const open=$('#itemDialog [data-item-menu][open]');if (event.key!=='Escape' || !open) return;
       event.preventDefault();event.stopPropagation();open.open=false;$('summary',open).focus();
     },true);
-    $('#itemDialog').addEventListener('click',function (event) {if (!event.target.closest('#itemTagGroups')) $$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});});
+    $('#itemDialog').addEventListener('click',function (event) {$$('#itemDialog [data-item-menu][open]').forEach(function (details) {if (!details.contains(event.target)) details.open=false;});});
     notes.classList.add('item-editor-notes');$('.item-location-row').classList.add('item-location-description-row');$('.item-location-row').append(notes);
     tagRow.insertAdjacentHTML('afterbegin','<fieldset class="item-checklists"><legend>Checklists</legend>'+Object.entries(checklistNames).map(function ([key,name]) {return '<label><input type="checkbox" name="itemChecklist" value="'+key+'">'+esc(name)+'</label>';}).join('')+'</fieldset>');
-    $('.item-checklists',tagRow).insertAdjacentHTML('afterend','<fieldset class="item-lifetime"><legend>Lifetime</legend><label class="field"><span>Type</span><select id="itemLifetimeKind"><option value="object">Object</option><option value="consumable">Consumable</option></select></label><label class="field"><span>Category</span><select id="itemLifetimeCategory"></select></label><label class="field" id="itemLifetimeNewField" hidden><span>New category</span><input id="itemLifetimeNewCategory" maxlength="300"></label><small id="itemLifetimeHint">Choose a category to include the obtaining price in Lifetime.</small></fieldset>');
+    $('.item-checklists',tagRow).insertAdjacentHTML('afterend','<fieldset class="item-lifetime"><legend>Lifetime</legend><input id="itemLifetimeKind" type="hidden" value="object"><input id="itemLifetimeCategory" type="hidden"><div class="item-lifetime-controls"><button id="itemLifetimeKindToggle" type="button" class="button" aria-pressed="false">Object</button><details id="itemLifetimePicker"><summary class="button" id="itemLifetimeCategoryButton">'+icon('lifetime')+'<span data-lifetime-category-label>Category</span><span aria-hidden="true">▾</span></summary><div id="itemLifetimeChoices" class="item-lifetime-menu" role="group" aria-label="Lifetime category"></div></details></div><label class="field" id="itemLifetimeNewField" hidden><span>New category</span><input id="itemLifetimeNewCategory" maxlength="300"></label><small id="itemLifetimeHint">Choose a category to include the obtaining price in Lifetime.</small></fieldset>');
+    initItemMenu($('#itemLifetimePicker'),function () {positionItemTagPopup($('#itemLifetimeChoices'),$('#itemLifetimePicker'),$('.item-lifetime-controls'));});
+    $('#itemLifetimeKindToggle').addEventListener('click',function () {const field=$('#itemLifetimeKind');field.value=field.value==='object'?'consumable':'object';syncItemLifetime();field.dispatchEvent(new Event('input',{bubbles:true}));});
+    $('#itemLifetimeChoices').addEventListener('click',function (event) {
+      const button=event.target.closest('[data-item-lifetime-category]');if (!button) return;
+      const field=$('#itemLifetimeCategory');field.value=button.dataset.itemLifetimeCategory;syncItemLifetime();$('#itemLifetimePicker').open=false;
+      (field.value==='new'?$('#itemLifetimeNewCategory'):$('#itemLifetimeCategoryButton')).focus();field.dispatchEvent(new Event('input',{bubbles:true}));
+    });
     $('#itemLifetimeCategory').addEventListener('change',syncItemLifetime);
     $('#itemLifetimeKind').addEventListener('change',syncItemLifetime);
+    $('#itemLifetimeNewCategory').addEventListener('input',syncItemLifetime);
     const group=document.createElement('div');group.className='checklist-ownership-actions';
     actions.prepend(group);
     ['#resetChecklist','.checklist-quick','#inventoryStats'].forEach(function (selector) {group.append($(selector));});
@@ -1415,9 +1433,15 @@
   }
   function syncItemLifetime() {
     const consumable=$('#itemLifetimeKind').value==='consumable';
+    const toggle=$('#itemLifetimeKindToggle');toggle.textContent=consumable?'Consumable':'Object';toggle.setAttribute('aria-pressed',String(consumable));toggle.setAttribute('aria-label','Item type: '+toggle.textContent+'. Switch to '+(consumable?'Object':'Consumable'));
+    const choice=$$('[data-item-lifetime-category]').find(function (button) {return button.dataset.itemLifetimeCategory===$('#itemLifetimeCategory').value;});
+    const categoryLabel=$('#itemLifetimeCategory').value==='new' ? $('#itemLifetimeNewCategory').value.trim() || 'New category…' : choice?.textContent || 'Not included';
+    $('[data-lifetime-category-label]').textContent=$('#itemLifetimeCategory').value?categoryLabel:'Category';
+    $('#itemLifetimeCategoryButton').setAttribute('aria-label','Lifetime category: '+categoryLabel);
+    $('#itemLifetimeCategoryButton').title=categoryLabel;
+    $$('[data-item-lifetime-category]').forEach(function (button) {button.setAttribute('aria-pressed',String(button===choice));});
     $('#itemLifetimeNewField').hidden=$('#itemLifetimeCategory').value!=='new';
     $('#itemLifetimeNewCategory').required=!$('#itemLifetimeNewField').hidden;
-    $('#itemLifetimeCategory').required=consumable;
     $('#itemDirectArchive').hidden=!directArchive || consumable;
     $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) {input.disabled=!directArchive || consumable;});
     $('#itemDirectGoneReason').required=directArchive && !consumable;
@@ -1438,7 +1462,7 @@
     directArchive=Boolean(item?.archive) || (!id && !copy && (draft ? Boolean(draft._archiveMode) : view==='previous'));
     editingId = id; originalItem = item ? JSON.stringify(item) : "";
     $("#itemForm").reset(); $("#itemFormError").hidden = true;
-    $$('#itemTagGroups details[open]').forEach(function (details) {details.open=false;});
+    $$('#itemDialog [data-item-menu][open]').forEach(function (details) {details.open=false;});
     $('#itemDirectArchive').hidden=!directArchive;
     $$('#itemDirectArchive input, #itemDirectArchive select, #itemDirectArchive textarea').forEach(function (input) { input.disabled=!directArchive; });
     $('#itemDirectGoneReason').required=directArchive; $('#itemDirectGoneDate').max=m.today();
@@ -1491,7 +1515,7 @@
     suggestProperties(); fillMissingAmount(); syncDateUnknown(); if ($('#itemIsSet').checked) sumPieceValues(); renderPricing();
     $$('[name="itemChecklist"]').forEach(function (input) {input.checked=checklist(input.value).objects.includes(editingId);});
     const linked=App.storage.getState().lifetime.categories.find(function (category) {return category.purchases.some(function (purchase) {return purchase.id===editingId;});});
-    $('#itemLifetimeCategory').innerHTML='<option value="">Not included</option>'+App.storage.getState().lifetime.categories.map(function (category) {return '<option value="'+esc(category.id)+'">'+esc(category.name)+'</option>';}).join('')+'<option value="new">New category…</option>';
+    $('#itemLifetimeChoices').innerHTML=[{id:'',name:'Not included'}].concat(App.storage.getState().lifetime.categories,[{id:'new',name:'New category…'}]).map(function (category) {return '<button type="button" class="button" data-item-lifetime-category="'+esc(category.id)+'" aria-pressed="false">'+esc(category.name)+'</button>';}).join('');
     $('#itemLifetimeCategory').value=draft?._lifetime?.categoryId || linked?.id || '';
     $('#itemLifetimeKind').value=draft?._lifetime?.kind || 'object';
     $('#itemLifetimeNewCategory').value=draft?._lifetime?.categoryName || '';
@@ -1510,6 +1534,7 @@
       const count = previous?.archive ? 1 : Number($("#itemCopies").value);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error("Choose between 1 and 100 copies.");
       const lifetime=lifetimeSelection(), consumable=lifetime.kind==='consumable';
+      if (consumable && !lifetime.categoryId) throw new Error('Choose a Lifetime category for this consumable.');
       if (!consumable && !App.bulkEntry?.current() && inventory().items.length + count - (previous ? Math.max(1, editingCopies.length) : 0) > 5000) throw new Error("These copies would exceed the 5,000-item inventory limit.");
       const item = { id: editingId || u.uid("item"), ...(previous?.copyGroup ? {copyGroup:previous.copyGroup} : {}), archive: consumable ? null : directArchive ? {date:$('#itemDirectGoneDateUnknown').checked?'':inputDate($('#itemDirectGoneDate').value),reason:$('#itemDirectGoneReason').value,notes:$('#itemDirectGoneNotes').value} : previous?.archive || null };
       ["name", "description", "owner", "room", "obtainedDate", "obtainedHow", "source", "value", "price"].forEach(function (key) { item[key] = $("#item" + key[0].toUpperCase() + key.slice(1)).value; });
