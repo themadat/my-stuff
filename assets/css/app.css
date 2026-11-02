@@ -1540,7 +1540,7 @@ body.had-view { --bg: #dce4ed; --surface: #f2f5fa; --surface-2: #cbd7e5; --line:
 @media(max-width:400px) {
  #itemDialog .item-lifetime-controls .button { min-height: 44px; font-size: .75rem; padding-inline: .4rem; }
 }
-.item-checklists-tags-row .item-checklists { align-self: start; }
+.item-checklists-tags-row .item-checklists { align-self: stretch; align-content: start; }
 
 #itemDialog .item-location-description-row { grid-template-columns: repeat(3,minmax(0,1fr)) minmax(0,2fr); align-items: stretch; }
 .item-location-description-row .item-editor-notes { min-width: 0; }

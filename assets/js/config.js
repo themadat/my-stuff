@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.117",
-      buildId: "0.0.1.117",
+      version: "0.0.1.118",
+      buildId: "0.0.1.118",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -90,6 +90,18 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.118",
+  "date": "2026-11-02T19:56:31.369Z",
+  "title": "Aligned editor sections",
+  "summary": "Checklists and Lifetime have equal heights and less helper text.",
+  "features": [],
+  "improvements": [
+    "Match Checklists and Lifetime section heights.",
+    "Remove the object Lifetime category helper text."
+  ],
+  "fixes": [],
+  "knownIssues": []
+}, {
   "version": "0.0.1.117",
   "date": "2026-11-02T19:30:54.664Z",
   "title": "Editor section rows",

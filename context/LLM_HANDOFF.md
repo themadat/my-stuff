@@ -1,10 +1,8 @@
 # Current state
 
-Build 0.0.1.117 is prepared, verified, and uncommitted. Checklists and Lifetime share a horizontal row in the object editor at all widths; Tags occupies its own full-width row below. Existing desktop/mobile editor tests assert section alignment and Tags placement at 1920, 390, and 320 pixels (including enlarged text).
+Build 0.0.1.118 is prepared, verified, and uncommitted. Removed the object Lifetime helper text (“Choose a category to include the obtaining price in Lifetime.”). Consumable guidance still appears for consumables. Checklists now stretches to match Lifetime's height in their shared row. Tags remains below.
 
-Prior uncommitted build 0.0.1.116 changes are preserved: Infrared (IR) Network choice, current Help update, and save/reload browser coverage.
-
-Verification: all 193 non-browser tests and 4 browser checks passed (three editor sizes and service-worker offline reload). `git diff --check` passed. Preview server stopped. No commit or push performed.
+Verification: all 193 non-browser tests and 4 browser checks passed (editor at 1920, 390, and 320 pixels with equal-height assertions, plus service-worker offline reload). `git diff --check` passed. Preview server stopped. Version/cache surfaces aligned once with `scripts/release.mjs`. No commit or push performed.
 
 # Constraints and pointers
 
