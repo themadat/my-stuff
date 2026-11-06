@@ -2782,3 +2782,33 @@ test('Lifetime toggle requires a category and shows the new category name before
  await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
  const saved=await page.evaluate(()=>window.LocalApp.storage.getState());assert.equal(saved.inventory.items.length,0);assert.equal(saved.lifetime.categories[0].name,'Supplies <literal>');assert.equal(saved.lifetime.categories[0].purchases[0].kind,'consumable');
 });
+
+// Viewport coverage follows the cover/inner display proportions, without device detection.
+for (const viewport of [{width:320,height:678},{width:466,height:678},{width:626,height:890},{width:890,height:626}]) {
+ test('foldable layout keeps actions reachable and drafts through resize at '+viewport.width,{timeout:30000},async t=>{
+  const {page}=await fixture(t,{viewport,isMobile:true,hasTouch:true});page.setDefaultTimeout(5000);
+  if(viewport.width===320) await page.locator('#textSizeSlider').fill('130');
+  await page.locator('[data-close-dialog="supportDialog"]').click();
+  for(const selector of ['#addItemButton','#bulkEntryButton','#checklistButton','#lifetimeButton']) {
+   const box=await page.locator(selector).boundingBox();assert.ok(box.x>=0&&box.x+box.width<=viewport.width+1,selector+' stays within viewport');
+  }
+  assert.equal(await page.locator('.inventory-actions').evaluate(el=>[...el.querySelectorAll('.button,.inventory-stat')].every(x=>{const r=x.getBoundingClientRect();return !r.width||(r.x>=0&&r.right<=innerWidth+1);})),true,'toolbar actions fit without horizontal scrolling');
+  if(viewport.height<=740) assert.equal(await page.locator('.inventory-toolbar-scroll').evaluate(el=>getComputedStyle(el).position),'static');
+  await page.locator('#addItemButton').click();await page.locator('#itemName').fill('Foldable draft');
+  assert.ok(await page.locator('#itemName').evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=16));
+  assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+  if(viewport.width<=700) {
+   const room=await page.locator('#itemRoom').boundingBox();assert.ok(room.width>=120,'location field is readable');
+   assert.ok(await page.locator('.item-editor-notes').evaluate(el=>el.clientWidth>el.parentElement.clientWidth*.9));
+  }
+  for(const size of [{width:890,height:626},{width:466,height:678},viewport]) {
+   await page.setViewportSize(size);assert.equal(await page.locator('#itemName').inputValue(),'Foldable draft');
+   const save=await page.locator('#saveItemButton').boundingBox();assert.ok(save.y>=0&&save.y+save.height<=size.height+1,'save remains visible after resizing');
+   assert.equal(await page.locator('#itemDialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+  }
+  await page.locator('#saveItemButton').click();await page.waitForFunction(()=>!document.querySelector('#itemDialog').open);
+  await page.reload();assert.match(await page.locator('#inventoryList').innerText(),/Foldable draft/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  if(process.env.QA_SCREENSHOTS) await page.screenshot({path:'/tmp/duo-verified-'+viewport.width+'.png'});
+ });
+}

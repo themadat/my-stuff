@@ -9,8 +9,8 @@
       shortName: "My Stuff",
       slug: "my-stuff",
       description: "A local-first inventory of the things you own and used to own.",
-      version: "0.0.1.118",
-      buildId: "0.0.1.118",
+      version: "0.0.1.119",
+      buildId: "0.0.1.119",
       repository: { label: "Project Repository", url: "https://github.com/themadat/my-stuff" },
       support: [
         { label: "Report a Problem", url: "https://github.com/themadat/my-stuff/issues/new" },
@@ -90,6 +90,22 @@
     },
     themeDefaults: { accent: "#b44916", accent2: "#c65d24", success: "#4f745f", warning: "#9b6a24", danger: "#a74747" },
     releases: [{
+  "version": "0.0.1.119",
+  "date": "2026-11-06",
+  "title": "Foldable-friendly layouts",
+  "summary": "Roomier item entry and reachable inventory actions across folded and unfolded screens.",
+  "features": [],
+  "improvements": [
+    "Inventory actions wrap into the available space on compact unfolded screens.",
+    "Phone editors use wider location and purchase fields, full-width Notes, and touch-sized tag and property controls.",
+    "Short screens scroll past inventory filters, while item dialogs adapt to viewport height and safe areas.",
+    "Editable text stays readable on touch screens, and copy locations reflow into two columns."
+  ],
+  "fixes": [
+    "Prevent compact-screen inventory actions from being pushed off-screen by the desktop toolbar width."
+  ],
+  "knownIssues": []
+}, {
   "version": "0.0.1.118",
   "date": "2026-11-02T19:56:31.369Z",
   "title": "Aligned editor sections",
